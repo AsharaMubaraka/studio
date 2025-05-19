@@ -9,109 +9,104 @@ body {
 
 @layer base {
   html {
-    /* User should replace this URL with their desired green background image - this one is green */
-    background-image: url('https://relay.alvazarat.org/images/main-bg.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed; /* Keep the background fixed during scroll */
-    min-height: 100svh; /* Ensure html covers full viewport height */
-    height: 100%; /* Ensure html covers full viewport height */
+    /* Removed background-image, will use solid color from --background */
+    min-height: 100svh;
+    height: 100%;
   }
 
   :root {
-    /* Theme for a Green Background Image with Colorful Contrasts and Neutral Cards */
-    --background: 220 10% 15% / 0.85; /* Dark, semi-transparent neutral for content overlay, allowing green bg to show */
-    --foreground: 0 0% 98%; /* Off-white for text, high contrast */
+    /* Light Peach & Muted Blue/Purple Theme inspired by Contact page image */
+    --background: 34 100% 92%; /* Light Peach - Page content background */
+    --foreground: 20 15% 30%; /* Dark grayish brown - Main text color */
 
-    --card: 220 10% 20%; /* Dark, cool neutral (charcoal/slate) for cards */
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%; /* White - For content cards */
+    --card-foreground: 20 15% 30%; /* Dark grayish brown - Text on white cards */
 
-    --popover: 220 10% 18%; /* Slightly darker neutral for popovers */
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%; /* White */
+    --popover-foreground: 20 15% 30%;
 
-    --primary: 90 60% 55%; /* Vibrant lime/spring green for primary actions */
-    --primary-foreground: 120 60% 10%; /* Very dark green for text on primary buttons */
+    --primary: 230 35% 58%; /* Muted Blue/Purple - For headers, bottom nav, main actions */
+    --primary-foreground: 0 0% 100%; /* White - Text on primary */
 
-    --secondary: 45 70% 60%; /* Golden yellow/amber for secondary elements */
-    --secondary-foreground: 45 60% 10%; /* Dark brown for text on secondary */
+    --secondary: 230 25% 75%; /* Lighter Muted Blue/Purple - For secondary actions/elements */
+    --secondary-foreground: 230 35% 30%; /* Darker blue text on light blue secondary */
 
-    --muted: 220 8% 25%; /* Muted version of the neutral card color */
-    --muted-foreground: 220 10% 65%; /* Softer light gray for muted text */
+    --muted: 30 50% 85%; /* Very light peach/off-white for subtle backgrounds or borders */
+    --muted-foreground: 30 20% 50%; /* Softer grayish brown for muted text */
 
-    --accent: 330 70% 60%; /* Vibrant magenta/pink for accents */
-    --accent-foreground: 0 0% 100%; /* White for text on accent */
+    --accent: 45 90% 60%; /* Vibrant Gold/Yellow for highlights, active states */
+    --accent-foreground: 45 40% 20%; /* Dark brown for text on gold/yellow */
 
-    --destructive: 0 70% 55%; /* Standard vibrant red */
+    --destructive: 0 70% 55%; /* Standard Red */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 10% 28%; /* Subtle neutral border, slightly lighter than card */
-    --input: 220 10% 19%; /* Dark neutral input background */
-    --ring: 90 60% 55%; /* Primary green for focus rings */
+    --border: 30 30% 82%; /* Soft peach-toned border */
+    --input: 0 0% 98%; /* Off-white for input fields */
+    --ring: 230 40% 65%; /* Brighter blue/purple for focus rings */
 
-    --chart-1: 90 60% 55%;  /* Lime Green (Primary) */
-    --chart-2: 45 70% 60%;  /* Golden Yellow (Secondary) */
-    --chart-3: 330 70% 60%; /* Magenta (Accent) */
-    --chart-4: 200 80% 60%; /* Bright Sky Blue */
-    --chart-5: 25 90% 60%;  /* Vibrant Orange */
+    --chart-1: 230 35% 58%;  /* Muted Blue/Purple (Primary) */
+    --chart-2: 45 90% 60%;   /* Gold/Yellow (Accent) */
+    --chart-3: 200 70% 65%;  /* A complementary teal/blue */
+    --chart-4: 25 80% 70%;   /* A complementary orange */
+    --chart-5: 330 60% 70%;  /* A complementary pink */
     --radius: 0.5rem;
 
     /* Sidebar specific theme variables */
-    --sidebar-background: 220 10% 18%; /* Dark neutral, same as popover */
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 90 60% 55%; /* Lime green for active/primary items */
-    --sidebar-primary-foreground: 120 60% 10%;
-    --sidebar-accent: 220 10% 22%; /* Hover/active state for sidebar items - slightly lighter neutral */
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 220 10% 25%;
-    --sidebar-ring: 90 60% 55%;
+    --sidebar-background: 230 30% 52%; /* Slightly darker than primary for sidebar */
+    --sidebar-foreground: 0 0% 95%; /* Off-white text */
+    --sidebar-primary: 45 90% 60%; /* Gold/Yellow for active item text */
+    --sidebar-primary-foreground: 230 30% 52%; /* Sidebar bg color to contrast with gold text */
+    --sidebar-accent: 230 30% 62%; /* Lighter blue for hover/active item background in sidebar */
+    --sidebar-accent-foreground: 0 0% 100%; /* White text on hover/active */
+    --sidebar-border: 230 30% 45%;
+    --sidebar-ring: 45 90% 60%;
   }
 
   .dark {
-    /* Dark Theme - Adjustments for the neutral dark theme, can be subtle if base is already dark */
-    --background: 220 12% 12% / 0.9; /* Slightly darker/more opaque overlay */
-    --foreground: 0 0% 98%;
+    /* Dark Theme Variant */
+    --background: 230 15% 15%; /* Dark Slate Blue */
+    --foreground: 0 0% 90%; /* Light Gray */
 
-    --card: 220 12% 18%; /* Slightly darker neutral for cards in dark mode */
-    --card-foreground: 0 0% 98%;
+    --card: 230 15% 20%; /* Slightly Lighter Dark Slate Blue */
+    --card-foreground: 0 0% 90%;
 
-    --popover: 220 12% 16%; /* Slightly darker neutral for popovers in dark mode */
-    --popover-foreground: 0 0% 98%;
+    --popover: 230 15% 18%;
+    --popover-foreground: 0 0% 90%;
 
-    --primary: 90 65% 60%; /* Slightly brighter lime green */
-    --primary-foreground: 120 60% 10%;
+    --primary: 230 40% 65%; /* Brighter Muted Blue/Purple */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 45 75% 65%; /* Slightly brighter golden yellow */
-    --secondary-foreground: 45 60% 10%;
+    --secondary: 230 30% 50%; /* Medium Muted Blue/Purple */
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 220 10% 22%;
-    --muted-foreground: 220 10% 70%;
+    --muted: 230 15% 30%; /* Darker Muted element background */
+    --muted-foreground: 230 10% 65%; /* Lighter muted text */
 
-    --accent: 330 75% 65%; /* Slightly brighter magenta */
-    --accent-foreground: 0 0% 100%;
+    --accent: 45 80% 65%; /* Slightly desaturated Gold/Yellow */
+    --accent-foreground: 45 30% 15%;
 
-    --destructive: 0 75% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 95%;
 
-    --border: 220 10% 25%;
-    --input: 220 10% 17%;
-    --ring: 90 65% 60%;
+    --border: 230 15% 25%;
+    --input: 230 15% 22%;
+    --ring: 230 45% 70%;
 
-    --chart-1: 90 65% 60%;
-    --chart-2: 45 75% 65%;
-    --chart-3: 330 75% 65%;
-    --chart-4: 200 85% 65%;
-    --chart-5: 25 95% 65%;
+    --chart-1: 230 40% 65%;
+    --chart-2: 45 80% 65%;
+    --chart-3: 200 60% 60%;
+    --chart-4: 25 70% 65%;
+    --chart-5: 330 50% 65%;
 
     /* Dark Sidebar specific theme variables */
-    --sidebar-background: 220 12% 16%; /* Dark neutral, same as popover in dark mode */
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 90 65% 60%;
-    --sidebar-primary-foreground: 120 60% 10%;
-    --sidebar-accent: 220 12% 20%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 220 10% 22%;
-    --sidebar-ring: 90 65% 60%;
+    --sidebar-background: 230 20% 18%; /* Darker sidebar */
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 45 80% 65%; /* Gold/Yellow for active item text */
+    --sidebar-primary-foreground: 230 20% 18%;
+    --sidebar-accent: 230 25% 30%; /* Hover/active bg */
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 230 15% 25%;
+    --sidebar-ring: 45 80% 65%;
   }
 }
 
@@ -120,11 +115,14 @@ body {
     @apply border-border;
   }
   body {
-    @apply bg-transparent text-foreground; /* Body is transparent to show html's bg image */
+    @apply bg-background text-foreground; /* Body now uses peach background and dark text */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    min-height: 100svh; /* Ensure body takes full height if content is short */
+    min-height: 100svh; 
     display: flex;
     flex-direction: column;
+  }
+  html {
+    @apply bg-background; /* Ensure html also has the base background color */
   }
 }

@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Megaphone, Globe, Youtube, Settings } from 'lucide-react';
+import { LayoutDashboard, Megaphone, Globe, Youtube, Phone, HandMetal, Bell } from 'lucide-react'; // Added Phone, HandMetal, Bell
 
 export type NavItem = {
   title: string;
@@ -9,27 +9,39 @@ export type NavItem = {
   disabled?: boolean;
 };
 
+// Updated navItems to somewhat match the screenshot's bottom bar, assuming "Home" is Dashboard
+// and "Notifications" is Announcements. "Website" is Web View. "Izan" and "Contact" are new.
 export const navItems: NavItem[] = [
   {
-    title: 'Dashboard',
+    title: 'Home', // Was 'Dashboard'
     href: '/dashboard',
-    icon: LayoutDashboard,
+    icon: LayoutDashboard, // Or Home icon if preferred and available
   },
   {
-    title: 'Announcements',
+    title: 'Notifications', // Was 'Announcements'
     href: '/announcements',
-    icon: Megaphone,
+    icon: Bell, // Using Bell for Notifications
   },
   {
-    title: 'Web View',
+    title: 'Website', // Was 'Web View'
     href: '/web-view',
     icon: Globe,
   },
   {
-    title: 'Live Relay',
-    href: '/live-relay',
-    icon: Youtube,
+    title: 'Izan', // New Item
+    href: '/live-relay', // Pointing Live Relay to Izan for now, can be changed
+    icon: HandMetal, // Lucide has HandMetal, not a plain hand. Or RadioTower from dashboard
   },
+  {
+    title: 'Contact', // New Item
+    href: '/contact',
+    icon: Phone,
+  },
+  // { // Original Live Relay if Izan gets its own page
+  //   title: 'Live Relay',
+  //   href: '/live-relay',
+  //   icon: Youtube,
+  // },
 ];
 
 export const siteConfig = {

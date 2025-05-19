@@ -21,7 +21,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Main navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card text-card-foreground shadow-sm md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-primary/30 bg-primary text-primary-foreground shadow-t-lg md:hidden"
     >
       <div className="flex h-16 items-stretch justify-around">
         {navItems.map((item) => (
@@ -30,12 +30,12 @@ export function BottomNav() {
             href={item.href}
             className={cn(
               "flex flex-1 flex-col items-center justify-center p-2 text-center transition-colors",
-              "focus:outline-none focus-visible:bg-accent focus-visible:text-accent-foreground",
-              (pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href)))
-                ? "text-primary"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+              "focus:outline-none focus-visible:bg-primary/80",
+              (pathname === item.href || (item.href !== "/" && item.href !== "/dashboard" && pathname.startsWith(item.href)))
+                ? "text-accent" // Active link uses accent color (gold/yellow)
+                : "text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary/90"
             )}
-            aria-current={pathname === item.href ? "page" : undefined}
+            aria-current={(pathname === item.href || (item.href !== "/" && item.href !== "/dashboard" && pathname.startsWith(item.href))) ? "page" : undefined}
           >
             <item.icon className="h-5 w-5" />
             <span className="mt-1 text-xs">{item.title}</span>
@@ -45,8 +45,8 @@ export function BottomNav() {
           onClick={toggleSidebar}
           aria-label="Open menu"
           className={cn(
-            "flex flex-1 flex-col items-center justify-center p-2 text-center text-muted-foreground transition-colors",
-            "hover:bg-accent/50 hover:text-accent-foreground focus:outline-none focus-visible:bg-accent focus-visible:text-accent-foreground"
+            "flex flex-1 flex-col items-center justify-center p-2 text-center text-primary-foreground/80 transition-colors",
+            "hover:text-primary-foreground hover:bg-primary/90 focus:outline-none focus-visible:bg-primary/80"
           )}
         >
           <Menu className="h-5 w-5" />

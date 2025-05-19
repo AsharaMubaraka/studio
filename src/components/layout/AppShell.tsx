@@ -13,14 +13,11 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  // SidebarTrigger, // Removed as it's no longer used in the header for mobile
   SidebarInset,
   useSidebar,
 } from "@/components/ui/sidebar";
-// import { Button } from "@/components/ui/button"; // No longer needed if SidebarTrigger is removed
 import { UserProfileMenu } from "./UserProfileMenu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import Image from "next/image";
 import { Building2 } from "lucide-react";
 import { BottomNav } from "./BottomNav";
 
@@ -31,8 +28,8 @@ interface AppShellProps {
 function Logo() {
   return (
     <Link href="/dashboard" className="flex items-center gap-2 px-2 group-data-[collapsible=icon]:justify-center">
-       <Building2 className="h-7 w-7 text-primary group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6" />
-      <span className="text-xl font-bold text-primary group-data-[collapsible=icon]:hidden">
+       <Building2 className="h-7 w-7 text-sidebar-primary group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6" />
+      <span className="text-xl font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
         {siteConfig.name}
       </span>
     </Link>
@@ -50,7 +47,7 @@ function MainNav() {
         <SidebarMenuItem key={item.href}>
           <SidebarMenuButton
             asChild
-            isActive={pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))}
+            isActive={pathname === item.href || (item.href !== "/dashboard" && item.href !== "/" && pathname.startsWith(item.href))}
             tooltip={{ children: item.title, hidden: isMobile }}
           >
             <Link href={item.href}>
@@ -68,7 +65,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <SidebarProvider defaultOpen={true}>
       <Sidebar>
-        <SidebarHeader className="p-4">
+        <SidebarHeader className="p-4 border-b border-sidebar-border">
           <Logo />
         </SidebarHeader>
         <SidebarContent asChild>
@@ -77,12 +74,12 @@ export function AppShell({ children }: AppShellProps) {
           </ScrollArea>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset> {/* This is now a div */}
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-end border-b bg-background/80 px-4 backdrop-blur-sm">
-          {/* <SidebarTrigger className="md:hidden" />  Removed: mobile trigger is now in BottomNav */}
+      <SidebarInset>
+        <header className="sticky top-0 z-40 flex h-16 items-center justify-end border-b bg-primary text-primary-foreground px-4 shadow-md">
+          {/* Mobile trigger is now in BottomNav */}
           <UserProfileMenu />
         </header>
-        <main className="flex-1 p-4 pb-20 sm:p-6 lg:p-8 md:pb-6 lg:pb-8"> {/* Added padding-bottom for BottomNav on mobile */}
+        <main className="flex-1 bg-background text-foreground p-0 md:p-4 lg:p-8 pb-20 md:pb-4 lg:pb-8"> {/* Removed padding for contact page header */}
            {children}
         </main>
         <BottomNav />
