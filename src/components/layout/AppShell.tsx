@@ -79,13 +79,14 @@ export function AppShell({ children }: AppShellProps) {
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-end border-b px-4 shadow-md">
           <UserProfileMenu />
         </header>
-        <div className="decorative-border-repeat decorative-border-repeat-h30"></div>
+        <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
         <main className="flex-1 bg-transparent text-foreground p-4 md:p-6 lg:p-8 pb-20 md:pb-4 lg:pb-8 relative">
            {children}
         </main>
-        <div className="decorative-border-repeat decorative-border-repeat-h30"></div>
+        <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
         <BottomNav />
       </SidebarInset>
     </SidebarProvider>
   );
 }
+
