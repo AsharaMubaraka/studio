@@ -22,8 +22,8 @@ body {
   }
 
   :root {
-    /* Light Theme with specific color requirements */
-    --background: 0 0% 100%; /* White - Page content background */
+    /* Light Theme inspired by #f3efe5 for nav and #9f8a3e for buttons */
+    --background: 0 0% 100%; /* White - Page content background (e.g. for inside cards) */
     --foreground: 20 15% 25%; /* Dark grayish brown - Main text color */
 
     --card: 0 0% 100%; /* White - For content cards */
@@ -32,12 +32,12 @@ body {
     --popover: 0 0% 100%; /* White */
     --popover-foreground: 20 15% 25%;
 
-    /* Nav bars color */
-    --nav-background: 48 33% 95%; /* #f3efe5 */
+    /* Nav bars color #f3efe5 */
+    --nav-background: 48 33% 95%;
     --nav-foreground: 45 15% 30%; /* Contrasting dark color for text/icons on nav */
 
-    /* Button color */
-    --primary: 49 46% 43%; /* #9f8a3e */
+    /* Button color #9f8a3e */
+    --primary: 49 46% 43%;
     --primary-foreground: 0 0% 100%; /* White - Text on primary buttons */
 
     --secondary: 48 33% 90%; /* Lighter beige for secondary elements if needed */
@@ -46,7 +46,7 @@ body {
     --muted: 48 25% 88%; /* Light beige for muted elements */
     --muted-foreground: 45 15% 45%; /* Softer grayish brown for muted text */
 
-    --accent: 30 80% 60%; /* A complementary vibrant accent (e.g., an orange) */
+    --accent: 170 60% 45%; /* A complementary teal */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 70% 55%; /* Standard Red */
@@ -57,9 +57,9 @@ body {
     --ring: 49 46% 53%; /* Brighter version of #9f8a3e for focus rings */
 
     --chart-1: 49 46% 43%;  /* Button color */
-    --chart-2: 30 80% 60%;   /* Accent orange */
-    --chart-3: 200 70% 65%;  /* A complementary teal/blue */
-    --chart-4: 25 80% 70%;   /* A complementary peach */
+    --chart-2: 170 60% 45%;  /* Accent teal */
+    --chart-3: 30 80% 60%;   /* An orange */
+    --chart-4: 200 70% 65%;  /* A complementary blue */
     --chart-5: 330 60% 70%;  /* A complementary pink */
     --radius: 0.5rem;
 
@@ -67,7 +67,7 @@ body {
     --sidebar-background: 48 33% 93%; /* Slightly off-white from #f3efe5 */
     --sidebar-foreground: 45 15% 25%; /* Dark text */
     --sidebar-primary: 49 46% 43%; /* #9f8a3e for active item text */
-    --sidebar-primary-foreground: 0 0% 100%; 
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 48 33% 88%; /* Lighter beige for hover/active item background */
     --sidebar-accent-foreground: 45 15% 25%; /* Dark text on hover/active */
     --sidebar-border: 48 20% 80%;
@@ -76,7 +76,7 @@ body {
 
   .dark {
     /* Dark Theme Variant */
-    --background: 220 13% 10%; /* Dark blue-gray - Page content background */
+    --background: 220 13% 10%; /* Dark blue-gray - Page content background (e.g. for inside cards) */
     --foreground: 0 0% 95%; /* Light Gray */
 
     --card: 220 13% 15%; /* Slightly Lighter Dark Blue-Gray */
@@ -89,17 +89,17 @@ body {
     --nav-background: 220 13% 18%; /* Dark color for nav bars */
     --nav-foreground: 48 33% 85%; /* Light beige text/icons on dark nav */
 
-    /* Button color - can remain same or be adjusted */
+    /* Button color - adjusted for dark mode */
     --primary: 49 46% 53%; /* #bfa95e - slightly brighter gold for dark mode */
     --primary-foreground: 20 15% 15%; /* Dark text on brighter gold */
 
     --secondary: 220 13% 25%;
     --secondary-foreground: 0 0% 90%;
 
-    --muted: 220 10% 22%; 
-    --muted-foreground: 220 10% 70%; 
+    --muted: 220 10% 22%;
+    --muted-foreground: 220 10% 70%;
 
-    --accent: 30 80% 65%; /* Brighter orange for dark mode */
+    --accent: 170 60% 55%; /* Brighter teal for dark mode */
     --accent-foreground: 0 0% 10%;
 
     --destructive: 0 60% 50%;
@@ -110,9 +110,9 @@ body {
     --ring: 49 46% 63%; /* Brighter gold for focus rings */
 
     --chart-1: 49 46% 53%;
-    --chart-2: 30 80% 65%;
-    --chart-3: 200 60% 60%;
-    --chart-4: 25 70% 65%;
+    --chart-2: 170 60% 55%;
+    --chart-3: 30 80% 65%;
+    --chart-4: 200 60% 60%;
     --chart-5: 330 50% 65%;
 
     /* Dark Sidebar specific theme variables */
@@ -135,13 +135,13 @@ body {
     @apply bg-transparent text-foreground; /* Body is transparent, text uses foreground */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    min-height: 100svh; 
+    min-height: 100svh;
     display: flex;
     flex-direction: column;
   }
   html {
     /* background image is set in the layer above */
-    @apply bg-transparent; 
+    @apply bg-transparent;
   }
 }
 
@@ -195,4 +195,20 @@ body {
   height: 100vh;
   object-fit: cover;
   z-index: -1;
+}
+
+/* Added for fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
 }

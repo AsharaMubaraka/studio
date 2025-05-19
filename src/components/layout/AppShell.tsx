@@ -80,10 +80,10 @@ export function AppShell({ children }: AppShellProps) {
         </header>
         <main className="flex-1 bg-transparent text-foreground p-4 md:p-6 lg:p-8 pb-20 md:pb-4 lg:pb-8 relative">
            {children}
-           <img 
-             src="https://misbah.info/wp-content/uploads/2024/03/bottom-border-1.png" 
-             alt="" 
-             className="w-full h-auto mt-auto absolute bottom-0 left-0 pointer-events-none" 
+           <img
+             src="https://misbah.info/wp-content/uploads/2024/03/bottom-border-1.png"
+             alt=""
+             className="w-full h-auto mt-auto absolute bottom-0 left-0 pointer-events-none"
              style={{ maxHeight: '50px', objectFit: 'cover' }} // Adjust max-height as needed
            />
         </main>
