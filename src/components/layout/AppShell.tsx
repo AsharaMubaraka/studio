@@ -82,8 +82,8 @@ export function AppShell({ children }: AppShellProps) {
         
         {/* Main content area: No horizontal padding directly on main. Bottom padding for BottomNav on mobile. */}
         <main className="flex-1 bg-transparent text-foreground relative pb-24 md:pb-4 lg:pb-8"> {/* Increased mobile padding to pb-24 */}
-          {/* Inner div for content padding. Removed h-full. */}
-          <div className="p-4 md:p-6 lg:p-8">
+          {/* Inner div for content padding. Added h-full to ensure children with h-full can calculate height */}
+          <div className="p-4 md:p-6 lg:p-8 h-full">
             {children}
           </div>
           {/* This border is for mobile, to appear above the BottomNav. Now full-width. */}
