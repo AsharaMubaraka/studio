@@ -69,7 +69,7 @@ export function AppShell({ children }: AppShellProps) {
           <Logo />
         </SidebarHeader>
         <SidebarContent asChild>
-           <ScrollArea className="h-full">
+           <ScrollArea className="h-full"> {/* h-full on ScrollArea is important for its own scrolling */}
             <MainNav />
           </ScrollArea>
         </SidebarContent>
@@ -81,9 +81,9 @@ export function AppShell({ children }: AppShellProps) {
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
         
         {/* Main content area: No horizontal padding directly on main. Bottom padding for BottomNav on mobile. */}
-        <main className="flex-1 bg-transparent text-foreground relative pb-16 md:pb-4 lg:pb-8">
-          {/* Inner div for content padding */}
-          <div className="p-4 md:p-6 lg:p-8 h-full">
+        <main className="flex-1 bg-transparent text-foreground relative pb-24 md:pb-4 lg:pb-8"> {/* Increased mobile padding to pb-24 */}
+          {/* Inner div for content padding. Removed h-full. */}
+          <div className="p-4 md:p-6 lg:p-8">
             {children}
           </div>
           {/* This border is for mobile, to appear above the BottomNav. Now full-width. */}
