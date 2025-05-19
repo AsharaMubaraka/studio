@@ -20,7 +20,6 @@ import { UserProfileMenu } from "./UserProfileMenu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Building2 } from "lucide-react";
 import { BottomNav } from "./BottomNav";
-// Removed unused Image import
 
 interface AppShellProps {
   children: ReactNode;
@@ -83,10 +82,9 @@ export function AppShell({ children }: AppShellProps) {
         <main className="flex-1 bg-transparent text-foreground p-4 md:p-6 lg:p-8 pb-20 md:pb-4 lg:pb-8 relative">
            {children}
         </main>
-        <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
         <BottomNav />
+        <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
       </SidebarInset>
     </SidebarProvider>
   );
 }
-
