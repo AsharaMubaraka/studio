@@ -6,6 +6,7 @@ import { User, Phone, Hash, CalendarDays } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
+// import { Separator } from "@/components/ui/separator"; // Replaced with div for repeating border
 
 interface DateInfo {
   monthYear: string;
@@ -15,7 +16,7 @@ interface DateInfo {
   islamicDay: string;
 }
 
-const BORDER_IMAGE_URL = "https://misbah.info/wp-content/uploads/2024/03/bottom-border-1.png";
+// const BORDER_IMAGE_URL = "https://misbah.info/wp-content/uploads/2024/03/bottom-border-1.png"; // No longer needed directly as img src
 
 export default function DashboardPage() {
   const [dateInfo, setDateInfo] = useState<DateInfo | null>(null);
@@ -95,13 +96,7 @@ export default function DashboardPage() {
             <User className="mr-2 h-5 w-5 text-primary" />
             Notification
           </CardTitle>
-          <img
-           src={BORDER_IMAGE_URL}
-           alt="Decorative Separator"
-           className="w-full h-auto my-2 block"
-           style={{ maxHeight: '20px', objectFit: 'cover' }}
-           data-ai-hint="decorative border"
-         />
+          <div className="decorative-border-repeat decorative-border-repeat-h20 my-2"></div>
         </CardHeader>
         <CardContent className="space-y-2 text-sm pt-0">
           <p className="font-semibold">Salaam</p>

@@ -212,3 +212,21 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.5s ease-out forwards;
 }
+
+/* Decorative border repeater */
+.decorative-border-repeat {
+  width: 100%;
+  background-image: url('https://misbah.info/wp-content/uploads/2024/03/bottom-border-1.png');
+  background-repeat: repeat-x;
+  background-position: center; /* Or top, bottom depending on the image content */
+}
+
+.decorative-border-repeat-h30 {
+  height: 30px;
+  background-size: auto 30px; /* Adjust height of the pattern slice */
+}
+
+.decorative-border-repeat-h20 {
+  height: 20px;
+  background-size: auto 20px; /* Adjust height of the pattern slice */
+}
