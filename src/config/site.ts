@@ -41,4 +41,3 @@ export const siteConfig = {
   name: "Anjuman Hub",
   description: "Community Hub for Anjuman Members.",
 };
-

@@ -9,10 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Megaphone } from "lucide-react";
+import { Bell } from "lucide-react"; // Changed from Megaphone to Bell
 
 // export const metadata: Metadata = { // Cannot be used in client component
-//   title: "Announcements",
+//   title: "Notifications",
 // };
 
 
@@ -87,7 +87,7 @@ export default function AnnouncementsPage() {
   const [sortOrder, setSortOrder] = useState<"status" | "newest" | "oldest">("status");
 
   useEffect(() => {
-    document.title = "Announcements | Anjuman Hub";
+    document.title = "Notifications | Anjuman Hub"; // Updated title
     async function loadAnnouncements() {
       setIsLoading(true);
       const data = await fetchAnnouncements();
@@ -116,10 +116,10 @@ export default function AnnouncementsPage() {
   return (
     <div className="space-y-8 animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 bg-card rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold tracking-tight">Announcements</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Notifications</h1> {/* Updated heading */}
         <div className="flex gap-4 w-full md:w-auto">
           <Input
-            placeholder="Search announcements..."
+            placeholder="Search notifications..." // Updated placeholder
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-xs"
@@ -165,10 +165,10 @@ export default function AnnouncementsPage() {
         </div>
       ) : (
          <Alert className="shadow-md animate-fadeIn">
-           <Megaphone className="h-5 w-5" />
-           <AlertTitle>No Announcements Found</AlertTitle>
+           <Bell className="h-5 w-5" /> {/* Updated icon */}
+           <AlertTitle>No Notifications Found</AlertTitle> {/* Updated title */}
            <AlertDescription>
-             {searchTerm ? "No announcements match your search criteria. Try a different search term." : "There are no announcements at this time. Please check back later."}
+             {searchTerm ? "No notifications match your search criteria. Try a different search term." : "There are no notifications at this time. Please check back later."} {/* Updated description */}
            </AlertDescription>
          </Alert>
       )}
