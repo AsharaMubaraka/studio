@@ -17,7 +17,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Building2, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
+import Image from "next/image";
 import { BottomNav } from "./BottomNav";
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,14 @@ interface AppShellProps {
 function SidebarLogo() {
   return (
     <Link href="/dashboard" className="flex items-center gap-2 px-2 group-data-[collapsible=icon]:justify-center">
-       <Building2 className="h-7 w-7 text-sidebar-primary group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6" />
+      <Image 
+        src="https://placehold.co/40x40.png" 
+        alt={siteConfig.name + " Logo"} 
+        width={28} // h-7 equivalent
+        height={28} // w-7 equivalent
+        className="group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6"
+        data-ai-hint="calligraphy logo"
+      />
       <span className="text-xl font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
         {siteConfig.name}
       </span>
@@ -91,14 +99,20 @@ export function AppShell({ children }: AppShellProps) {
           </ScrollArea>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset className="flex flex-col min-h-screen"> {/* Ensures SidebarInset fills screen and can be a flex parent */}
+      <SidebarInset className="flex flex-col min-h-screen">
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
             <Link href="/dashboard" className="flex items-center gap-2 text-nav-foreground hover:text-nav-foreground/80">
-              <Building2 className="h-6 w-6" />
+              <Image 
+                src="https://placehold.co/32x32.png" 
+                alt={siteConfig.name + " Logo"} 
+                width={24} // h-6 equivalent
+                height={24} // w-6 equivalent
+                data-ai-hint="calligraphy logo"
+              />
               <h1 className="text-xl font-bold truncate hidden sm:block">{siteConfig.name}</h1>
             </Link>
-             <span className="text-xl font-bold text-nav-foreground sm:hidden">|</span> {/* Separator for mobile */}
+             <span className="text-xl font-bold text-nav-foreground sm:hidden">|</span>
              <h1 className="text-xl font-bold text-nav-foreground truncate pr-2">{currentTitle}</h1>
           </div>
           {pathname === '/dashboard' ? (
@@ -116,28 +130,15 @@ export function AppShell({ children }: AppShellProps) {
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
         
-        {/* Main content area: flex-col allows children to use flex-1 for height. overflow-hidden prevents main from scrolling. relative for abs positioned border. */}
         <main className="flex flex-col flex-1 bg-transparent text-foreground relative overflow-hidden">
-          {/* Inner div: This is the main scrollable content area. 
-              flex-1 makes it fill `main`. 
-              overflow-y-auto allows its content to scroll.
-              pb-24 (96px) on mobile ensures content clears the BottomNav (64px) AND the absolutely positioned border (20px).
-              md:pb-6 provides standard padding on desktop.
-           */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-6">
             {children}
           </div>
-          
-          {/* Decorative border for mobile, positioned absolutely at the bottom of main, above BottomNav's space.
-              BottomNav is h-16 (4rem), so this border sits directly on top of where the BottomNav begins.
-           */}
           <div className="absolute bottom-16 left-0 right-0 md:hidden decorative-border-repeat decorative-border-repeat-h20"></div>
         </main>
         
-        <BottomNav /> {/* Fixed position, h-16 (4rem) */}
+        <BottomNav />
       </SidebarInset>
     </SidebarProvider>
   );
 }
-
-    
