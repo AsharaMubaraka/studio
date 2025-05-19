@@ -25,11 +25,22 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-function Logo() {
+function SidebarLogo() {
   return (
     <Link href="/dashboard" className="flex items-center gap-2 px-2 group-data-[collapsible=icon]:justify-center">
        <Building2 className="h-7 w-7 text-sidebar-primary group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6" />
       <span className="text-xl font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+        {siteConfig.name}
+      </span>
+    </Link>
+  );
+}
+
+function HeaderLogo() {
+  return (
+    <Link href="/dashboard" className="flex items-center gap-2 text-nav-foreground">
+      <Building2 className="h-6 w-6" />
+      <span className="text-xl font-bold">
         {siteConfig.name}
       </span>
     </Link>
@@ -66,7 +77,7 @@ export function AppShell({ children }: AppShellProps) {
     <SidebarProvider defaultOpen={true}>
       <Sidebar>
         <SidebarHeader className="p-4 border-b border-sidebar-border">
-          <Logo />
+          <SidebarLogo />
         </SidebarHeader>
         <SidebarContent asChild>
            <ScrollArea className="h-full"> {/* h-full on ScrollArea is important for its own scrolling */}
@@ -75,14 +86,15 @@ export function AppShell({ children }: AppShellProps) {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-end border-b px-4 shadow-md">
+        <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
+          <HeaderLogo />
           <UserProfileMenu />
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
         
         {/* Main content area: No horizontal padding directly on main. Bottom padding for BottomNav on mobile. */}
-        <main className="flex-1 bg-transparent text-foreground relative pb-24 md:pb-4 lg:pb-8"> {/* Increased mobile padding to pb-24 */}
-          {/* Inner div for content padding. Added h-full to ensure children with h-full can calculate height */}
+        <main className="flex-1 bg-transparent text-foreground relative pb-16 md:pb-0">
+          {/* Inner div for content padding. */}
           <div className="p-4 md:p-6 lg:p-8 h-full">
             {children}
           </div>
@@ -95,3 +107,4 @@ export function AppShell({ children }: AppShellProps) {
     </SidebarProvider>
   );
 }
+
