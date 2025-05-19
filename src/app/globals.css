@@ -9,7 +9,7 @@ body {
 
 @layer base {
   html {
-    /* User should replace this URL with their desired green background image */
+    /* User should replace this URL with their desired green background image - this one is green */
     background-image: url('https://relay.alvazarat.org/images/main-bg.png');
     background-size: cover;
     background-position: center;

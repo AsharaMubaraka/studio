@@ -115,7 +115,7 @@ export default function AnnouncementsPage() {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 bg-card rounded-lg shadow">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 bg-card rounded-lg shadow-lg">
         <h1 className="text-3xl font-bold tracking-tight">Announcements</h1>
         <div className="flex gap-4 w-full md:w-auto">
           <Input
