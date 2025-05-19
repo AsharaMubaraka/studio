@@ -3,16 +3,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
 import { navItems } from "@/config/site";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSidebar } from "@/components/ui/sidebar";
 
 export function BottomNav() {
   const isMobile = useIsMobile();
   const pathname = usePathname();
-  const { toggleSidebar } = useSidebar();
 
   if (!isMobile) {
     return null;
@@ -41,17 +38,7 @@ export function BottomNav() {
             <span className="mt-1 text-xs">{item.title}</span>
           </Link>
         ))}
-        <button
-          onClick={toggleSidebar}
-          aria-label="Open menu"
-          className={cn(
-            "flex flex-1 flex-col items-center justify-center p-2 text-center text-primary-foreground/80 transition-colors",
-            "hover:text-primary-foreground hover:bg-primary/90 focus:outline-none focus-visible:bg-primary/80"
-          )}
-        >
-          <Menu className="h-5 w-5" />
-          <span className="mt-1 text-xs">Menu</span>
-        </button>
+        {/* Removed Menu button */}
       </div>
     </nav>
   );

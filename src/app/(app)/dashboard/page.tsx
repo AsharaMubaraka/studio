@@ -1,18 +1,13 @@
 
 "use client";
 
-import type { Metadata } from "next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight, Bell, CalendarDays, User, Phone, Hash, QrCode, Newspaper, RadioTower } from "lucide-react";
+import { ArrowRight, Bell, CalendarDays, User, Phone, Hash, QrCode, Newspaper, Youtube, PlayCircle } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-
-// export const metadata: Metadata = { // Cannot be used in client component
-//   title: "Dashboard",
-// };
 
 interface DateInfo {
   monthYear: string;
@@ -32,15 +27,13 @@ export default function DashboardPage() {
       monthYear: format(now, "MMMM, yyyy"),
       dayOfMonth: format(now, "dd"),
       dayOfWeek: format(now, "EEEE"),
-      // Placeholder Islamic date
-      islamicMonth: "Zilqadatil Haram",
-      islamicDay: "۲۲",
+      islamicMonth: "Zilqadatil Haram", // Placeholder
+      islamicDay: "۲۲", // Placeholder
     });
   }, []);
 
   return (
     <div className="animate-fadeIn space-y-6">
-      {/* Date Card */}
       {dateInfo ? (
         <Card className="shadow-lg overflow-hidden">
           <CardContent className="p-0">
@@ -71,7 +64,6 @@ export default function DashboardPage() {
         <Card className="shadow-lg h-32 animate-pulse bg-card/80"></Card>
       )}
 
-      {/* User Info Card */}
       <Card className="shadow-lg">
         <CardContent className="p-4 md:p-6 flex flex-col sm:flex-row items-center gap-4">
           <Image
@@ -103,7 +95,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Notification Card */}
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
@@ -124,7 +115,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Latest News Card */}
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
@@ -137,17 +127,20 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Izan Card */}
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
-            <RadioTower className="mr-2 h-5 w-5 text-primary" />
-            Izan
+            <Youtube className="mr-2 h-5 w-5 text-primary" />
+            Live Relay
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1">
-          <p className="font-medium">Registration for Jaman Izan</p>
-          <p className="text-muted-foreground">Not active.</p>
+        <CardContent className="space-y-2">
+          <p className="text-muted-foreground">Watch important community broadcasts and events live.</p>
+          <Button asChild className="w-full sm:w-auto">
+            <Link href="/live-relay">
+              <PlayCircle className="mr-2 h-4 w-4" /> Go to Live Relay
+            </Link>
+          </Button>
         </CardContent>
       </Card>
 

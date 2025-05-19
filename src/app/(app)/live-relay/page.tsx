@@ -2,24 +2,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Metadata } from "next";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Youtube, PlayCircle, AlertCircle } from "lucide-react";
 
-// export const metadata: Metadata = { // Cannot be used in client component
-//   title: "Live Relay",
-// };
-
 const extractVideoId = (urlOrId: string): string | null => {
   if (!urlOrId) return null;
-  // Check if it's just an ID
   if (/^[a-zA-Z0-9_-]{11}$/.test(urlOrId)) {
     return urlOrId;
   }
-  // Check for full YouTube URL
   const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
   const match = urlOrId.match(regex);
   return match ? match[1] : null;
@@ -33,10 +26,6 @@ export default function LiveRelayPage() {
 
   useEffect(() => {
     document.title = "Live Relay | Anjuman Hub";
-    // Optionally load a default video ID from query params or localStorage
-    // For example, load a default video for demonstration:
-    // setVideoIdInput("dQw4w9WgXcQ"); 
-    // setCurrentVideoId("dQw4w9WgXcQ");
   }, []);
 
   const handleLoadVideo = () => {
