@@ -79,15 +79,19 @@ export function AppShell({ children }: AppShellProps) {
           <UserProfileMenu />
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
-        <main className="flex-1 bg-transparent text-foreground p-4 md:p-6 lg:p-8 pb-24 md:pb-4 lg:pb-8 relative">
-           {children}
-           {/* This border is for mobile, to appear above the BottomNav */}
-           <div className="decorative-border-repeat decorative-border-repeat-h20 md:hidden"></div>
+        
+        {/* Main content area: No horizontal padding directly on main. Bottom padding for BottomNav on mobile. */}
+        <main className="flex-1 bg-transparent text-foreground relative pb-16 md:pb-4 lg:pb-8">
+          {/* Inner div for content padding */}
+          <div className="p-4 md:p-6 lg:p-8 h-full">
+            {children}
+          </div>
+          {/* This border is for mobile, to appear above the BottomNav. Now full-width. */}
+          <div className="decorative-border-repeat decorative-border-repeat-h20 md:hidden"></div>
         </main>
-        {/* The border that was here is now inside <main> for mobile */}
+        
         <BottomNav />
       </SidebarInset>
     </SidebarProvider>
   );
 }
-
