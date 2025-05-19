@@ -32,12 +32,11 @@ function SidebarLogo() {
   return (
     <Link href="/dashboard" className="flex items-center gap-2 px-2 group-data-[collapsible=icon]:justify-center">
       <Image 
-        src="https://placehold.co/40x40.png" 
+        src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png" 
         alt={siteConfig.name + " Logo"} 
-        width={28} // h-7 equivalent
-        height={28} // w-7 equivalent
+        width={28} 
+        height={28} 
         className="group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6"
-        data-ai-hint="calligraphy logo"
       />
       <span className="text-xl font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
         {siteConfig.name}
@@ -104,11 +103,10 @@ export function AppShell({ children }: AppShellProps) {
           <div className="flex items-center gap-2">
             <Link href="/dashboard" className="flex items-center gap-2 text-nav-foreground hover:text-nav-foreground/80">
               <Image 
-                src="https://placehold.co/32x32.png" 
+                src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png" 
                 alt={siteConfig.name + " Logo"} 
-                width={24} // h-6 equivalent
-                height={24} // w-6 equivalent
-                data-ai-hint="calligraphy logo"
+                width={24} 
+                height={24} 
               />
               <h1 className="text-xl font-bold truncate hidden sm:block">{siteConfig.name}</h1>
             </Link>
@@ -131,7 +129,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
         
         <main className="flex flex-col flex-1 bg-transparent text-foreground relative overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-6">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-6 h-full"> {/* Added h-full here */}
             {children}
           </div>
           <div className="absolute bottom-16 left-0 right-0 md:hidden decorative-border-repeat decorative-border-repeat-h20"></div>
