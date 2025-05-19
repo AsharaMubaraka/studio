@@ -21,6 +21,7 @@ import { Building2, LogOut } from "lucide-react";
 import { BottomNav } from "./BottomNav";
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { UserProfileMenu } from "./UserProfileMenu"; // Ensure UserProfileMenu is imported
 
 interface AppShellProps {
   children: ReactNode;
@@ -36,19 +37,6 @@ function SidebarLogo() {
     </Link>
   );
 }
-
-// HeaderLogo is no longer used in the main header but kept for potential other uses.
-function HeaderLogo() {
-  return (
-    <Link href="/dashboard" className="flex items-center gap-2 text-nav-foreground">
-      <Building2 className="h-6 w-6" />
-      <span className="text-xl font-bold">
-        {siteConfig.name}
-      </span>
-    </Link>
-  );
-}
-
 
 function MainNav() {
   const pathname = usePathname();
@@ -80,13 +68,12 @@ export function AppShell({ children }: AppShellProps) {
 
   let currentTitle = siteConfig.name; // Default title
 
-  // Find the most specific matching navItem for the title
   const sortedNavItems = [...navItems].sort((a, b) => b.href.length - a.href.length);
-  const activeNavItem = sortedNavItems.find(item => pathname.startsWith(item.href));
+  const activeNavItem = sortedNavItems.find(item => pathname === item.href || (item.href !== "/" && item.href !== "/dashboard" && pathname.startsWith(item.href)));
 
   if (activeNavItem) {
     currentTitle = activeNavItem.title;
-  } else if (pathname === '/') {
+  } else if (pathname === '/' || pathname === '/dashboard') {
       const homeItem = navItems.find(item => item.href === '/dashboard');
       if (homeItem) currentTitle = homeItem.title;
   }
@@ -107,18 +94,22 @@ export function AppShell({ children }: AppShellProps) {
       <SidebarInset>
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <h1 className="text-xl font-bold text-nav-foreground truncate pr-2">{currentTitle}</h1>
-          <Button 
-            variant="ghost" 
-            onClick={logout} 
-            className="text-nav-foreground hover:bg-nav-foreground/10 px-2 sm:px-3"
-          >
-            <LogOut className="h-5 w-5 sm:mr-2" />
-            <span className="hidden sm:inline">Logout</span>
-          </Button>
+          {pathname === '/dashboard' ? (
+            <UserProfileMenu />
+          ) : (
+            <Button 
+              variant="ghost" 
+              onClick={logout} 
+              className="text-nav-foreground hover:bg-nav-foreground/10 px-2 sm:px-3"
+            >
+              <LogOut className="h-5 w-5 sm:mr-2" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
+          )}
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
         
-        <main className="flex-1 bg-transparent text-foreground relative pb-24 md:pb-0">
+        <main className="flex-1 bg-transparent text-foreground relative">
           <div className="p-4 md:p-6 lg:p-8 h-full">
             {children}
           </div>
