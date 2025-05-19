@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Bell, Globe, Youtube, Phone } from 'lucide-react'; // Updated Megaphone to Bell, HandMetal to Youtube
+import { LayoutDashboard, Bell, Globe, Youtube } from 'lucide-react'; // Updated Megaphone to Bell, HandMetal to Youtube, Removed Phone
 
 export type NavItem = {
   title: string;
@@ -30,14 +30,15 @@ export const navItems: NavItem[] = [
     href: '/live-relay',
     icon: Youtube, // Changed from HandMetal
   },
-  {
-    title: 'Contact',
-    href: '/contact',
-    icon: Phone,
-  },
+  // { // Removed Contact item
+  //   title: 'Contact',
+  //   href: '/contact',
+  //   icon: Phone,
+  // },
 ];
 
 export const siteConfig = {
   name: "Anjuman Hub",
   description: "Community Hub for Anjuman Members.",
 };
+
