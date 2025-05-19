@@ -20,6 +20,7 @@ import { UserProfileMenu } from "./UserProfileMenu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Building2 } from "lucide-react";
 import { BottomNav } from "./BottomNav";
+import Image from "next/image"; // Import next/image
 
 interface AppShellProps {
   children: ReactNode;
@@ -61,6 +62,8 @@ function MainNav() {
   );
 }
 
+const BORDER_IMAGE_URL = "https://misbah.info/wp-content/uploads/2024/03/bottom-border-1.png";
+
 export function AppShell({ children }: AppShellProps) {
   return (
     <SidebarProvider defaultOpen={true}>
@@ -78,15 +81,24 @@ export function AppShell({ children }: AppShellProps) {
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-end border-b px-4 shadow-md">
           <UserProfileMenu />
         </header>
+        <img
+           src={BORDER_IMAGE_URL}
+           alt="Decorative Border"
+           className="w-full h-auto block" // block to remove extra space under img
+           style={{ maxHeight: '30px', objectFit: 'cover' }}
+           data-ai-hint="decorative border"
+         />
         <main className="flex-1 bg-transparent text-foreground p-4 md:p-6 lg:p-8 pb-20 md:pb-4 lg:pb-8 relative">
            {children}
-           <img
-             src="https://misbah.info/wp-content/uploads/2024/03/bottom-border-1.png"
-             alt=""
-             className="w-full h-auto mt-auto absolute bottom-0 left-0 pointer-events-none"
-             style={{ maxHeight: '50px', objectFit: 'cover' }} // Adjust max-height as needed
-           />
+           {/* Removed border image from absolute bottom of main */}
         </main>
+        <img
+           src={BORDER_IMAGE_URL}
+           alt="Decorative Border"
+           className="w-full h-auto block" // block to remove extra space under img
+           style={{ maxHeight: '30px', objectFit: 'cover' }}
+           data-ai-hint="decorative border"
+         />
         <BottomNav />
       </SidebarInset>
     </SidebarProvider>

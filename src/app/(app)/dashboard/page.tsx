@@ -2,7 +2,6 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { User, Phone, Hash, CalendarDays } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -15,6 +14,8 @@ interface DateInfo {
   islamicMonth: string;
   islamicDay: string;
 }
+
+const BORDER_IMAGE_URL = "https://misbah.info/wp-content/uploads/2024/03/bottom-border-1.png";
 
 export default function DashboardPage() {
   const [dateInfo, setDateInfo] = useState<DateInfo | null>(null);
@@ -35,12 +36,12 @@ export default function DashboardPage() {
     <div className="animate-fadeIn space-y-6">
       {dateInfo ? (
         <Card className="shadow-lg overflow-hidden">
-          <CardContent className="p-0 relative h-40 md:h-48"> {/* Set explicit height for video */}
+          <CardContent className="p-0 relative h-40 md:h-48">
             <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0">
               <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-between p-4 md:p-6 z-10"> {/* Overlay for text readability */}
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-between p-4 md:p-6 z-10">
               <div className="text-white">
                 <p className="text-sm md:text-md">{dateInfo.monthYear}</p>
                 <p className="text-4xl md:text-5xl font-bold">{dateInfo.dayOfMonth}</p>
@@ -91,10 +92,16 @@ export default function DashboardPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
-            <User className="mr-2 h-5 w-5 text-primary" /> {/* Using User as placeholder, replace if a Notification icon is preferred */}
+            <User className="mr-2 h-5 w-5 text-primary" />
             Notification
           </CardTitle>
-          <Separator className="my-2" /> 
+          <img
+           src={BORDER_IMAGE_URL}
+           alt="Decorative Separator"
+           className="w-full h-auto my-2 block"
+           style={{ maxHeight: '20px', objectFit: 'cover' }}
+           data-ai-hint="decorative border"
+         />
         </CardHeader>
         <CardContent className="space-y-2 text-sm pt-0">
           <p className="font-semibold">Salaam</p>
