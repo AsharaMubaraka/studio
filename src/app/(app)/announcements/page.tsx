@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"; // Added imports
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Megaphone } from "lucide-react";
 
 // export const metadata: Metadata = { // Cannot be used in client component
@@ -24,7 +24,7 @@ const mockAnnouncements: Announcement[] = [
     content: "Join us for our monthly community meeting on Tuesday at 7 PM in the main hall. We'll be discussing upcoming events and new initiatives.\n\nAgenda:\n- Review of last month's minutes\n- Budget update\n- Planning for the summer festival\n- Open Q&A session",
     date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
     author: "Admin Team",
-    tags: ["meeting", "community", "event"],
+    // tags: ["meeting", "community", "event"], // Removed tags
     imageUrl: "https://placehold.co/600x400.png",
     imageHint: "meeting community"
   },
@@ -34,7 +34,7 @@ const mockAnnouncements: Announcement[] = [
     content: "We are looking for volunteers for our upcoming charity bake sale. All proceeds will go to local shelters. Sign up sheet is available at the front desk.\n\nRoles needed:\n- Bakers\n- Sales assistants\n- Setup and cleanup crew",
     date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
     author: "Events Committee",
-    tags: ["volunteer", "charity", "bake sale"],
+    // tags: ["volunteer", "charity", "bake sale"], // Removed tags
     imageUrl: "https://placehold.co/600x400.png",
     imageHint: "volunteer charity"
   },
@@ -44,7 +44,7 @@ const mockAnnouncements: Announcement[] = [
     content: "We're excited to announce the launch of our new community website! Explore new features and resources. Your feedback is welcome.",
     date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
     author: "Tech Team",
-    tags: ["website", "update", "launch"],
+    // tags: ["website", "update", "launch"], // Removed tags
   },
 ];
 
@@ -108,7 +108,7 @@ export default function AnnouncementsPage() {
       {isLoading ? (
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           {[1, 2, 3, 4].map(i => (
-            <Card key={i} className="shadow-lg">
+            <Card key={i} className="shadow-lg animate-fadeIn">
               <Skeleton className="h-48 w-full" />
               <CardHeader>
                 <Skeleton className="h-8 w-3/4 mb-2" />
@@ -132,7 +132,7 @@ export default function AnnouncementsPage() {
           ))}
         </div>
       ) : (
-         <Alert className="shadow-md">
+         <Alert className="shadow-md animate-fadeIn">
            <Megaphone className="h-5 w-5" />
            <AlertTitle>No Announcements Found</AlertTitle>
            <AlertDescription>

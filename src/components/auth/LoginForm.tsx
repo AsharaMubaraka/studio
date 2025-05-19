@@ -61,7 +61,7 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md shadow-xl">
+    <Card className="w-full max-w-md shadow-xl animate-fadeIn">
       <CardHeader className="items-center text-center">
         <Image src="https://placehold.co/80x80.png" alt="Anjuman Hub Logo" width={80} height={80} className="mb-4 rounded-full" data-ai-hint="community logo" />
         <CardTitle className="text-3xl font-bold">Anjuman Hub</CardTitle>

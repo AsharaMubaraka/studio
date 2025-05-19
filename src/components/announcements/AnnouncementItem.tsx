@@ -1,11 +1,11 @@
 
 "use client";
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+// import { Badge } from "@/components/ui/badge"; // Removed Badge
 import { format } from "date-fns";
 import Image from "next/image";
-import { CalendarDays, Tag } from "lucide-react";
+import { CalendarDays } from "lucide-react"; // Removed Tag
 
 export interface Announcement {
   id: string;
@@ -13,7 +13,7 @@ export interface Announcement {
   content: string;
   date: string; // ISO string
   author: string;
-  tags?: string[];
+  tags?: string[]; // Tags are optional in the interface
   imageUrl?: string;
   imageHint?: string;
 }
@@ -46,16 +46,7 @@ export function AnnouncementItem({ announcement }: AnnouncementItemProps) {
       <CardContent className="flex-grow">
         <p className="whitespace-pre-line leading-relaxed">{announcement.content}</p>
       </CardContent>
-      {announcement.tags && announcement.tags.length > 0 && (
-        <CardFooter className="flex flex-wrap gap-2">
-          <Tag className="mr-1 h-4 w-4 text-muted-foreground" />
-          {announcement.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="capitalize">
-              {tag}
-            </Badge>
-          ))}
-        </CardFooter>
-      )}
+      {/* Removed CardFooter with tags */}
     </Card>
   );
 }
