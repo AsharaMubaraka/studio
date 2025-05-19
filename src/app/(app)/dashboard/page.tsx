@@ -102,8 +102,9 @@ export default function DashboardPage() {
             <Bell className="mr-2 h-5 w-5 text-primary" />
             Notification
           </CardTitle>
+          <Separator className="my-2" /> 
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
+        <CardContent className="space-y-2 text-sm pt-0"> {/* Adjusted padding-top to pt-0 or smaller if needed */}
           <p className="font-semibold text-primary-foreground/90">Salaam</p>
           <p>Kem cho sagla behno aa ashara ohbat na dino ma Al Aqeeq committee ye Aaje Saturday 17th May Taheri Markaz ma</p>
           <p className="font-bold text-primary-foreground">*ASHARA OHBAT NI MAJLIS ORGANISE KIDI CHE*</p>
@@ -116,9 +117,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <Separator className="my-6" />
-
-      {/* Latest News and Live Relay Cards have been removed */}
+      {/* Separator below the card has been removed */}
 
     </div>
   );
