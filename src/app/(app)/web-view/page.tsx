@@ -14,11 +14,16 @@ export default function WebViewPage() {
     document.title = "Web View | Anjuman Hub";
   }, []);
 
+  // Apply negative margins only when iframe is shown, to counteract AppShell padding
+  const pageContainerClasses = cn(
+    "animate-fadeIn h-full",
+    iframeError
+      ? "flex flex-col items-center justify-center p-4" // If error, maintain some padding for the alert
+      : "flex flex-col -mx-4 md:-mx-6 lg:-mx-8" // If no error, expand to fill horizontal padding space
+  );
+
   return (
-    <div className={cn(
-      "animate-fadeIn h-full",
-      iframeError ? "flex flex-col items-center justify-center p-4" : "flex flex-col"
-    )}>
+    <div className={pageContainerClasses}>
       {iframeError ? (
         <Alert variant="destructive" className="shadow-md w-full max-w-lg">
           <Globe className="h-5 w-5" />
@@ -43,3 +48,4 @@ export default function WebViewPage() {
     </div>
   );
 }
+
