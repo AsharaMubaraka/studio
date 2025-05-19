@@ -18,7 +18,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Main navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-primary/30 bg-primary text-primary-foreground shadow-t-lg md:hidden"
+      className="bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t shadow-t-lg md:hidden"
     >
       <div className="flex h-16 items-stretch justify-around">
         {navItems.map((item) => (
@@ -27,10 +27,8 @@ export function BottomNav() {
             href={item.href}
             className={cn(
               "flex flex-1 flex-col items-center justify-center p-2 text-center transition-colors",
-              "focus:outline-none focus-visible:bg-primary/80",
-              (pathname === item.href || (item.href !== "/" && item.href !== "/dashboard" && pathname.startsWith(item.href)))
-                ? "text-accent" // Active link uses accent color (gold/yellow)
-                : "text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary/90"
+              "focus:outline-none focus-visible:bg-primary/80"
+              // Active/hover states are now handled by .bottom-nav styles in globals.css
             )}
             aria-current={(pathname === item.href || (item.href !== "/" && item.href !== "/dashboard" && pathname.startsWith(item.href))) ? "page" : undefined}
           >
@@ -38,7 +36,6 @@ export function BottomNav() {
             <span className="mt-1 text-xs">{item.title}</span>
           </Link>
         ))}
-        {/* Removed Menu button */}
       </div>
     </nav>
   );

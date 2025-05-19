@@ -4,7 +4,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { siteConfig, navItems, type NavItem } from "@/config/site";
+import { siteConfig, navItems } from "@/config/site";
 import {
   SidebarProvider,
   Sidebar,
@@ -75,12 +75,17 @@ export function AppShell({ children }: AppShellProps) {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-end border-b bg-primary text-primary-foreground px-4 shadow-md">
-          {/* Mobile trigger is now in BottomNav */}
+        <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-end border-b px-4 shadow-md">
           <UserProfileMenu />
         </header>
-        <main className="flex-1 bg-background text-foreground p-0 md:p-4 lg:p-8 pb-20 md:pb-4 lg:pb-8"> {/* Removed padding for contact page header */}
+        <main className="flex-1 bg-transparent text-foreground p-4 md:p-6 lg:p-8 pb-20 md:pb-4 lg:pb-8 relative">
            {children}
+           <img 
+             src="https://misbah.info/wp-content/uploads/2024/03/bottom-border-1.png" 
+             alt="" 
+             className="w-full h-auto mt-auto absolute bottom-0 left-0 pointer-events-none" 
+             style={{ maxHeight: '50px', objectFit: 'cover' }} // Adjust max-height as needed
+           />
         </main>
         <BottomNav />
       </SidebarInset>

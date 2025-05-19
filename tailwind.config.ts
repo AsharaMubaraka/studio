@@ -64,7 +64,12 @@ export default {
   				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
-  			}
+  			},
+        // Added nav colors to be directly usable in Tailwind if needed, though globals.css handles it mostly
+        nav: {
+          background: 'hsl(var(--nav-background))',
+          foreground: 'hsl(var(--nav-foreground))',
+        }
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

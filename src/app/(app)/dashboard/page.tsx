@@ -2,13 +2,11 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Bell, CalendarDays, User, Phone, Hash, QrCode, Youtube, PlayCircle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { User, Phone, Hash, CalendarDays } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { Separator } from "@/components/ui/separator";
 
 interface DateInfo {
   monthYear: string;
@@ -37,32 +35,26 @@ export default function DashboardPage() {
     <div className="animate-fadeIn space-y-6">
       {dateInfo ? (
         <Card className="shadow-lg overflow-hidden">
-          <CardContent className="p-0">
-            <div className="relative">
-              <Image
-                src="https://placehold.co/600x200.png"
-                alt="Decorative background"
-                width={600}
-                height={200}
-                className="w-full h-32 object-cover"
-                data-ai-hint="mosque architecture"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/70 to-primary/40 flex items-center justify-between p-4 md:p-6">
-                <div className="text-primary-foreground">
-                  <p className="text-sm md:text-md">{dateInfo.monthYear}</p>
-                  <p className="text-4xl md:text-5xl font-bold">{dateInfo.dayOfMonth}</p>
-                  <p className="text-sm md:text-md">{dateInfo.dayOfWeek}</p>
-                </div>
-                <div className="text-right text-primary-foreground">
-                  <p className="text-lg md:text-xl font-semibold">{dateInfo.islamicDay}</p>
-                  <p className="text-sm md:text-md">{dateInfo.islamicMonth}</p>
-                </div>
+          <CardContent className="p-0 relative h-40 md:h-48"> {/* Set explicit height for video */}
+            <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0">
+              <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-between p-4 md:p-6 z-10"> {/* Overlay for text readability */}
+              <div className="text-white">
+                <p className="text-sm md:text-md">{dateInfo.monthYear}</p>
+                <p className="text-4xl md:text-5xl font-bold">{dateInfo.dayOfMonth}</p>
+                <p className="text-sm md:text-md">{dateInfo.dayOfWeek}</p>
+              </div>
+              <div className="text-right text-white">
+                <p className="text-lg md:text-xl font-semibold">{dateInfo.islamicDay}</p>
+                <p className="text-sm md:text-md">{dateInfo.islamicMonth}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <Card className="shadow-lg h-32 animate-pulse bg-card/80"></Card>
+        <Card className="shadow-lg h-40 md:h-48 animate-pulse bg-card/80"></Card>
       )}
 
       <Card className="shadow-lg">
@@ -99,15 +91,15 @@ export default function DashboardPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
-            <Bell className="mr-2 h-5 w-5 text-primary" />
+            <User className="mr-2 h-5 w-5 text-primary" /> {/* Using User as placeholder, replace if a Notification icon is preferred */}
             Notification
           </CardTitle>
           <Separator className="my-2" /> 
         </CardHeader>
-        <CardContent className="space-y-2 text-sm pt-0"> {/* Adjusted padding-top to pt-0 or smaller if needed */}
-          <p className="font-semibold text-primary-foreground/90">Salaam</p>
+        <CardContent className="space-y-2 text-sm pt-0">
+          <p className="font-semibold">Salaam</p>
           <p>Kem cho sagla behno aa ashara ohbat na dino ma Al Aqeeq committee ye Aaje Saturday 17th May Taheri Markaz ma</p>
-          <p className="font-bold text-primary-foreground">*ASHARA OHBAT NI MAJLIS ORGANISE KIDI CHE*</p>
+          <p className="font-bold text-primary">*ASHARA OHBAT NI MAJLIS ORGANISE KIDI CHE*</p>
           <p className="text-muted-foreground">*Time : 4:30pm*</p>
           <p>Muala tus ni khushi hasil karta huwa Taheri mohalla na tamam behno aa majlis ma shamil thai ane waqt par hazir thai em iltemas che</p>
           <div className="flex items-center text-xs text-muted-foreground pt-2">
@@ -116,9 +108,6 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Separator below the card has been removed */}
-
     </div>
   );
 }

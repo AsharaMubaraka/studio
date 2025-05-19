@@ -9,104 +9,121 @@ body {
 
 @layer base {
   html {
-    /* Removed background-image, will use solid color from --background */
+    background-image: url('https://relay.alvazarat.org/images/main-bg.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     min-height: 100svh;
     height: 100%;
   }
 
+  body {
+    background-color: transparent; /* Allow html background to show through */
+  }
+
   :root {
-    /* Light Peach & Muted Blue/Purple Theme inspired by Contact page image */
-    --background: 34 100% 92%; /* Light Peach - Page content background */
-    --foreground: 20 15% 30%; /* Dark grayish brown - Main text color */
+    /* Light Theme with specific color requirements */
+    --background: 0 0% 100%; /* White - Page content background */
+    --foreground: 20 15% 25%; /* Dark grayish brown - Main text color */
 
     --card: 0 0% 100%; /* White - For content cards */
-    --card-foreground: 20 15% 30%; /* Dark grayish brown - Text on white cards */
+    --card-foreground: 20 15% 25%; /* Dark grayish brown - Text on white cards */
 
     --popover: 0 0% 100%; /* White */
-    --popover-foreground: 20 15% 30%;
+    --popover-foreground: 20 15% 25%;
 
-    --primary: 230 35% 58%; /* Muted Blue/Purple - For headers, bottom nav, main actions */
-    --primary-foreground: 0 0% 100%; /* White - Text on primary */
+    /* Nav bars color */
+    --nav-background: 48 33% 95%; /* #f3efe5 */
+    --nav-foreground: 45 15% 30%; /* Contrasting dark color for text/icons on nav */
 
-    --secondary: 230 25% 75%; /* Lighter Muted Blue/Purple - For secondary actions/elements */
-    --secondary-foreground: 230 35% 30%; /* Darker blue text on light blue secondary */
+    /* Button color */
+    --primary: 49 46% 43%; /* #9f8a3e */
+    --primary-foreground: 0 0% 100%; /* White - Text on primary buttons */
 
-    --muted: 30 50% 85%; /* Very light peach/off-white for subtle backgrounds or borders */
-    --muted-foreground: 30 20% 50%; /* Softer grayish brown for muted text */
+    --secondary: 48 33% 90%; /* Lighter beige for secondary elements if needed */
+    --secondary-foreground: 45 15% 30%;
 
-    --accent: 45 90% 60%; /* Vibrant Gold/Yellow for highlights, active states */
-    --accent-foreground: 45 40% 20%; /* Dark brown for text on gold/yellow */
+    --muted: 48 25% 88%; /* Light beige for muted elements */
+    --muted-foreground: 45 15% 45%; /* Softer grayish brown for muted text */
+
+    --accent: 30 80% 60%; /* A complementary vibrant accent (e.g., an orange) */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 70% 55%; /* Standard Red */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 30 30% 82%; /* Soft peach-toned border */
+    --border: 48 20% 85%; /* Soft beige-toned border */
     --input: 0 0% 98%; /* Off-white for input fields */
-    --ring: 230 40% 65%; /* Brighter blue/purple for focus rings */
+    --ring: 49 46% 53%; /* Brighter version of #9f8a3e for focus rings */
 
-    --chart-1: 230 35% 58%;  /* Muted Blue/Purple (Primary) */
-    --chart-2: 45 90% 60%;   /* Gold/Yellow (Accent) */
+    --chart-1: 49 46% 43%;  /* Button color */
+    --chart-2: 30 80% 60%;   /* Accent orange */
     --chart-3: 200 70% 65%;  /* A complementary teal/blue */
-    --chart-4: 25 80% 70%;   /* A complementary orange */
+    --chart-4: 25 80% 70%;   /* A complementary peach */
     --chart-5: 330 60% 70%;  /* A complementary pink */
     --radius: 0.5rem;
 
-    /* Sidebar specific theme variables */
-    --sidebar-background: 230 30% 52%; /* Slightly darker than primary for sidebar */
-    --sidebar-foreground: 0 0% 95%; /* Off-white text */
-    --sidebar-primary: 45 90% 60%; /* Gold/Yellow for active item text */
-    --sidebar-primary-foreground: 230 30% 52%; /* Sidebar bg color to contrast with gold text */
-    --sidebar-accent: 230 30% 62%; /* Lighter blue for hover/active item background in sidebar */
-    --sidebar-accent-foreground: 0 0% 100%; /* White text on hover/active */
-    --sidebar-border: 230 30% 45%;
-    --sidebar-ring: 45 90% 60%;
+    /* Sidebar specific theme variables - Light theme */
+    --sidebar-background: 48 33% 93%; /* Slightly off-white from #f3efe5 */
+    --sidebar-foreground: 45 15% 25%; /* Dark text */
+    --sidebar-primary: 49 46% 43%; /* #9f8a3e for active item text */
+    --sidebar-primary-foreground: 0 0% 100%; 
+    --sidebar-accent: 48 33% 88%; /* Lighter beige for hover/active item background */
+    --sidebar-accent-foreground: 45 15% 25%; /* Dark text on hover/active */
+    --sidebar-border: 48 20% 80%;
+    --sidebar-ring: 49 46% 53%;
   }
 
   .dark {
     /* Dark Theme Variant */
-    --background: 230 15% 15%; /* Dark Slate Blue */
-    --foreground: 0 0% 90%; /* Light Gray */
+    --background: 220 13% 10%; /* Dark blue-gray - Page content background */
+    --foreground: 0 0% 95%; /* Light Gray */
 
-    --card: 230 15% 20%; /* Slightly Lighter Dark Slate Blue */
-    --card-foreground: 0 0% 90%;
+    --card: 220 13% 15%; /* Slightly Lighter Dark Blue-Gray */
+    --card-foreground: 0 0% 95%;
 
-    --popover: 230 15% 18%;
-    --popover-foreground: 0 0% 90%;
+    --popover: 220 13% 12%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 230 40% 65%; /* Brighter Muted Blue/Purple */
-    --primary-foreground: 0 0% 100%;
+    /* Nav bars color - Dark */
+    --nav-background: 220 13% 18%; /* Dark color for nav bars */
+    --nav-foreground: 48 33% 85%; /* Light beige text/icons on dark nav */
 
-    --secondary: 230 30% 50%; /* Medium Muted Blue/Purple */
-    --secondary-foreground: 0 0% 95%;
+    /* Button color - can remain same or be adjusted */
+    --primary: 49 46% 53%; /* #bfa95e - slightly brighter gold for dark mode */
+    --primary-foreground: 20 15% 15%; /* Dark text on brighter gold */
 
-    --muted: 230 15% 30%; /* Darker Muted element background */
-    --muted-foreground: 230 10% 65%; /* Lighter muted text */
+    --secondary: 220 13% 25%;
+    --secondary-foreground: 0 0% 90%;
 
-    --accent: 45 80% 65%; /* Slightly desaturated Gold/Yellow */
-    --accent-foreground: 45 30% 15%;
+    --muted: 220 10% 22%; 
+    --muted-foreground: 220 10% 70%; 
+
+    --accent: 30 80% 65%; /* Brighter orange for dark mode */
+    --accent-foreground: 0 0% 10%;
 
     --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 95%;
 
-    --border: 230 15% 25%;
-    --input: 230 15% 22%;
-    --ring: 230 45% 70%;
+    --border: 220 13% 22%;
+    --input: 220 13% 18%;
+    --ring: 49 46% 63%; /* Brighter gold for focus rings */
 
-    --chart-1: 230 40% 65%;
-    --chart-2: 45 80% 65%;
+    --chart-1: 49 46% 53%;
+    --chart-2: 30 80% 65%;
     --chart-3: 200 60% 60%;
     --chart-4: 25 70% 65%;
     --chart-5: 330 50% 65%;
 
     /* Dark Sidebar specific theme variables */
-    --sidebar-background: 230 20% 18%; /* Darker sidebar */
+    --sidebar-background: 220 13% 12%; /* Very dark for sidebar */
     --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 45 80% 65%; /* Gold/Yellow for active item text */
-    --sidebar-primary-foreground: 230 20% 18%;
-    --sidebar-accent: 230 25% 30%; /* Hover/active bg */
+    --sidebar-primary: 49 46% 53%; /* Gold/Yellow for active item text */
+    --sidebar-primary-foreground: 20 15% 15%;
+    --sidebar-accent: 220 13% 20%; /* Hover/active bg */
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 230 15% 25%;
-    --sidebar-ring: 45 80% 65%;
+    --sidebar-border: 220 13% 22%;
+    --sidebar-ring: 49 46% 63%;
   }
 }
 
@@ -115,7 +132,7 @@ body {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground; /* Body now uses peach background and dark text */
+    @apply bg-transparent text-foreground; /* Body is transparent, text uses foreground */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100svh; 
@@ -123,6 +140,59 @@ body {
     flex-direction: column;
   }
   html {
-    @apply bg-background; /* Ensure html also has the base background color */
+    /* background image is set in the layer above */
+    @apply bg-transparent; 
   }
+}
+
+/* Ensure AppShell header and BottomNav use the new nav colors */
+.appshell-header {
+  background-color: hsl(var(--nav-background)) !important;
+  color: hsl(var(--nav-foreground)) !important;
+}
+
+.appshell-header button { /* For user profile menu button text/icon */
+  color: hsl(var(--nav-foreground)) !important;
+}
+.appshell-header button:hover {
+  background-color: hsla(var(--nav-foreground), 0.1) !important;
+}
+
+
+.bottom-nav {
+  background-color: hsl(var(--nav-background)) !important;
+  color: hsl(var(--nav-foreground)) !important;
+  border-top-color: hsl(var(--border)) !important;
+}
+
+.bottom-nav a {
+  color: hsl(var(--nav-foreground) / 0.8) !important;
+}
+.bottom-nav a:hover {
+  color: hsl(var(--nav-foreground)) !important;
+  background-color: hsla(var(--nav-foreground), 0.1) !important;
+}
+.bottom-nav a[aria-current="page"] {
+  color: hsl(var(--primary)) !important; /* Use primary button color for active nav item */
+}
+
+/* Video background styling */
+.video-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1; /* Behind other content */
+}
+
+.login-page-video-bg {
+  position: fixed; /* Full screen */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  z-index: -1;
 }
