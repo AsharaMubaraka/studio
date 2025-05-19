@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"; // Added imports
 import { Megaphone } from "lucide-react";
 
 // export const metadata: Metadata = { // Cannot be used in client component
