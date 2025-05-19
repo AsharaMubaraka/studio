@@ -82,9 +82,10 @@ export function AppShell({ children }: AppShellProps) {
         <main className="flex-1 bg-transparent text-foreground p-4 md:p-6 lg:p-8 pb-20 md:pb-4 lg:pb-8 relative">
            {children}
         </main>
-        <BottomNav />
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
+        <BottomNav />
       </SidebarInset>
     </SidebarProvider>
   );
 }
+
