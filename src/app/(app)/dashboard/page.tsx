@@ -4,10 +4,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight, Bell, CalendarDays, User, Phone, Hash, QrCode, Newspaper, Youtube, PlayCircle } from "lucide-react";
+import { Bell, CalendarDays, User, Phone, Hash, QrCode, Youtube, PlayCircle } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { Separator } from "@/components/ui/separator";
 
 interface DateInfo {
   monthYear: string;
@@ -115,34 +116,9 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center text-xl">
-            <Newspaper className="mr-2 h-5 w-5 text-primary" />
-            Latest News
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Loading latest news...</p>
-        </CardContent>
-      </Card>
+      <Separator className="my-6" />
 
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center text-xl">
-            <Youtube className="mr-2 h-5 w-5 text-primary" />
-            Live Relay
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-muted-foreground">Watch important community broadcasts and events live.</p>
-          <Button asChild className="w-full sm:w-auto">
-            <Link href="/live-relay">
-              <PlayCircle className="mr-2 h-4 w-4" /> Go to Live Relay
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Latest News and Live Relay Cards have been removed */}
 
     </div>
   );
