@@ -23,8 +23,8 @@ const isValidUrl = (urlString: string): boolean => {
 };
 
 export default function WebViewPage() {
-  const [url, setUrl] = useState("https://www.example.com");
-  const [iframeSrc, setIframeSrc] = useState("https://www.example.com");
+  const [url, setUrl] = useState("https://www.asharamubaraka.net");
+  const [iframeSrc, setIframeSrc] = useState("https://www.asharamubaraka.net");
   const [inputError, setInputError] = useState<string | null>(null);
 
   useEffect(() => {
