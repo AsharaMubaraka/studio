@@ -13,15 +13,16 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarTrigger,
+  // SidebarTrigger, // Removed as it's no longer used in the header for mobile
   SidebarInset,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button"; // No longer needed if SidebarTrigger is removed
 import { UserProfileMenu } from "./UserProfileMenu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
 import { Building2 } from "lucide-react";
+import { BottomNav } from "./BottomNav";
 
 interface AppShellProps {
   children: ReactNode;
@@ -76,14 +77,15 @@ export function AppShell({ children }: AppShellProps) {
           </ScrollArea>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset>
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
-          <SidebarTrigger className="md:hidden" />
+      <SidebarInset> {/* This is now a div */}
+        <header className="sticky top-0 z-40 flex h-16 items-center justify-end border-b bg-background/80 px-4 backdrop-blur-sm">
+          {/* <SidebarTrigger className="md:hidden" />  Removed: mobile trigger is now in BottomNav */}
           <UserProfileMenu />
         </header>
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-4 pb-20 sm:p-6 lg:p-8 md:pb-6 lg:pb-8"> {/* Added padding-bottom for BottomNav on mobile */}
            {children}
         </main>
+        <BottomNav />
       </SidebarInset>
     </SidebarProvider>
   );
