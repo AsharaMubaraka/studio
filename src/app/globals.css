@@ -20,14 +20,14 @@ body {
   }
 
   :root {
-    /* Theme for a Green Background Image with Colorful Contrasts */
-    --background: 220 10% 15% / 0.85; /* Dark, semi-transparent neutral for content overlay */
+    /* Theme for a Green Background Image with Colorful Contrasts and Neutral Cards */
+    --background: 220 10% 15% / 0.85; /* Dark, semi-transparent neutral for content overlay, allowing green bg to show */
     --foreground: 0 0% 98%; /* Off-white for text, high contrast */
 
-    --card: 120 25% 25%; /* Medium-dark, solid green for cards, lighter for contrast */
+    --card: 220 10% 20%; /* Dark, cool neutral (charcoal/slate) for cards */
     --card-foreground: 0 0% 98%;
 
-    --popover: 120 25% 20%; /* Darker green for popovers, but lighter than original */
+    --popover: 220 10% 18%; /* Slightly darker neutral for popovers */
     --popover-foreground: 0 0% 98%;
 
     --primary: 90 60% 55%; /* Vibrant lime/spring green for primary actions */
@@ -36,8 +36,8 @@ body {
     --secondary: 45 70% 60%; /* Golden yellow/amber for secondary elements */
     --secondary-foreground: 45 60% 10%; /* Dark brown for text on secondary */
 
-    --muted: 120 15% 30%; /* Muted dark green */
-    --muted-foreground: 90 20% 70%; /* Softer light green/grey for muted text */
+    --muted: 220 8% 25%; /* Muted version of the neutral card color */
+    --muted-foreground: 220 10% 65%; /* Softer light gray for muted text */
 
     --accent: 330 70% 60%; /* Vibrant magenta/pink for accents */
     --accent-foreground: 0 0% 100%; /* White for text on accent */
@@ -45,8 +45,8 @@ body {
     --destructive: 0 70% 55%; /* Standard vibrant red */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 120 20% 28%; /* Subtle green-tinted border */
-    --input: 120 20% 22%; /* Dark green input background */
+    --border: 220 10% 28%; /* Subtle neutral border, slightly lighter than card */
+    --input: 220 10% 19%; /* Dark neutral input background */
     --ring: 90 60% 55%; /* Primary green for focus rings */
 
     --chart-1: 90 60% 55%;  /* Lime Green (Primary) */
@@ -57,25 +57,25 @@ body {
     --radius: 0.5rem;
 
     /* Sidebar specific theme variables */
-    --sidebar-background: 120 25% 20%; /* Dark green, matching popovers, lighter than original */
+    --sidebar-background: 220 10% 18%; /* Dark neutral, same as popover */
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 90 60% 55%; /* Lime green for active/primary items */
     --sidebar-primary-foreground: 120 60% 10%;
-    --sidebar-accent: 120 25% 25%; /* Hover/active state for sidebar items - slightly lighter dark green */
+    --sidebar-accent: 220 10% 22%; /* Hover/active state for sidebar items - slightly lighter neutral */
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 120 20% 25%;
+    --sidebar-border: 220 10% 25%;
     --sidebar-ring: 90 60% 55%;
   }
 
   .dark {
-    /* Dark Theme - Can be a variation or identical if base is already dark enough */
-    --background: 220 10% 12% / 0.9; /* Slightly darker/more opaque overlay for dark mode */
+    /* Dark Theme - Adjustments for the neutral dark theme, can be subtle if base is already dark */
+    --background: 220 12% 12% / 0.9; /* Slightly darker/more opaque overlay */
     --foreground: 0 0% 98%;
 
-    --card: 120 30% 22%; /* Richer, medium-dark green for cards, lighter for contrast */
+    --card: 220 12% 18%; /* Slightly darker neutral for cards in dark mode */
     --card-foreground: 0 0% 98%;
 
-    --popover: 120 30% 18%; /* Darker green for popovers, but lighter than original */
+    --popover: 220 12% 16%; /* Slightly darker neutral for popovers in dark mode */
     --popover-foreground: 0 0% 98%;
 
     --primary: 90 65% 60%; /* Slightly brighter lime green */
@@ -84,8 +84,8 @@ body {
     --secondary: 45 75% 65%; /* Slightly brighter golden yellow */
     --secondary-foreground: 45 60% 10%;
 
-    --muted: 120 20% 28%;
-    --muted-foreground: 90 25% 75%;
+    --muted: 220 10% 22%;
+    --muted-foreground: 220 10% 70%;
 
     --accent: 330 75% 65%; /* Slightly brighter magenta */
     --accent-foreground: 0 0% 100%;
@@ -93,8 +93,8 @@ body {
     --destructive: 0 75% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 120 25% 25%;
-    --input: 120 25% 20%;
+    --border: 220 10% 25%;
+    --input: 220 10% 17%;
     --ring: 90 65% 60%;
 
     --chart-1: 90 65% 60%;
@@ -104,13 +104,13 @@ body {
     --chart-5: 25 95% 65%;
 
     /* Dark Sidebar specific theme variables */
-    --sidebar-background: 120 30% 18%; /* Dark green, matching popovers, lighter than original */
+    --sidebar-background: 220 12% 16%; /* Dark neutral, same as popover in dark mode */
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 90 65% 60%;
     --sidebar-primary-foreground: 120 60% 10%;
-    --sidebar-accent: 120 30% 22%;
+    --sidebar-accent: 220 12% 20%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 120 25% 20%;
+    --sidebar-border: 220 10% 22%;
     --sidebar-ring: 90 65% 60%;
   }
 }
