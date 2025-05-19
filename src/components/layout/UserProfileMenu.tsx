@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { LogOut, UserCircle, ChevronDown } from "lucide-react";
+import { ThemeToggleMenuItem } from "./ThemeToggle";
 
 export function UserProfileMenu() {
   const { user, logout } = useAuth();
@@ -47,6 +48,7 @@ export function UserProfileMenu() {
           <UserCircle className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
+        <ThemeToggleMenuItem />
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive focus:bg-destructive/10">
           <LogOut className="mr-2 h-4 w-4" />
