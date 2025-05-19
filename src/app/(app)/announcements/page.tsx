@@ -22,9 +22,9 @@ const mockAnnouncements: Announcement[] = [
     id: "1",
     title: "Community Meeting Next Week",
     content: "Join us for our monthly community meeting on Tuesday at 7 PM in the main hall. We'll be discussing upcoming events and new initiatives.\n\nAgenda:\n- Review of last month's minutes\n- Budget update\n- Planning for the summer festival\n- Open Q&A session",
-    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
     author: "Admin Team",
-    // tags: ["meeting", "community", "event"], // Removed tags
+    status: "new",
     imageUrl: "https://placehold.co/600x400.png",
     imageHint: "meeting community"
   },
@@ -32,9 +32,9 @@ const mockAnnouncements: Announcement[] = [
     id: "2",
     title: "Volunteer Drive for Charity Event",
     content: "We are looking for volunteers for our upcoming charity bake sale. All proceeds will go to local shelters. Sign up sheet is available at the front desk.\n\nRoles needed:\n- Bakers\n- Sales assistants\n- Setup and cleanup crew",
-    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
     author: "Events Committee",
-    // tags: ["volunteer", "charity", "bake sale"], // Removed tags
+    status: "unread",
     imageUrl: "https://placehold.co/600x400.png",
     imageHint: "volunteer charity"
   },
@@ -42,16 +42,41 @@ const mockAnnouncements: Announcement[] = [
     id: "3",
     title: "New Website Launch!",
     content: "We're excited to announce the launch of our new community website! Explore new features and resources. Your feedback is welcome.",
-    date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
+    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
     author: "Tech Team",
-    // tags: ["website", "update", "launch"], // Removed tags
+    status: "read",
+  },
+  {
+    id: "4",
+    title: "Maintenance Schedule Update",
+    content: "Please be advised that the community portal will be undergoing scheduled maintenance this Friday from 2 AM to 4 AM. Access may be intermittent during this period.",
+    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+    author: "Admin Team",
+    status: "new",
+    imageUrl: "https://placehold.co/600x400.png",
+    imageHint: "maintenance tools"
+  },
+  {
+    id: "5",
+    title: "Gardening Club Meetup",
+    content: "The gardening club's first meetup of the season is this Saturday at 10 AM by the community garden. Bring your gloves and enthusiasm!",
+    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+    author: "Sarah Green",
+    status: "unread",
   },
 ];
 
 async function fetchAnnouncements(): Promise<Announcement[]> {
   // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  return mockAnnouncements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  return mockAnnouncements.sort((a, b) => {
+    // Custom sort: new, then unread, then read, then by date
+    const statusOrder = { new: 0, unread: 1, read: 2 };
+    if (statusOrder[a.status] !== statusOrder[b.status]) {
+      return statusOrder[a.status] - statusOrder[b.status];
+    }
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
+  });
 }
 
 
@@ -59,7 +84,7 @@ export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [sortOrder, setSortOrder] = useState<"status" | "newest" | "oldest">("status");
 
   useEffect(() => {
     document.title = "Announcements | Anjuman Hub";
@@ -77,8 +102,14 @@ export default function AnnouncementsPage() {
     .sort((a, b) => {
       if (sortOrder === "newest") {
         return new Date(b.date).getTime() - new Date(a.date).getTime();
-      } else {
+      } else if (sortOrder === "oldest") {
         return new Date(a.date).getTime() - new Date(b.date).getTime();
+      } else { // Default to status sort
+        const statusOrder = { new: 0, unread: 1, read: 2 };
+        if (statusOrder[a.status] !== statusOrder[b.status]) {
+          return statusOrder[a.status] - statusOrder[b.status];
+        }
+        return new Date(b.date).getTime() - new Date(a.date).getTime(); // Secondary sort by newest
       }
     });
 
@@ -93,11 +124,12 @@ export default function AnnouncementsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-xs"
           />
-          <Select value={sortOrder} onValueChange={(value: "newest" | "oldest") => setSortOrder(value)}>
+          <Select value={sortOrder} onValueChange={(value: "status" | "newest" | "oldest") => setSortOrder(value)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="status">By Status</SelectItem>
               <SelectItem value="newest">Newest First</SelectItem>
               <SelectItem value="oldest">Oldest First</SelectItem>
             </SelectContent>
