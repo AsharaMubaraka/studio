@@ -2,11 +2,13 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Phone, Hash, CalendarDays } from "lucide-react";
+import { User, Phone, Hash, CalendarDays, Youtube, PlayCircle } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-// import { Separator } from "@/components/ui/separator"; // Replaced with div for repeating border
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 interface DateInfo {
   monthYear: string;
@@ -15,8 +17,6 @@ interface DateInfo {
   islamicMonth: string;
   islamicDay: string;
 }
-
-// const BORDER_IMAGE_URL = "https://misbah.info/wp-content/uploads/2024/03/bottom-border-1.png"; // No longer needed directly as img src
 
 export default function DashboardPage() {
   const [dateInfo, setDateInfo] = useState<DateInfo | null>(null);
@@ -96,7 +96,7 @@ export default function DashboardPage() {
             <User className="mr-2 h-5 w-5 text-primary" />
             Notification
           </CardTitle>
-          <div className="decorative-border-repeat decorative-border-repeat-h20 my-2"></div>
+          <Separator className="my-2" />
         </CardHeader>
         <CardContent className="space-y-2 text-sm pt-0">
           <p className="font-semibold">Salaam</p>
