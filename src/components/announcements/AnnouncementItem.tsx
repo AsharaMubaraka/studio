@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import Image from "next/image";
-import { CalendarDays, Sparkle, Dot, CheckCircle2 } from "lucide-react";
+import { CalendarDays, Sparkle, Mail, CheckCircle2 } from "lucide-react"; // Changed Dot to Mail
 
 export interface Announcement {
   id: string;
@@ -12,7 +12,7 @@ export interface Announcement {
   content: string;
   date: string; // ISO string
   author: string;
-  status: 'new' | 'unread' | 'read'; // Added status
+  status: 'new' | 'unread' | 'read';
   imageUrl?: string;
   imageHint?: string;
 }
@@ -26,7 +26,7 @@ function StatusIndicator({ status }: { status: Announcement['status'] }) {
     return <Sparkle className="h-5 w-5 text-primary ml-2 shrink-0" aria-label="New announcement" />;
   }
   if (status === 'unread') {
-    return <Dot className="h-8 w-8 text-accent ml-1 -mr-1 shrink-0" aria-label="Unread announcement" />;
+    return <Mail className="h-5 w-5 text-accent ml-2 shrink-0" aria-label="Unread announcement" />; // Changed Dot to Mail icon
   }
   if (status === 'read') {
     return <CheckCircle2 className="h-5 w-5 text-muted-foreground ml-2 shrink-0" aria-label="Read announcement" />;
@@ -64,3 +64,4 @@ export function AnnouncementItem({ announcement }: AnnouncementItemProps) {
     </Card>
   );
 }
+
