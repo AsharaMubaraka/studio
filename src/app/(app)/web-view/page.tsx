@@ -25,12 +25,12 @@ export default function WebViewPage() {
           </AlertDescription>
         </Alert>
       ) : (
-        <Card className="shadow-lg flex-grow border-0 rounded-none md:rounded-lg">
-          <CardContent className="p-0 h-full">
+        <Card className="shadow-lg flex-grow flex flex-col border-0 rounded-lg">
+          <CardContent className="p-0 flex-grow">
             <iframe
               src={hardcodedUrl}
               title="Embedded Web View"
-              className="h-full w-full md:rounded-b-lg border-0"
+              className="h-full w-full border-0"
               sandbox="allow-scripts allow-same-origin allow-popups allow-forms" // Consider security implications
               onError={() => {
                 setIframeError(`Could not load content from ${hardcodedUrl}. The site might not allow embedding or there might be a network issue.`);
