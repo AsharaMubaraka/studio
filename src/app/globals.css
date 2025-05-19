@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -23,10 +24,10 @@ body {
     --background: 220 10% 15% / 0.85; /* Dark, semi-transparent neutral for content overlay */
     --foreground: 0 0% 98%; /* Off-white for text, high contrast */
 
-    --card: 120 25% 18%; /* Dark, slightly desaturated green for cards */
+    --card: 120 25% 25%; /* Medium-dark, solid green for cards, lighter for contrast */
     --card-foreground: 0 0% 98%;
 
-    --popover: 120 25% 15%; /* Even darker green for popovers */
+    --popover: 120 25% 20%; /* Darker green for popovers, but lighter than original */
     --popover-foreground: 0 0% 98%;
 
     --primary: 90 60% 55%; /* Vibrant lime/spring green for primary actions */
@@ -56,7 +57,7 @@ body {
     --radius: 0.5rem;
 
     /* Sidebar specific theme variables */
-    --sidebar-background: 120 25% 15%; /* Dark green, matching popovers */
+    --sidebar-background: 120 25% 20%; /* Dark green, matching popovers, lighter than original */
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 90 60% 55%; /* Lime green for active/primary items */
     --sidebar-primary-foreground: 120 60% 10%;
@@ -71,10 +72,10 @@ body {
     --background: 220 10% 12% / 0.9; /* Slightly darker/more opaque overlay for dark mode */
     --foreground: 0 0% 98%;
 
-    --card: 120 30% 16%; /* Slightly richer dark green */
+    --card: 120 30% 22%; /* Richer, medium-dark green for cards, lighter for contrast */
     --card-foreground: 0 0% 98%;
 
-    --popover: 120 30% 13%;
+    --popover: 120 30% 18%; /* Darker green for popovers, but lighter than original */
     --popover-foreground: 0 0% 98%;
 
     --primary: 90 65% 60%; /* Slightly brighter lime green */
@@ -103,7 +104,7 @@ body {
     --chart-5: 25 95% 65%;
 
     /* Dark Sidebar specific theme variables */
-    --sidebar-background: 120 30% 13%;
+    --sidebar-background: 120 30% 18%; /* Dark green, matching popovers, lighter than original */
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 90 65% 60%;
     --sidebar-primary-foreground: 120 60% 10%;
