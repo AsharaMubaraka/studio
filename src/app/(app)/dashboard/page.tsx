@@ -95,13 +95,9 @@ export default function DashboardPage() {
               <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
-            <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center p-4 md:p-6 z-10 text-center">
+            <div className="absolute inset-0 bg-black/60 flex flex-col md:flex-row items-center justify-center md:justify-around gap-4 md:gap-8 p-4 md:p-6 z-10 text-center">
+              {/* Islamic Date Block (Left / Top) */}
               <div className="text-white">
-                <p className="text-xl md:text-2xl font-medium">{dateInfo.monthYear}</p>
-                <p className="text-6xl md:text-7xl font-bold my-1">{dateInfo.dayOfMonth}</p>
-                <p className="text-lg md:text-xl">{dateInfo.dayOfWeek}</p>
-              </div>
-              <div className="mt-3 text-white">
                 {dateInfo.islamicDay && dateInfo.islamicMonth && dateInfo.islamicYear ? (
                   <>
                     <p className="text-2xl md:text-3xl font-semibold">{dateInfo.islamicDay}</p>
@@ -111,6 +107,13 @@ export default function DashboardPage() {
                 ) : (
                   <p className="text-sm text-amber-400">{hijriDataError || "Hijri date unavailable"}</p>
                 )}
+              </div>
+              
+              {/* Gregorian Date Block (Right / Bottom) */}
+              <div className="text-white">
+                <p className="text-xl md:text-2xl font-medium">{dateInfo.monthYear}</p>
+                <p className="text-6xl md:text-7xl font-bold my-1">{dateInfo.dayOfMonth}</p>
+                <p className="text-lg md:text-xl">{dateInfo.dayOfWeek}</p>
               </div>
             </div>
           </CardContent>
