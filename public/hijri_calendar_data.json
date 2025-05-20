@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "gregorian_date": "2024-07-07",
+    "hijri_date": "1446-01-01",
+    "hijri_day": "1",
+    "hijri_month_name_full": "Muharram al-Haraam",
+    "hijri_year": "1446"
+  },
+  {
+    "gregorian_date": "2024-07-08",
+    "hijri_date": "1446-01-02",
+    "hijri_day": "2",
+    "hijri_month_name_full": "Muharram al-Haraam",
+    "hijri_year": "1446"
+  }
+]
