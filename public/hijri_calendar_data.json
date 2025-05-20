@@ -12,5 +12,11 @@
     "hijri_day": "2",
     "hijri_month_name_full": "Muharram al-Haraam",
     "hijri_year": "1446"
+  },
+  {
+    "gregorian_date": "2025-05-20",
+    "hijri_day": "23",
+    "hijri_month_name_full": "Zilqad al-Haraam",
+    "hijri_year": "1446"
   }
 ]
