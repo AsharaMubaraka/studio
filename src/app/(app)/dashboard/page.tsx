@@ -18,7 +18,14 @@ interface DateInfo {
   islamicYear: string | null;
 }
 
-// Placeholder for Hijri data, as we are removing direct API/file fetch for stability
+interface HijriCalendarEntry {
+  gregorian_date: string; // YYYY-MM-DD
+  hijri_day: string;
+  hijri_month_name_full: string;
+  hijri_year: string;
+  // The JSON might have other fields like hijri_date, but we only need these.
+}
+
 const placeholderHijri = {
   day: "XX",
   month: "Islamic Month",
@@ -35,6 +42,8 @@ export default function DashboardPage() {
     islamicYear: placeholderHijri.year,
   });
   const [isDateLoading, setIsDateLoading] = useState(true);
+  const [hijriJsonError, setHijriJsonError] = useState<string | null>(null);
+
   const searchParams = useSearchParams();
   const name = searchParams.get('name') || 'Murtaza bhai Saifuddin bhai Shakir';
   const username = searchParams.get('username') || '20403348';
@@ -42,19 +51,65 @@ export default function DashboardPage() {
   useEffect(() => {
     document.title = "Dashboard | Anjuman Hub";
 
-    // Simulate loading and set dates on client-side to avoid hydration issues
-    // if we were to fetch. For this simpler version, we just format current date.
-    setIsDateLoading(true);
-    const now = new Date();
-    setDateInfo({
-      monthYear: format(now, "MMMM, yyyy"),
-      dayOfMonth: format(now, "dd"),
-      dayOfWeek: format(now, "EEEE"),
-      islamicMonth: placeholderHijri.month, // Using placeholder
-      islamicDay: placeholderHijri.day,     // Using placeholder
-      islamicYear: placeholderHijri.year,   // Using placeholder
-    });
-    setIsDateLoading(false);
+    async function fetchAndSetDates() {
+      setIsDateLoading(true);
+      setHijriJsonError(null);
+
+      const systemToday = new Date();
+      const formattedGregorianDateQuery = format(systemToday, "yyyy-MM-dd");
+
+      try {
+        const response = await fetch('/hijri_calendar_data.json');
+        if (!response.ok) {
+          throw new Error('Failed to load local Hijri calendar data file.');
+        }
+        const calendarData: HijriCalendarEntry[] = await response.json();
+        
+        const entryForToday = calendarData.find(
+          (item) => item.gregorian_date === formattedGregorianDateQuery
+        );
+
+        if (entryForToday) {
+          // Parse the gregorian_date from the JSON file for display
+          // Add "T00:00:00" to ensure it's parsed in local timezone, not UTC.
+          const entryGregorianDate = new Date(entryForToday.gregorian_date + "T00:00:00");
+
+          setDateInfo({
+            monthYear: format(entryGregorianDate, "MMMM, yyyy"),
+            dayOfMonth: format(entryGregorianDate, "dd"),
+            dayOfWeek: format(entryGregorianDate, "EEEE"),
+            islamicMonth: entryForToday.hijri_month_name_full,
+            islamicDay: entryForToday.hijri_day,
+            islamicYear: entryForToday.hijri_year,
+          });
+        } else {
+          setHijriJsonError(`Hijri date not found for ${formattedGregorianDateQuery} in local data.`);
+          setDateInfo({
+            monthYear: format(systemToday, "MMMM, yyyy"),
+            dayOfMonth: format(systemToday, "dd"),
+            dayOfWeek: format(systemToday, "EEEE"),
+            islamicMonth: placeholderHijri.month,
+            islamicDay: placeholderHijri.day,
+            islamicYear: placeholderHijri.year,
+          });
+        }
+      } catch (error: any) {
+        console.error("Error processing local calendar data:", error);
+        setHijriJsonError(error.message || "Error loading local calendar data.");
+        setDateInfo({
+          monthYear: format(systemToday, "MMMM, yyyy"),
+          dayOfMonth: format(systemToday, "dd"),
+          dayOfWeek: format(systemToday, "EEEE"),
+          islamicMonth: placeholderHijri.month,
+          islamicDay: placeholderHijri.day,
+          islamicYear: placeholderHijri.year,
+        });
+      } finally {
+        setIsDateLoading(false);
+      }
+    }
+
+    fetchAndSetDates();
   }, []);
 
   return (
@@ -72,17 +127,23 @@ export default function DashboardPage() {
               Your browser does not support the video tag.
             </video>
             <div className="absolute inset-0 bg-black/60 flex flex-col md:flex-row items-center justify-around gap-4 md:gap-8 p-4 md:p-6 z-10 text-center">
-              {/* Gregorian Date Block (Left/Top on small, Left on medium+) */}
+              {/* Gregorian Date Block */}
               <div className="text-white font-sans flex flex-col items-center">
                 <p className="text-sm md:text-md font-medium">{dateInfo.monthYear}</p>
                 <p className="text-3xl md:text-5xl font-bold my-1">{dateInfo.dayOfMonth}</p>
                 <p className="text-sm md:text-md font-medium">{dateInfo.dayOfWeek}</p>
               </div>
-              {/* Islamic Date Block (Right/Bottom on small, Right on medium+) */}
+              {/* Islamic Date Block */}
               <div className="text-white font-sans flex flex-col items-center">
-                <p className="text-3xl md:text-5xl font-bold my-1">{dateInfo.islamicDay}</p>
-                <p className="text-sm md:text-md font-medium">{dateInfo.islamicMonth}</p>
-                <p className="text-[0.7rem] md:text-sm">{dateInfo.islamicYear}H</p>
+                 {hijriJsonError ? (
+                  <p className="text-xs md:text-sm text-red-300 px-2">{hijriJsonError}</p>
+                 ) : (
+                  <>
+                    <p className="text-3xl md:text-5xl font-bold my-1">{dateInfo.islamicDay}</p>
+                    <p className="text-sm md:text-md font-medium">{dateInfo.islamicMonth}</p>
+                    <p className="text-[0.7rem] md:text-sm">{dateInfo.islamicYear}H</p>
+                  </>
+                 )}
               </div>
             </div>
           </CardContent>
