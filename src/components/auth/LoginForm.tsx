@@ -1,6 +1,8 @@
 
 "use client";
 
+"use client";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -21,6 +23,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters."),
@@ -43,20 +47,59 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    const success = await login(values.username, values.password);
-    setIsLoading(false);
-    if (success) {
+    try {
+      // Fetch user from Firestore
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("username", "==", values.username));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: "Invalid username or password.",
+        });
+        return;
+      }
+
+      const user = querySnapshot.docs[0].data();
+
+      // Validate password
+      if (user.password !== values.password) {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: "Invalid username or password.",
+        });
+        return;
+      }
+
+      // Login successful
       toast({
         title: "Login Successful",
         description: "Welcome back!",
       });
-      router.push("/dashboard");
-    } else {
+      // router.push(`/dashboard?name=${user.name}&username=${user.username}`);
+      const success = await login(values.username, values.password);
+      setIsLoading(false);
+      if (success) {
+        router.push(`/dashboard?name=${user.name}&username=${user.username}`);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: "Invalid username or password.",
+        });
+      }
+    } catch (error) {
+      console.error("Error logging in:", error);
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Invalid username or password.",
+        description: "Something went wrong. Please try again.",
       });
+    } finally {
+      setIsLoading(false);
     }
   }
 

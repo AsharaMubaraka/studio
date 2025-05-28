@@ -30,7 +30,10 @@ export function UserProfileMenu() {
             <AvatarImage src={`https://placehold.co/40x40.png?text=${initials}`} alt={user.username} data-ai-hint="profile avatar" />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
-          <span className="hidden sm:inline-block text-sm font-medium">{user.username}</span>
+          <div className="hidden sm:hidden mobile-user-info">
+            <p className="font-medium leading-none">{user.name}</p>
+            <p className="text-xs leading-none text-muted-foreground">({user.username})</p>
+          </div>
           <ChevronDown className="h-4 w-4 opacity-50 hidden sm:inline-block" />
         </Button>
       </DropdownMenuTrigger>
@@ -54,6 +57,18 @@ export function UserProfileMenu() {
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
+        {/* Conditionally render admin link based on user role */}
+        {true && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <a href="/admin" className="w-full h-full flex items-center">
+                <UserCircle className="mr-2 h-4 w-4" />
+                <span>Admin Panel</span>
+              </a>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

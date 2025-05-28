@@ -9,12 +9,15 @@ body {
 
 @layer base {
   html {
+    min-height: 100svh;
+    height: 100%;
+  }
+
+  body {
     background-image: url('https://relay.alvazarat.org/images/main-bg.png');
     background-size: cover;
     background-repeat: no-repeat;
     background-attachment: fixed;
-    min-height: 100svh;
-    height: 100%;
   }
 
   body {

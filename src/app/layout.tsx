@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
+  viewport: 'width=device-width, initial-scale=1',
 };
 
 export default function RootLayout({

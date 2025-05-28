@@ -7,6 +7,7 @@ import { User, Phone, Hash, CalendarDays, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { useSearchParams } from 'next/navigation'
 
 interface DateInfo {
   monthYear: string;
@@ -25,9 +26,19 @@ interface LocalHijriDataEntry {
 }
 
 export default function DashboardPage() {
-  const [dateInfo, setDateInfo] = useState<DateInfo | null>(null);
+  const [dateInfo, setDateInfo] = useState<DateInfo>({
+    monthYear: "Loading...",
+    dayOfMonth: "..",
+    dayOfWeek: "Loading...",
+    islamicMonth: null,
+    islamicDay: null,
+    islamicYear: null,
+  });
   const [isDateLoading, setIsDateLoading] = useState(true);
   const [hijriDataError, setHijriDataError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const name = searchParams.get('name') || 'Murtaza bhai Saifuddin bhai Shakir';
+  const username = searchParams.get('username') || '20403348';
 
   useEffect(() => {
     document.title = "Dashboard | Anjuman Hub";
@@ -41,7 +52,7 @@ export default function DashboardPage() {
 
       let hijriDay: string | null = null;
       let hijriMonth: string | null = null;
-      let hijriYear: string | null = null;
+      let hijriYearNum: string | null = null;
 
       try {
         const response = await fetch("/hijri_calendar_data.json");
@@ -58,7 +69,7 @@ export default function DashboardPage() {
         if (todayEntry) {
           hijriDay = todayEntry.hijri_day;
           hijriMonth = todayEntry.hijri_month_name_full;
-          hijriYear = todayEntry.hijri_year;
+          hijriYearNum = todayEntry.hijri_year;
         } else {
           setHijriDataError(`Hijri date not found for ${gregorianTodayFormatted} in local data.`);
         }
@@ -73,7 +84,7 @@ export default function DashboardPage() {
         dayOfWeek: format(now, "EEEE"),
         islamicMonth: hijriMonth,
         islamicDay: hijriDay,
-        islamicYear: hijriYear,
+        islamicYear: hijriYearNum,
       });
       setIsDateLoading(false);
     }
@@ -95,25 +106,27 @@ export default function DashboardPage() {
               <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
-            <div className="absolute inset-0 bg-black/60 flex flex-col md:flex-row items-center justify-center md:justify-around gap-4 md:gap-8 p-4 md:p-6 z-10 text-center">
-              {/* Islamic Date Block (Left / Top) */}
-              <div className="text-white">
+            <div className="absolute inset-0 bg-black/60 flex flex-col md:flex-row items-center justify-around gap-4 md:gap-8 p-4 md:p-6 z-10 text-center">
+              {/* Islamic Date Block (Left/Top) */}
+              <div className="text-white font-sans flex flex-col items-center">
                 {dateInfo.islamicDay && dateInfo.islamicMonth && dateInfo.islamicYear ? (
                   <>
-                    <p className="text-2xl md:text-3xl font-semibold">{dateInfo.islamicDay}</p>
-                    <p className="text-md md:text-lg">{dateInfo.islamicMonth}</p>
-                    <p className="text-sm md:text-base">{dateInfo.islamicYear}H</p>
+                    <p className="text-3xl md:text-5xl font-bold my-1">{dateInfo.islamicDay}</p>
+                    <p className="text-sm md:text-md font-medium">{dateInfo.islamicMonth}</p>
+                    <p className="text-[0.7rem] md:text-sm">{dateInfo.islamicYear}H</p>
                   </>
+                ) : hijriDataError ? (
+                  <p className="text-sm text-red-300">{hijriDataError}</p>
                 ) : (
-                  <p className="text-sm text-amber-400">{hijriDataError || "Hijri date unavailable"}</p>
+                  <p className="text-sm">Loading Hijri date...</p>
                 )}
               </div>
-              
-              {/* Gregorian Date Block (Right / Bottom) */}
-              <div className="text-white">
-                <p className="text-xl md:text-2xl font-medium">{dateInfo.monthYear}</p>
-                <p className="text-6xl md:text-7xl font-bold my-1">{dateInfo.dayOfMonth}</p>
-                <p className="text-lg md:text-xl">{dateInfo.dayOfWeek}</p>
+
+              {/* Gregorian Date Block (Right/Bottom) */}
+              <div className="text-white font-sans flex flex-col items-center">
+                <p className="text-sm md:text-md font-medium">{dateInfo.monthYear}</p>
+                <p className="text-3xl md:text-5xl font-bold my-1">{dateInfo.dayOfMonth}</p>
+                <p className="text-sm md:text-md font-medium">{dateInfo.dayOfWeek}</p>
               </div>
             </div>
           </CardContent>
@@ -137,19 +150,11 @@ export default function DashboardPage() {
           <div className="space-y-1 text-sm text-center sm:text-left">
             <p className="font-semibold text-lg flex items-center justify-center sm:justify-start">
               <User className="mr-2 h-5 w-5 text-primary" />
-              Murtaza bhai Saifuddin bhai Shakir
+              {name}
             </p>
             <p className="text-muted-foreground flex items-center justify-center sm:justify-start">
               <Hash className="mr-2 h-4 w-4 text-primary/80" />
-              ITS: 20403348
-            </p>
-            <p className="text-muted-foreground flex items-center justify-center sm:justify-start">
-              <Phone className="mr-2 h-4 w-4 text-primary/80" />
-              Phone: 99482594
-            </p>
-            <p className="text-muted-foreground flex items-center justify-center sm:justify-start">
-              <Hash className="mr-2 h-4 w-4 text-primary/80" />
-              Sabeel: 8433
+              {username}
             </p>
           </div>
         </CardContent>
@@ -178,3 +183,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
