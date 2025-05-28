@@ -24,6 +24,7 @@ import { BottomNav } from "./BottomNav";
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { UserProfileMenu } from "./UserProfileMenu";
+import { cn } from "@/lib/utils"; // Added this import
 
 interface AppShellProps {
   children: ReactNode;
