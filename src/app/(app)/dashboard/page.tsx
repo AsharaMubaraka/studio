@@ -7,7 +7,9 @@ import { User, Phone, Hash, CalendarDays, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { useSearchParams } from 'next/navigation'
+import { useAuth } from "@/hooks/useAuth"; // Import useAuth
+import { db } from "@/lib/firebase"; // Import db
+import { doc, getDoc } from "firebase/firestore"; // Import Firestore functions
 
 interface DateInfo {
   monthYear: string;
@@ -19,11 +21,18 @@ interface DateInfo {
 }
 
 interface HijriCalendarEntry {
-  gregorian_date: string; // YYYY-MM-DD
+  gregorian_date: string;
   hijri_day: string;
   hijri_month_name_full: string;
   hijri_year: string;
-  // The JSON might have other fields like hijri_date, but we only need these.
+}
+
+interface UserProfile {
+  name: string;
+  username: string; // ITS ID
+  // Add other fields if available in Firestore, e.g., phone, sabeelId
+  // phone?: string;
+  // sabeelId?: string;
 }
 
 const placeholderHijri = {
@@ -33,6 +42,10 @@ const placeholderHijri = {
 };
 
 export default function DashboardPage() {
+  const { user: authUser } = useAuth(); // Get authenticated user
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
   const [dateInfo, setDateInfo] = useState<DateInfo>({
     monthYear: "Loading...",
     dayOfMonth: "..",
@@ -44,14 +57,10 @@ export default function DashboardPage() {
   const [isDateLoading, setIsDateLoading] = useState(true);
   const [hijriJsonError, setHijriJsonError] = useState<string | null>(null);
 
-  const searchParams = useSearchParams();
-  const name = searchParams.get('name') || 'Murtaza bhai Saifuddin bhai Shakir';
-  const username = searchParams.get('username') || '20403348';
-
   useEffect(() => {
     document.title = "Dashboard | Anjuman Hub";
 
-    async function fetchAndSetDates() {
+    async function fetchDashboardData() {
       setIsDateLoading(true);
       setHijriJsonError(null);
 
@@ -70,12 +79,9 @@ export default function DashboardPage() {
         );
 
         if (entryForToday) {
-          // Parse the gregorian_date from the JSON file for display
-          // Add "T00:00:00" to ensure it's parsed in local timezone, not UTC.
           const entryGregorianDate = new Date(entryForToday.gregorian_date + "T00:00:00");
-
           setDateInfo({
-            monthYear: format(entryGregorianDate, "MMMM, yyyy"),
+            monthYear: format(entryGregorianDate, "MMMM yyyy"),
             dayOfMonth: format(entryGregorianDate, "dd"),
             dayOfWeek: format(entryGregorianDate, "EEEE"),
             islamicMonth: entryForToday.hijri_month_name_full,
@@ -109,73 +115,123 @@ export default function DashboardPage() {
       }
     }
 
-    fetchAndSetDates();
-  }, []);
+    async function fetchUserProfile() {
+      if (authUser?.username) {
+        setIsLoadingProfile(true);
+        try {
+          const userDocRef = doc(db, "users", authUser.username);
+          const docSnap = await getDoc(userDocRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setUserProfile({
+              name: data.name || authUser.name || "N/A",
+              username: authUser.username,
+              // phone: data.phone || "N/A", // Uncomment if phone exists
+              // sabeelId: data.sabeelId || "N/A", // Uncomment if sabeelId exists
+            });
+          } else {
+            // Fallback if user not found in DB but authenticated
+             setUserProfile({ name: authUser.name || "N/A", username: authUser.username });
+          }
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          setUserProfile({ name: authUser.name || "N/A", username: authUser.username }); // Fallback
+        } finally {
+          setIsLoadingProfile(false);
+        }
+      } else {
+         setIsLoadingProfile(false);
+      }
+    }
+
+    fetchDashboardData();
+    fetchUserProfile();
+  }, [authUser]);
 
   return (
     <div className="animate-fadeIn space-y-6">
-      {isDateLoading ? (
-        <Card className="shadow-lg overflow-hidden h-48 md:h-56 flex items-center justify-center bg-card/80">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="ml-4 text-lg">Loading date...</p>
-        </Card>
-      ) : (
-        <Card className="shadow-lg overflow-hidden">
-          <CardContent className="p-0 relative h-48 md:h-56">
-            <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0">
-              <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-            <div className="absolute inset-0 bg-black/60 flex flex-col md:flex-row items-center justify-around gap-4 md:gap-8 p-4 md:p-6 z-10 text-center">
-              {/* Gregorian Date Block */}
-              <div className="text-white font-sans flex flex-col items-center">
-                <p className="text-sm md:text-md font-medium">{dateInfo.monthYear}</p>
-                <p className="text-3xl md:text-5xl font-bold my-1">{dateInfo.dayOfMonth}</p>
-                <p className="text-sm md:text-md font-medium">{dateInfo.dayOfWeek}</p>
-              </div>
-              {/* Islamic Date Block */}
-              <div className="text-white font-sans flex flex-col items-center">
-                 {hijriJsonError ? (
-                  <p className="text-xs md:text-sm text-red-300 px-2">{hijriJsonError}</p>
-                 ) : (
-                  <>
-                    <p className="text-3xl md:text-5xl font-bold my-1">{dateInfo.islamicDay}</p>
-                    <p className="text-sm md:text-md font-medium">{dateInfo.islamicMonth}</p>
-                    <p className="text-[0.7rem] md:text-sm">{dateInfo.islamicYear}H</p>
-                  </>
-                 )}
-              </div>
+      {/* Redesigned Date Card */}
+      <Card className="shadow-lg overflow-hidden">
+        <CardContent className="p-6 bg-card/90"> {/* Removed video, added slight opacity for depth */}
+          <div className="flex flex-col md:flex-row items-center justify-around gap-4 md:gap-8 text-center">
+            {/* Gregorian Date Block */}
+            <div className="text-card-foreground font-sans flex flex-col items-center">
+              {isDateLoading ? (
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+              ) : (
+                <>
+                  <p className="text-lg md:text-xl font-medium">{dateInfo.monthYear}</p>
+                  <p className="text-5xl md:text-7xl font-bold my-1">{dateInfo.dayOfMonth}</p>
+                  <p className="text-lg md:text-xl font-medium">{dateInfo.dayOfWeek}</p>
+                </>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+            {/* Separator for larger screens */}
+            <div className="hidden md:block h-24 w-px bg-border"></div>
+            {/* Islamic Date Block */}
+            <div className="text-card-foreground font-sans flex flex-col items-center">
+              {isDateLoading ? (
+                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-2 md:hidden" /> // Only show one loader on small screens
+              ) : hijriJsonError ? (
+                <p className="text-sm text-destructive px-2">{hijriJsonError}</p>
+              ) : (
+                <>
+                  <p className="text-5xl md:text-7xl font-bold my-1">{dateInfo.islamicDay}</p>
+                  <p className="text-lg md:text-xl font-medium">{dateInfo.islamicMonth}</p>
+                  <p className="text-sm md:text-base">{dateInfo.islamicYear}H</p>
+                </>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
+      {/* User Information Card */}
       <Card className="shadow-lg">
         <CardContent className="p-4 md:p-6 flex flex-col sm:flex-row items-center gap-4">
           <Image
             src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png"
             alt="User Profile"
-            width={100}
-            height={100}
+            width={80} // Smaller image
+            height={80} // Smaller image
             className="rounded-md border"
           />
-          <div className="space-y-1 text-sm text-center sm:text-left">
-            <p className="font-semibold text-lg flex items-center justify-center sm:justify-start">
-              <User className="mr-2 h-5 w-5 text-primary" />
-              {name}
-            </p>
-            <p className="text-muted-foreground flex items-center justify-center sm:justify-start">
-              <Hash className="mr-2 h-4 w-4 text-primary/80" />
-              {username}
-            </p>
-          </div>
+          {isLoadingProfile ? (
+             <div className="space-y-2 flex-1 text-center sm:text-left">
+                <div className="h-6 bg-muted rounded w-3/4 mx-auto sm:mx-0"></div>
+                <div className="h-4 bg-muted rounded w-1/2 mx-auto sm:mx-0"></div>
+             </div>
+          ) : userProfile ? (
+            <div className="space-y-1 text-sm text-center sm:text-left">
+              <p className="font-semibold text-lg flex items-center justify-center sm:justify-start">
+                <User className="mr-2 h-5 w-5 text-primary" />
+                {userProfile.name}
+              </p>
+              <p className="text-muted-foreground flex items-center justify-center sm:justify-start">
+                <Hash className="mr-2 h-4 w-4 text-primary/80" />
+                {userProfile.username} {/* ITS ID */}
+              </p>
+              {/* Placeholder for Phone and Sabeel - uncomment and populate if data.phone/sabeelId exists */}
+              {/* 
+              <p className="text-muted-foreground flex items-center justify-center sm:justify-start">
+                <Phone className="mr-2 h-4 w-4 text-primary/80" />
+                {userProfile.phone || "N/A"} 
+              </p>
+              <p className="text-muted-foreground flex items-center justify-center sm:justify-start">
+                <Hash className="mr-2 h-4 w-4 text-primary/80" /> Sabeel: N/A
+              </p> 
+              */}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">Could not load user profile.</p>
+          )}
         </CardContent>
       </Card>
 
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
-            <User className="mr-2 h-5 w-5 text-primary" />
+            <User className="mr-2 h-5 w-5 text-primary" /> {/* Using User icon as placeholder, can be Bell */}
             Notification
           </CardTitle>
           <Separator className="my-2" />

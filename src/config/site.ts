@@ -1,15 +1,15 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Bell, Globe, Youtube } from 'lucide-react'; // Updated Megaphone to Bell, HandMetal to Youtube, Removed Phone
+import { LayoutDashboard, Bell, Globe, Youtube, Users } from 'lucide-react'; // Added Users
 
-export type NavItem = {
+export type NavItemConfig = {
   title: string;
   href: string;
   icon: LucideIcon;
   disabled?: boolean;
 };
 
-export const navItems: NavItem[] = [
+export const userNavItems: NavItemConfig[] = [
   {
     title: 'Home',
     href: '/dashboard',
@@ -26,15 +26,33 @@ export const navItems: NavItem[] = [
     icon: Globe,
   },
   {
-    title: 'Live Relay', // Changed from 'Izan'
+    title: 'Live Relay',
     href: '/live-relay',
-    icon: Youtube, // Changed from HandMetal
+    icon: Youtube,
   },
-  // { // Removed Contact item
-  //   title: 'Contact',
-  //   href: '/contact',
-  //   icon: Phone,
-  // },
+];
+
+export const adminNavItems: NavItemConfig[] = [
+  {
+    title: 'Home',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+  },
+  {
+    title: 'Notifications',
+    href: '/announcements',
+    icon: Bell,
+  },
+  {
+    title: 'User List', // Changed from Website
+    href: '/users',   // New href for user list
+    icon: Users,        // New icon
+  },
+  {
+    title: 'Live Relay',
+    href: '/live-relay',
+    icon: Youtube,
+  },
 ];
 
 export const siteConfig = {

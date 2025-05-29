@@ -4,7 +4,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { siteConfig, navItems } from "@/config/site";
+import { siteConfig, userNavItems, adminNavItems, type NavItemConfig } from "@/config/site";
 import {
   SidebarProvider,
   Sidebar,
@@ -15,7 +15,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   useSidebar,
-  SidebarTrigger, // Import SidebarTrigger
+  // SidebarTrigger, // Removed import
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LogOut } from "lucide-react";
@@ -24,27 +24,26 @@ import { BottomNav } from "./BottomNav";
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { UserProfileMenu } from "./UserProfileMenu";
-import { cn } from "@/lib/utils"; // Added this import
+import { cn } from "@/lib/utils";
+import { useAdminMode } from "@/contexts/AdminModeContext"; // Added import
 
 interface AppShellProps {
   children: ReactNode;
 }
 
 function SidebarLogo() {
-  const { isMobile } = useSidebar(); // Use context to adapt logo if needed
+  const { isMobile } = useSidebar();
   return (
     <Link href="/dashboard" className="flex items-center gap-2 px-2">
       <Image 
         src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png" 
         alt={siteConfig.name + " Logo"} 
-        width={isMobile ? 24 : 28} // Slightly smaller on mobile sheet
+        width={isMobile ? 24 : 28}
         height={isMobile ? 24 : 28}
-        className="" // Removed group-data specific classes as collapsible state is simplified
+        className=""
       />
       <span className={cn(
         "text-xl font-bold text-sidebar-foreground",
-        // Add logic here if you have icon-only collapsible state:
-        // "group-data-[collapsible=icon]:hidden" 
       )}>
         {siteConfig.name}
       </span>
@@ -52,13 +51,13 @@ function SidebarLogo() {
   );
 }
 
-function MainNav() {
+function MainNav({ currentNavItems }: { currentNavItems: NavItemConfig[] }) {
   const pathname = usePathname();
-  const { isMobile } = useSidebar(); // For tooltip logic
+  const { isMobile } = useSidebar();
 
   return (
     <SidebarMenu>
-      {navItems.map((item) => (
+      {currentNavItems.map((item) => (
         <SidebarMenuItem key={item.href}>
           <SidebarMenuButton
             asChild
@@ -67,7 +66,6 @@ function MainNav() {
           >
             <Link href={item.href}>
               <item.icon />
-              {/* The span's visibility for icon-only state needs to be handled here or in SidebarMenuButton */}
               <span>{item.title}</span>
             </Link>
           </SidebarMenuButton>
@@ -80,36 +78,37 @@ function MainNav() {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const { logout } = useAuth();
+  const { isAdminMode } = useAdminMode(); // Get admin mode
+
+  const currentNavItems = isAdminMode ? adminNavItems : userNavItems;
 
   let currentTitle = siteConfig.name; 
-
-  const sortedNavItems = [...navItems].sort((a, b) => b.href.length - a.href.length);
+  const sortedNavItems = [...currentNavItems].sort((a, b) => b.href.length - a.href.length);
   const activeNavItem = sortedNavItems.find(item => pathname === item.href || (item.href !== "/" && item.href !== "/dashboard" && pathname.startsWith(item.href)));
 
   if (activeNavItem) {
     currentTitle = activeNavItem.title;
   } else if (pathname === '/' || pathname === '/dashboard') {
-      const homeItem = navItems.find(item => item.href === '/dashboard');
+      const homeItem = currentNavItems.find(item => item.href === '/dashboard');
       if (homeItem) currentTitle = homeItem.title;
   }
 
-
   return (
-    <SidebarProvider defaultOpen={true}> {/* Desktop sidebar open by default, mobile sheet closed by default */}
-      <Sidebar> {/* Handles Sheet on mobile, aside on desktop */}
-        <SidebarHeader> {/* Using new SidebarHeader's default padding */}
+    <SidebarProvider defaultOpen={true}>
+      <Sidebar> 
+        <SidebarHeader> 
           <SidebarLogo />
         </SidebarHeader>
         <SidebarContent asChild>
            <ScrollArea className="h-full">
-            <MainNav />
+            <MainNav currentNavItems={currentNavItems} /> {/* Pass currentNavItems */}
           </ScrollArea>
         </SidebarContent>
       </Sidebar>
       <SidebarInset className="flex flex-col min-h-screen">
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
-            <SidebarTrigger className="md:hidden mr-2" /> {/* Mobile sidebar trigger */}
+            {/* SidebarTrigger removed here */}
             <Link href="/dashboard" className="flex items-center gap-2 text-nav-foreground hover:text-nav-foreground/80">
               <Image 
                 src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png" 
@@ -137,12 +136,10 @@ export function AppShell({ children }: AppShellProps) {
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
         
-        <main className="flex flex-col flex-1 bg-transparent text-foreground relative overflow-hidden">
-          {/* This div handles padding and scrolling for the main content */}
+        <main className="flex flex-col flex-1 bg-transparent text-foreground relative">
           <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-8 h-full">
             {children}
           </div>
-          {/* Decorative border for mobile, above BottomNav */}
           <div className="absolute bottom-16 left-0 right-0 md:hidden decorative-border-repeat decorative-border-repeat-h20"></div>
         </main>
         
@@ -151,5 +148,3 @@ export function AppShell({ children }: AppShellProps) {
     </SidebarProvider>
   );
 }
-
-    

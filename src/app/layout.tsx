@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import { siteConfig } from '@/config/site';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { AdminModeProvider } from '@/contexts/AdminModeContext'; // Added import
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -36,8 +37,10 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`} suppressHydrationWarning>
         <AuthProvider>
           <ThemeProvider>
-            {children}
-            <Toaster />
+            <AdminModeProvider> {/* Added AdminModeProvider */}
+              {children}
+              <Toaster />
+            </AdminModeProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>
