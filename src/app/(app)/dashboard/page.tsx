@@ -79,7 +79,7 @@ export default function DashboardPage() {
         );
 
         if (entryForToday) {
-          const entryGregorianDate = new Date(entryForToday.gregorian_date + "T00:00:00");
+          const entryGregorianDate = new Date(entryForToday.gregorian_date + "T00:00:00"); // Ensure correct date parsing
           setDateInfo({
             monthYear: format(entryGregorianDate, "MMMM yyyy"),
             dayOfMonth: format(entryGregorianDate, "dd"),
@@ -150,37 +150,43 @@ export default function DashboardPage() {
 
   return (
     <div className="animate-fadeIn space-y-6">
-      {/* Redesigned Date Card */}
-      <Card className="shadow-lg overflow-hidden">
-        <CardContent className="p-6 bg-card/90"> {/* Removed video, added slight opacity for depth */}
-          <div className="flex flex-col md:flex-row items-center justify-around gap-4 md:gap-8 text-center">
-            {/* Gregorian Date Block */}
-            <div className="text-card-foreground font-sans flex flex-col items-center">
-              {isDateLoading ? (
-                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-              ) : (
-                <>
-                  <p className="text-lg md:text-xl font-medium">{dateInfo.monthYear}</p>
-                  <p className="text-5xl md:text-7xl font-bold my-1">{dateInfo.dayOfMonth}</p>
-                  <p className="text-lg md:text-xl font-medium">{dateInfo.dayOfWeek}</p>
-                </>
-              )}
-            </div>
-            {/* Separator for larger screens */}
-            <div className="hidden md:block h-24 w-px bg-border"></div>
-            {/* Islamic Date Block */}
-            <div className="text-card-foreground font-sans flex flex-col items-center">
-              {isDateLoading ? (
-                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-2 md:hidden" /> // Only show one loader on small screens
-              ) : hijriJsonError ? (
-                <p className="text-sm text-destructive px-2">{hijriJsonError}</p>
-              ) : (
-                <>
-                  <p className="text-5xl md:text-7xl font-bold my-1">{dateInfo.islamicDay}</p>
-                  <p className="text-lg md:text-xl font-medium">{dateInfo.islamicMonth}</p>
-                  <p className="text-sm md:text-base">{dateInfo.islamicYear}H</p>
-                </>
-              )}
+      {/* Redesigned Date Card with Video Background */}
+      <Card className="shadow-lg overflow-hidden relative">
+        <CardContent className="p-0"> {/* Remove padding for video to fill */}
+          <video autoPlay loop muted playsInline className="video-background">
+            <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+          <div className="relative z-10 p-6 bg-black/50"> {/* Overlay for text contrast */}
+            <div className="flex flex-col md:flex-row items-center justify-around gap-4 md:gap-8 text-center text-white">
+              {/* Gregorian Date Block */}
+              <div className="font-sans flex flex-col items-center">
+                {isDateLoading ? (
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                ) : (
+                  <>
+                    <p className="text-lg md:text-xl font-medium">{dateInfo.monthYear}</p>
+                    <p className="text-5xl md:text-7xl font-bold my-1">{dateInfo.dayOfMonth}</p>
+                    <p className="text-lg md:text-xl font-medium">{dateInfo.dayOfWeek}</p>
+                  </>
+                )}
+              </div>
+              {/* Separator for larger screens */}
+              <div className="hidden md:block h-24 w-px bg-white/30"></div>
+              {/* Islamic Date Block */}
+              <div className="font-sans flex flex-col items-center">
+                {isDateLoading ? (
+                   <Loader2 className="h-8 w-8 animate-spin text-primary mb-2 md:hidden" /> // Only show one loader on small screens
+                ) : hijriJsonError ? (
+                  <p className="text-sm text-red-300 px-2">{hijriJsonError}</p>
+                ) : (
+                  <>
+                    <p className="text-5xl md:text-7xl font-bold my-1">{dateInfo.islamicDay}</p>
+                    <p className="text-lg md:text-xl font-medium">{dateInfo.islamicMonth}</p>
+                    <p className="text-sm md:text-base">{dateInfo.islamicYear}H</p>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -192,8 +198,8 @@ export default function DashboardPage() {
           <Image
             src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png"
             alt="User Profile"
-            width={80} // Smaller image
-            height={80} // Smaller image
+            width={80} 
+            height={80} 
             className="rounded-md border"
           />
           {isLoadingProfile ? (
@@ -251,3 +257,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
