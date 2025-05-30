@@ -12,24 +12,55 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, UserCircle, ChevronDown, Settings, ShieldCheck } from "lucide-react";
+import { LogOut, UserCircle, ChevronDown, Settings, ShieldCheck, BellRing } from "lucide-react"; // Added BellRing
 import { ThemeToggleMenuItem } from "./ThemeToggle";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAdminMode } from "@/contexts/AdminModeContext";
+import { requestNotificationPermission } from "@/lib/firebase"; // Import the function
+import { useToast } from "@/hooks/use-toast";
+
 
 export function UserProfileMenu() {
   const { user, logout } = useAuth();
-  const { isAdminMode, setIsAdminMode } = useAdminMode(); // Removed toggleAdminMode as setIsAdminMode is used directly
+  const { isAdminMode, setIsAdminMode } = useAdminMode();
+  const { toast } = useToast();
 
   if (!user) return null;
 
   const initials = user.username.substring(0, 2).toUpperCase();
   
-  const isActualAdmin = !!user?.isAdmin; // Check isAdmin flag from AuthContext
+  const isActualAdmin = !!user?.isAdmin; 
 
   const handleAdminModeChange = (checked: boolean) => {
     setIsAdminMode(checked);
+  };
+
+  const handleEnableNotifications = async () => {
+    try {
+      const token = await requestNotificationPermission();
+      if (token) {
+        console.log("FCM Token:", token);
+        // You would typically send this token to your server to store it
+        toast({
+          title: "Notifications Enabled",
+          description: "You will now receive push notifications.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Permission Denied",
+          description: "Notification permission was not granted.",
+        });
+      }
+    } catch (error) {
+      console.error("Error enabling notifications:", error);
+      toast({
+        variant: "destructive",
+        title: "Notification Error",
+        description: "Could not enable push notifications. See console for details.",
+      });
+    }
   };
 
   return (
@@ -40,8 +71,8 @@ export function UserProfileMenu() {
             <AvatarImage src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png" alt={user.username} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
-          <div className="hidden sm:block"> {/* Changed sm:hidden to sm:block to show on sm and up */}
-            <p className="font-medium leading-none">{user.name}</p> {/* Display actual name */}
+          <div className="hidden sm:block">
+            <p className="font-medium leading-none">{user.name}</p>
             <p className="text-xs leading-none text-muted-foreground">({user.username})</p>
           </div>
           <ChevronDown className="h-4 w-4 opacity-50 hidden sm:inline-block" />
@@ -50,9 +81,9 @@ export function UserProfileMenu() {
       <DropdownMenuContent className="w-64" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p> {/* Display actual name */}
+            <p className="text-sm font-medium leading-none">{user.name}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.username} ({user.isAdmin ? "Admin" : "Member"}) {/* Show role */}
+              {user.username} ({user.isAdmin ? "Admin" : "Member"})
             </p>
           </div>
         </DropdownMenuLabel>
@@ -62,6 +93,10 @@ export function UserProfileMenu() {
           <span>Profile</span>
         </DropdownMenuItem>
         <ThemeToggleMenuItem />
+        <DropdownMenuItem onClick={handleEnableNotifications}>
+          <BellRing className="mr-2 h-4 w-4" />
+          <span>Enable Notifications</span>
+        </DropdownMenuItem>
         
         {isActualAdmin && ( 
           <>
