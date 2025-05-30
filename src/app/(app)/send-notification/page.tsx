@@ -16,39 +16,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Loader2, MessageSquarePlus } from "lucide-react";
+import { Loader2, MessageSquarePlus, Info } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { saveNotificationAction, type NotificationFormValues } from "@/actions/notificationActions"; // Import the action and type
 
+// Schema for client-side form validation
 const notificationFormSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title must be at most 100 characters."),
   content: z.string().min(10, "Content must be at least 10 characters.").max(1000, "Content must be at most 1000 characters."),
 });
-
-type NotificationFormValues = z.infer<typeof notificationFormSchema>;
-
-// Server Action to save notification
-async function saveNotificationAction(data: NotificationFormValues, author: {id: string; name: string | undefined}) {
-  "use server";
-  try {
-    await addDoc(collection(db, "notifications"), {
-      title: data.title,
-      content: data.content,
-      authorId: author.id,
-      authorName: author.name || "Admin",
-      createdAt: serverTimestamp(),
-      // status: 'new' // You might want a default status for all users
-    });
-    return { success: true, message: "Notification sent successfully!" };
-  } catch (error) {
-    console.error("Error saving notification:", error);
-    return { success: false, message: "Failed to send notification. See server logs." };
-  }
-}
-
 
 export default function SendNotificationPage() {
   const { toast } = useToast();
@@ -60,7 +39,7 @@ export default function SendNotificationPage() {
   }, []);
 
   const form = useForm<NotificationFormValues>({
-    resolver: zodResolver(notificationFormSchema),
+    resolver: zodResolver(notificationFormSchema), // Use the client-side schema
     defaultValues: {
       title: "",
       content: "",
@@ -68,7 +47,7 @@ export default function SendNotificationPage() {
   });
 
   async function onSubmit(values: NotificationFormValues) {
-    if (!adminUser?.id || !adminUser?.isAdmin) {
+    if (!adminUser?.id || !adminUser?.isAdmin) { // Ensure adminUser.id exists
         toast({
             variant: "destructive",
             title: "Unauthorized",
@@ -93,24 +72,25 @@ export default function SendNotificationPage() {
             });
         }
     } catch (error) {
-      console.error("Error in onSubmit:", error);
+      console.error("Error in onSubmit calling Server Action:", error);
       toast({
         variant: "destructive",
         title: "Submission Error",
-        description: "An unexpected error occurred.",
+        description: "An unexpected error occurred while sending the notification.",
       });
     } finally {
       setIsLoading(false);
     }
   }
   
-  // Basic check, proper route protection would be in layout/middleware
   if (!isAuthenticated || !adminUser?.isAdmin) {
     return (
-        <div className="flex flex-1 items-center justify-center">
-            <Card className="shadow-lg p-8 animate-fadeIn">
-                <CardTitle>Access Denied</CardTitle>
-                <CardDescription>You do not have permission to view this page.</CardDescription>
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="shadow-lg p-8 animate-fadeIn w-full max-w-md">
+                <CardHeader>
+                    <CardTitle>Access Denied</CardTitle>
+                    <CardDescription>You do not have permission to view this page.</CardDescription>
+                </CardHeader>
             </Card>
         </div>
     )
@@ -124,7 +104,7 @@ export default function SendNotificationPage() {
             <MessageSquarePlus className="mr-3 h-8 w-8 text-primary" /> Send Notification
           </CardTitle>
           <CardDescription>
-            Compose and send a new notification to all users. This will also trigger a push notification.
+            Compose and send a new notification to all users. This will also trigger a push notification if backend services are configured.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -173,7 +153,7 @@ export default function SendNotificationPage() {
         </CardContent>
       </Card>
        <Alert variant="default" className="max-w-2xl mx-auto shadow-md">
-          <AlertCircle className="h-4 w-4" />
+          <Info className="h-4 w-4" />
           <AlertTitle>Developer Note: Push Notification Backend</AlertTitle>
           <AlertDescription>
             Saving this notification to Firestore is the first step. To actually send push notifications via Firebase Cloud Messaging (FCM) to user devices, you will need to set up backend logic (e.g., a Cloud Function) that triggers when a new document is added to the 'notifications' collection. That function would then use the Firebase Admin SDK to send messages to all subscribed users.
@@ -182,5 +162,3 @@ export default function SendNotificationPage() {
     </div>
   );
 }
-
-    
