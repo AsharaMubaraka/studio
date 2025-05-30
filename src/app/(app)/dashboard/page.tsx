@@ -7,9 +7,9 @@ import { User, Phone, Hash, CalendarDays, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { useAuth } from "@/hooks/useAuth"; // Import useAuth
-import { db } from "@/lib/firebase"; // Import db
-import { doc, getDoc } from "firebase/firestore"; // Import Firestore functions
+import { useAuth } from "@/hooks/useAuth";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 interface DateInfo {
   monthYear: string;
@@ -30,7 +30,6 @@ interface HijriCalendarEntry {
 interface UserProfile {
   name: string;
   username: string; // ITS ID
-  // Add other fields if available in Firestore, e.g., phone, sabeelId
   // phone?: string;
   // sabeelId?: string;
 }
@@ -42,7 +41,7 @@ const placeholderHijri = {
 };
 
 export default function DashboardPage() {
-  const { user: authUser } = useAuth(); // Get authenticated user
+  const { user: authUser } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
@@ -79,7 +78,7 @@ export default function DashboardPage() {
         );
 
         if (entryForToday) {
-          const entryGregorianDate = new Date(entryForToday.gregorian_date + "T00:00:00"); // Ensure correct date parsing
+          const entryGregorianDate = new Date(entryForToday.gregorian_date + "T00:00:00");
           setDateInfo({
             monthYear: format(entryGregorianDate, "MMMM yyyy"),
             dayOfMonth: format(entryGregorianDate, "dd"),
@@ -126,16 +125,13 @@ export default function DashboardPage() {
             setUserProfile({
               name: data.name || authUser.name || "N/A",
               username: authUser.username,
-              // phone: data.phone || "N/A", // Uncomment if phone exists
-              // sabeelId: data.sabeelId || "N/A", // Uncomment if sabeelId exists
             });
           } else {
-            // Fallback if user not found in DB but authenticated
              setUserProfile({ name: authUser.name || "N/A", username: authUser.username });
           }
         } catch (error) {
           console.error("Error fetching user profile:", error);
-          setUserProfile({ name: authUser.name || "N/A", username: authUser.username }); // Fallback
+          setUserProfile({ name: authUser.name || "N/A", username: authUser.username });
         } finally {
           setIsLoadingProfile(false);
         }
@@ -150,14 +146,13 @@ export default function DashboardPage() {
 
   return (
     <div className="animate-fadeIn space-y-6">
-      {/* Redesigned Date Card with Video Background */}
       <Card className="shadow-lg overflow-hidden relative">
-        <CardContent className="p-0 h-64 md:h-72"> {/* Set a fixed height for the video container and remove padding */}
+        <CardContent className="p-0 h-64 md:h-72">
           <video autoPlay loop muted playsInline className="video-background">
             <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
-          <div className="relative z-10 p-6 bg-black/50 h-full flex flex-col md:flex-row items-center justify-around gap-4 md:gap-8 text-center text-white"> {/* Overlay for text contrast and flex layout */}
+          <div className="relative z-10 p-6 bg-black/50 h-full flex flex-col md:flex-row items-center justify-around gap-4 md:gap-8 text-center text-white">
             {/* Gregorian Date Block */}
             <div className="font-sans flex flex-col items-center">
               {isDateLoading ? (
@@ -170,12 +165,11 @@ export default function DashboardPage() {
                 </>
               )}
             </div>
-            {/* Separator for larger screens */}
-            <div className="hidden md:block h-24 w-px bg-white/30"></div>
+            <div className="hidden md:block h-24 w-px bg-white/30"></div> {/* Separator for larger screens */}
             {/* Islamic Date Block */}
             <div className="font-sans flex flex-col items-center">
               {isDateLoading ? (
-                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-2 md:hidden" /> // Only show one loader on small screens
+                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-2 md:hidden" />
               ) : hijriJsonError ? (
                 <p className="text-sm text-red-300 px-2">{hijriJsonError}</p>
               ) : (
@@ -190,14 +184,13 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* User Information Card */}
       <Card className="shadow-lg">
         <CardContent className="p-4 md:p-6 flex flex-col sm:flex-row items-center gap-4">
           <Image
             src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png"
             alt="User Profile"
-            width={60} // Reduced size
-            height={60} // Reduced size
+            width={60}
+            height={60}
             className="rounded-md border"
           />
           {isLoadingProfile ? (
@@ -213,18 +206,8 @@ export default function DashboardPage() {
               </p>
               <p className="text-muted-foreground flex items-center justify-center sm:justify-start">
                 <Hash className="mr-2 h-4 w-4 text-primary/80" />
-                {userProfile.username} {/* ITS ID */}
+                {userProfile.username}
               </p>
-              {/* Placeholder for Phone and Sabeel - uncomment and populate if data.phone/sabeelId exists */}
-              {/* 
-              <p className="text-muted-foreground flex items-center justify-center sm:justify-start">
-                <Phone className="mr-2 h-4 w-4 text-primary/80" />
-                {userProfile.phone || "N/A"} 
-              </p>
-              <p className="text-muted-foreground flex items-center justify-center sm:justify-start">
-                <Hash className="mr-2 h-4 w-4 text-primary/80" /> Sabeel: N/A
-              </p> 
-              */}
             </div>
           ) : (
             <p className="text-muted-foreground">Could not load user profile.</p>
@@ -235,7 +218,7 @@ export default function DashboardPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
-            <User className="mr-2 h-5 w-5 text-primary" /> {/* Using User icon as placeholder, can be Bell */}
+            <User className="mr-2 h-5 w-5 text-primary" />
             Notification
           </CardTitle>
           <Separator className="my-2" />
@@ -255,6 +238,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-    
-
-    
