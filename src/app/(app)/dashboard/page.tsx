@@ -3,13 +3,14 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { User, Phone, Hash, CalendarDays, Loader2, Bell } from "lucide-react"; // Added Bell
+import { User, Hash, CalendarDays, Loader2, Bell } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, collection, query, orderBy, limit, getDocs, Timestamp } from "firebase/firestore"; // Added collection, query, orderBy, limit, getDocs, Timestamp
+import { doc, getDoc, collection, query, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton"; // Added import
 
 interface DateInfo {
   monthYear: string;
@@ -189,7 +190,7 @@ export default function DashboardPage() {
             <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
-          <div className="relative z-10 p-6 bg-black/50 h-full flex flex-row items-center justify-around gap-4 text-center text-white">
+          <div className="relative z-10 p-6 bg-black/50 h-full flex flex-col md:flex-row items-center justify-around gap-4 text-center text-white">
             {/* Gregorian Date Block */}
             <div className="font-sans flex flex-col items-center">
               {isDateLoading ? (
@@ -197,7 +198,7 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <p className="text-sm md:text-base font-medium">{dateInfo.monthYear}</p>
-                  <p className="text-4xl md:text-5xl font-bold my-1">{dateInfo.dayOfMonth}</p>
+                  <p className="text-4xl md:text-6xl font-bold my-1">{dateInfo.dayOfMonth}</p> {/* Adjusted font size */}
                   <p className="text-sm md:text-base font-medium">{dateInfo.dayOfWeek}</p>
                 </>
               )}
@@ -211,7 +212,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-red-300 px-2">{hijriJsonError}</p>
               ) : (
                 <>
-                  <p className="text-4xl md:text-5xl font-bold my-1">{dateInfo.islamicDay}</p>
+                  <p className="text-4xl md:text-6xl font-bold my-1">{dateInfo.islamicDay}</p> {/* Adjusted font size */}
                   <p className="text-sm md:text-base font-medium">{dateInfo.islamicMonth}</p>
                   <p className="text-xs md:text-sm">{dateInfo.islamicYear}H</p>
                 </>
@@ -226,8 +227,8 @@ export default function DashboardPage() {
           <Image
             src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png"
             alt="User Profile"
-            width={60} 
-            height={60}
+            width={60} // Reduced size
+            height={60} // Reduced size
             className="rounded-md border"
           />
           {isLoadingProfile ? (
@@ -255,7 +256,7 @@ export default function DashboardPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
-            <Bell className="mr-2 h-5 w-5 text-primary" /> {/* Changed icon */}
+            <Bell className="mr-2 h-5 w-5 text-primary" />
             Latest Notification
           </CardTitle>
           <Separator className="my-2" />
@@ -288,5 +289,4 @@ export default function DashboardPage() {
     </div>
   );
 }
-
     
