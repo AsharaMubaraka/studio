@@ -21,7 +21,7 @@ interface DateInfo {
 }
 
 interface HijriCalendarEntry {
-  gregorian_date: string;
+  gregorian_date: string; // YYYY-MM-DD
   hijri_day: string;
   hijri_month_name_full: string;
   hijri_year: string;
@@ -30,8 +30,6 @@ interface HijriCalendarEntry {
 interface UserProfile {
   name: string;
   username: string; // ITS ID
-  // phone?: string;
-  // sabeelId?: string;
 }
 
 const placeholderHijri = {
@@ -69,7 +67,7 @@ export default function DashboardPage() {
       try {
         const response = await fetch('/hijri_calendar_data.json');
         if (!response.ok) {
-          throw new Error('Failed to load local Hijri calendar data file.');
+          throw new Error(`Failed to load local Hijri calendar data file. Status: ${response.status}`);
         }
         const calendarData: HijriCalendarEntry[] = await response.json();
         
@@ -78,7 +76,8 @@ export default function DashboardPage() {
         );
 
         if (entryForToday) {
-          const entryGregorianDate = new Date(entryForToday.gregorian_date + "T00:00:00");
+          // Use date parts from the JSON if entry is found
+          const entryGregorianDate = new Date(entryForToday.gregorian_date + "T00:00:00"); // Ensure correct parsing by adding time
           setDateInfo({
             monthYear: format(entryGregorianDate, "MMMM yyyy"),
             dayOfMonth: format(entryGregorianDate, "dd"),
@@ -88,6 +87,7 @@ export default function DashboardPage() {
             islamicYear: entryForToday.hijri_year,
           });
         } else {
+          // Fallback to system date for Gregorian if not found in JSON, show error for Hijri
           setHijriJsonError(`Hijri date not found for ${formattedGregorianDateQuery} in local data.`);
           setDateInfo({
             monthYear: format(systemToday, "MMMM yyyy"),
@@ -101,6 +101,7 @@ export default function DashboardPage() {
       } catch (error: any) {
         console.error("Error processing local calendar data:", error);
         setHijriJsonError(error.message || "Error loading local calendar data.");
+        // Fallback to system date for Gregorian on error
         setDateInfo({
           monthYear: format(systemToday, "MMMM yyyy"),
           dayOfMonth: format(systemToday, "dd"),
@@ -148,7 +149,7 @@ export default function DashboardPage() {
     <div className="animate-fadeIn space-y-6">
       <Card className="shadow-lg overflow-hidden relative">
         <CardContent className="p-0 h-64 md:h-72">
-          <video autoPlay loop muted playsInline className="video-background">
+          <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0">
             <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
