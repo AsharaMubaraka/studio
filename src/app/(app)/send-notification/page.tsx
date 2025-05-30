@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Loader2, MessageSquarePlus, Info } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { saveNotificationAction, type NotificationFormValues } from "@/actions/notificationActions"; // Import the action and type
+import { saveNotificationAction, type NotificationFormValues } from "@/actions/notificationActions";
 
 // Schema for client-side form validation
 const notificationFormSchema = z.object({
@@ -39,7 +39,7 @@ export default function SendNotificationPage() {
   }, []);
 
   const form = useForm<NotificationFormValues>({
-    resolver: zodResolver(notificationFormSchema), // Use the client-side schema
+    resolver: zodResolver(notificationFormSchema),
     defaultValues: {
       title: "",
       content: "",
@@ -47,7 +47,10 @@ export default function SendNotificationPage() {
   });
 
   async function onSubmit(values: NotificationFormValues) {
-    if (!adminUser?.id || !adminUser?.isAdmin) { // Ensure adminUser.id exists
+    // Updated authorization check:
+    // 1. Ensure adminUser and adminUser.username exist.
+    // 2. Ensure adminUser.isAdmin is true.
+    if (!adminUser?.username || !adminUser?.isAdmin) {
         toast({
             variant: "destructive",
             title: "Unauthorized",
@@ -57,7 +60,8 @@ export default function SendNotificationPage() {
     }
     setIsLoading(true);
     try {
-        const result = await saveNotificationAction(values, {id: adminUser.id, name: adminUser.name});
+        // Pass adminUser.username as author.id
+        const result = await saveNotificationAction(values, {id: adminUser.username, name: adminUser.name});
         if (result.success) {
             toast({
                 title: "Success",
