@@ -16,17 +16,29 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"; // Keep for general errors if needed
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, MessageSquarePlus, Info, ListChecks, CalendarClock } from "lucide-react";
+import { Loader2, MessageSquarePlus, Info, ListChecks, CalendarClock, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { saveNotificationAction, type NotificationFormValues } from "@/actions/notificationActions";
+import { saveNotificationAction, deleteNotificationAction, type NotificationFormValues } from "@/actions/notificationActions";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 
 // Schema for client-side form validation
 const notificationFormSchema = z.object({
@@ -50,6 +62,7 @@ export default function SendNotificationPage() {
   const [postedNotifications, setPostedNotifications] = useState<PostedNotification[]>([]);
   const [isLoadingLog, setIsLoadingLog] = useState(true);
   const [logError, setLogError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null); // To track which notification is being deleted
 
   const form = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
@@ -127,6 +140,36 @@ export default function SendNotificationPage() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleDeleteNotification(notificationId: string) {
+    setIsDeleting(notificationId);
+    try {
+      const result = await deleteNotificationAction(notificationId);
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+        // Optimistically update UI or refetch
+        setPostedNotifications(prev => prev.filter(n => n.id !== notificationId));
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.message,
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      toast({
+        variant: "destructive",
+        title: "Deletion Error",
+        description: "An unexpected error occurred while deleting the notification.",
+      });
+    } finally {
+      setIsDeleting(null);
     }
   }
   
@@ -233,8 +276,36 @@ export default function SendNotificationPage() {
             <div className="space-y-6">
               {postedNotifications.map((notification) => (
                 <div key={notification.id} className="p-4 border rounded-lg shadow-sm bg-card">
-                  <h3 className="font-semibold text-lg mb-1">{notification.title}</h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line mb-2">{notification.content}</p>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-lg mb-1">{notification.title}</h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-line mb-2">{notification.content}</p>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={isDeleting === notification.id}>
+                          {isDeleting === notification.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the notification titled "{notification.title}".
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteNotification(notification.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                   <Separator className="my-2"/>
                   <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <div className="flex items-center">
@@ -249,21 +320,7 @@ export default function SendNotificationPage() {
           )}
         </CardContent>
       </Card>
-
-       <Alert variant="default" className="max-w-2xl mx-auto shadow-md">
-          <Info className="h-4 w-4" />
-          <AlertTitle>Developer Note: Backend Implementation Required</AlertTitle>
-          <AlertDescription>
-            Saving notifications to Firestore (as done by the form above) is the first step.
-            The "Time Sent" for each notification is its creation timestamp in Firestore, visible in the log and the database.
-            <br /><br />
-            To actually send **push notifications** via Firebase Cloud Messaging (FCM) to user devices, you will need to set up backend logic (e.g., a Cloud Function) that triggers when a new document is added to the 'notifications' collection. That function would then use the Firebase Admin SDK to send messages to all subscribed users.
-            <br /><br />
-            Similarly, tracking detailed **notification read logs** (like "how many users read it") also requires significant backend implementation for data collection, storage, and aggregation. The "Read by" status in the log above is a placeholder.
-          </AlertDescription>
-        </Alert>
     </div>
   );
 }
-
     

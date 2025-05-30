@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, deleteDoc } from "firebase/firestore";
 
 // Define the schema for notification form values here, as the action needs to know the shape.
 const notificationFormSchema = z.object({
@@ -15,10 +15,6 @@ export type NotificationFormValues = z.infer<typeof notificationFormSchema>;
 
 export async function saveNotificationAction(data: NotificationFormValues, author: {id: string; name: string | undefined}) {
   try {
-    // Optional: Re-validate data on the server side if desired
-    // You could parse here again if you want to be absolutely sure, though client-side validation already ran.
-    // notificationFormSchema.parse(data); 
-
     await addDoc(collection(db, "notifications"), {
       title: data.title,
       content: data.content,
@@ -30,11 +26,25 @@ export async function saveNotificationAction(data: NotificationFormValues, autho
     return { success: true, message: "Notification sent successfully!" };
   } catch (error: any) {
     console.error("Error saving notification (Server Action):", error);
-    // Check for Zod validation error if re-validating on server
     if (error instanceof z.ZodError) {
         return { success: false, message: "Invalid data provided on server. " + error.errors.map(e => e.message).join(', ') };
     }
     return { success: false, message: "Failed to send notification. See server logs." };
+  }
+}
+
+export async function deleteNotificationAction(notificationId: string) {
+  "use server";
+  if (!notificationId) {
+    return { success: false, message: "Notification ID is required." };
+  }
+  try {
+    const notificationRef = doc(db, "notifications", notificationId);
+    await deleteDoc(notificationRef);
+    return { success: true, message: "Notification deleted successfully!" };
+  } catch (error: any) {
+    console.error("Error deleting notification (Server Action):", error);
+    return { success: false, message: "Failed to delete notification. See server logs." };
   }
 }
 

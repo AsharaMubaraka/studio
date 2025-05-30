@@ -46,7 +46,7 @@ const requestNotificationPermission = async (): Promise<string | null> => {
         const messaging = getFcmMessaging();
         if (messaging) {
           // VAPID key from Firebase Console > Project settings > Cloud Messaging > Web configuration > Web Push certificates
-          const currentToken = await getToken(messaging, { vapidKey: 'BOCO7fqrEu4j4Jbvi-EjM5xeO05U3iTudgVyz2CkxlwXgtlmWBQi-KvBaWIfRLNFHISJTKnhetxCn_1-jzj8vdc' });
+          const currentToken = await getToken(messaging, { vapidKey: 'BOCO7fqrEu4j4Jbvi-EjM5xeO05U3iTudgVyz2CkxlwXgtlmWBQi-KvBaWIfRLNFHISJTKnhetxCn_1-jzj8vdc' }); // Replace 'YOUR_VAPID_KEY' with your actual VAPID key
           if (currentToken) {
             console.log('FCM Token:', currentToken);
             // TODO: Send this token to your server and store it associated with the user
@@ -80,6 +80,10 @@ if (typeof window !== 'undefined') {
         title: payload.notification?.title || "New Notification",
         description: payload.notification?.body,
       });
+      // Attempt to vibrate
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]); // Example vibration pattern: vibrate 200ms, pause 100ms, vibrate 200ms
+      }
       // Potentially trigger a refetch of notifications on the dashboard or announcement page
       // For example, by dispatching a custom event that relevant components listen to.
     });
@@ -87,5 +91,4 @@ if (typeof window !== 'undefined') {
 }
 
 export { db, firebaseApp, requestNotificationPermission, getFcmMessaging };
-
     
