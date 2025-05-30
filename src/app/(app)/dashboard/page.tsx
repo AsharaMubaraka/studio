@@ -10,7 +10,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
-import { Skeleton } from "@/components/ui/skeleton"; // Added import
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface DateInfo {
   monthYear: string;
@@ -190,7 +190,8 @@ export default function DashboardPage() {
             <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
-          <div className="relative z-10 p-6 bg-black/50 h-full flex flex-col md:flex-row items-center justify-around gap-4 text-center text-white">
+          {/* Changed flex-col md:flex-row to flex-row */}
+          <div className="relative z-10 p-6 bg-black/50 h-full flex flex-row items-center justify-around gap-4 text-center text-white">
             {/* Gregorian Date Block */}
             <div className="font-sans flex flex-col items-center">
               {isDateLoading ? (
@@ -198,12 +199,13 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <p className="text-sm md:text-base font-medium">{dateInfo.monthYear}</p>
-                  <p className="text-4xl md:text-6xl font-bold my-1">{dateInfo.dayOfMonth}</p> {/* Adjusted font size */}
+                  <p className="text-4xl md:text-6xl font-bold my-1">{dateInfo.dayOfMonth}</p>
                   <p className="text-sm md:text-base font-medium">{dateInfo.dayOfWeek}</p>
                 </>
               )}
             </div>
-            <div className="hidden md:block h-24 w-px bg-white/30"></div>
+            {/* Vertical separator for all screen sizes where items are in a row, though it might look tight on mobile */}
+            <div className="h-24 w-px bg-white/30"></div> 
             {/* Islamic Date Block */}
             <div className="font-sans flex flex-col items-center">
               {isDateLoading ? (
@@ -212,7 +214,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-red-300 px-2">{hijriJsonError}</p>
               ) : (
                 <>
-                  <p className="text-4xl md:text-6xl font-bold my-1">{dateInfo.islamicDay}</p> {/* Adjusted font size */}
+                  <p className="text-4xl md:text-6xl font-bold my-1">{dateInfo.islamicDay}</p>
                   <p className="text-sm md:text-base font-medium">{dateInfo.islamicMonth}</p>
                   <p className="text-xs md:text-sm">{dateInfo.islamicYear}H</p>
                 </>
@@ -227,8 +229,8 @@ export default function DashboardPage() {
           <Image
             src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png"
             alt="User Profile"
-            width={60} // Reduced size
-            height={60} // Reduced size
+            width={60} 
+            height={60} 
             className="rounded-md border"
           />
           {isLoadingProfile ? (
