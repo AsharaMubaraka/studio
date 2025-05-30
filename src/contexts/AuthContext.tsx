@@ -9,7 +9,7 @@ import { db } from '@/lib/firebase';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: { username: string; name: string } | null;
+  user: { username: string; name: string; isAdmin?: boolean } | null; // Added isAdmin
   login: (username: string, pass: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
@@ -24,7 +24,7 @@ interface AuthProviderProps {
 const AUTH_STORAGE_KEY = 'anjuman_hub_auth';
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<{ username: string; name: string } | null>(null);
+  const [user, setUser] = useState<{ username: string; name: string; isAdmin?: boolean } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -46,30 +46,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    if (username && pass) { // Replace with actual validation
+    if (username && pass) { // Replace with actual validation (password check happens in LoginForm)
       try {
         const userRef = doc(db, "users", username);
         const docSnap = await getDoc(userRef);
 
         if (docSnap.exists()) {
           const userData = docSnap.data();
-          setUser({ username: username, name: userData?.name || "Unknown User" });
-          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ username: username, name: userData?.name || "Unknown User" }));
+          const loggedInUser = {
+            username: username,
+            name: userData?.name || "Unknown User",
+            isAdmin: userData?.isAdmin || false // Fetch isAdmin status
+          };
+          setUser(loggedInUser);
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(loggedInUser));
           setIsLoading(false);
           return true;
         } else {
-          console.log("No such document!");
-          setUser({ username: username, name: "Unknown User" });
-          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ username: username, name: "Unknown User" }));
+          // This case should ideally be handled by the LoginForm's check before calling login
+          // For safety, if a user record isn't found but login is called, treat as non-admin
+          console.log("User document not found in Firestore during login:", username);
+          const loggedInUser = {
+            username: username,
+            name: "Unknown User", // Or perhaps don't set user if doc not found
+            isAdmin: false
+          };
+          setUser(loggedInUser); // Or setUser(null) and return false
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(loggedInUser));
           setIsLoading(false);
-          return true;
+          return true; // Or false depending on how strict you want to be
         }
       } catch (error) {
-        console.error("Error fetching user data:", error);
-        setUser({ username: username, name: "Unknown User" });
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ username: username, name: "Unknown User" }));
+        console.error("Error fetching user data during login:", error);
+        // Handle error, perhaps set user to null or a default state
+        const loggedInUser = {
+            username: username,
+            name: "Error User",
+            isAdmin: false
+        };
+        setUser(loggedInUser);
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(loggedInUser));
         setIsLoading(false);
-        return true;
+        return true; // Or false
       }
     }
     setIsLoading(false);
@@ -79,6 +97,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
+    // Optionally clear AdminModeContext as well if needed
     router.push('/login');
   }, [router]);
 
