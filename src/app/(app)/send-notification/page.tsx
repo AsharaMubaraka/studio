@@ -1,0 +1,186 @@
+
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+import { Loader2, MessageSquarePlus } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+
+const notificationFormSchema = z.object({
+  title: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title must be at most 100 characters."),
+  content: z.string().min(10, "Content must be at least 10 characters.").max(1000, "Content must be at most 1000 characters."),
+});
+
+type NotificationFormValues = z.infer<typeof notificationFormSchema>;
+
+// Server Action to save notification
+async function saveNotificationAction(data: NotificationFormValues, author: {id: string; name: string | undefined}) {
+  "use server";
+  try {
+    await addDoc(collection(db, "notifications"), {
+      title: data.title,
+      content: data.content,
+      authorId: author.id,
+      authorName: author.name || "Admin",
+      createdAt: serverTimestamp(),
+      // status: 'new' // You might want a default status for all users
+    });
+    return { success: true, message: "Notification sent successfully!" };
+  } catch (error) {
+    console.error("Error saving notification:", error);
+    return { success: false, message: "Failed to send notification. See server logs." };
+  }
+}
+
+
+export default function SendNotificationPage() {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const { user: adminUser, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    document.title = "Send Notification | Anjuman Hub";
+  }, []);
+
+  const form = useForm<NotificationFormValues>({
+    resolver: zodResolver(notificationFormSchema),
+    defaultValues: {
+      title: "",
+      content: "",
+    },
+  });
+
+  async function onSubmit(values: NotificationFormValues) {
+    if (!adminUser?.id || !adminUser?.isAdmin) {
+        toast({
+            variant: "destructive",
+            title: "Unauthorized",
+            description: "You are not authorized to send notifications.",
+        });
+        return;
+    }
+    setIsLoading(true);
+    try {
+        const result = await saveNotificationAction(values, {id: adminUser.id, name: adminUser.name});
+        if (result.success) {
+            toast({
+                title: "Success",
+                description: result.message,
+            });
+            form.reset();
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: result.message,
+            });
+        }
+    } catch (error) {
+      console.error("Error in onSubmit:", error);
+      toast({
+        variant: "destructive",
+        title: "Submission Error",
+        description: "An unexpected error occurred.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+  
+  // Basic check, proper route protection would be in layout/middleware
+  if (!isAuthenticated || !adminUser?.isAdmin) {
+    return (
+        <div className="flex flex-1 items-center justify-center">
+            <Card className="shadow-lg p-8 animate-fadeIn">
+                <CardTitle>Access Denied</CardTitle>
+                <CardDescription>You do not have permission to view this page.</CardDescription>
+            </Card>
+        </div>
+    )
+  }
+
+  return (
+    <div className="space-y-8 animate-fadeIn">
+      <Card className="shadow-lg w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold tracking-tight flex items-center">
+            <MessageSquarePlus className="mr-3 h-8 w-8 text-primary" /> Send Notification
+          </CardTitle>
+          <CardDescription>
+            Compose and send a new notification to all users. This will also trigger a push notification.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notification Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter notification title" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="content"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notification Content</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter notification content here..."
+                        className="min-h-[150px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <MessageSquarePlus className="mr-2 h-4 w-4" />
+                )}
+                Send Notification
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+       <Alert variant="default" className="max-w-2xl mx-auto shadow-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Developer Note: Push Notification Backend</AlertTitle>
+          <AlertDescription>
+            Saving this notification to Firestore is the first step. To actually send push notifications via Firebase Cloud Messaging (FCM) to user devices, you will need to set up backend logic (e.g., a Cloud Function) that triggers when a new document is added to the 'notifications' collection. That function would then use the Firebase Admin SDK to send messages to all subscribed users.
+          </AlertDescription>
+        </Alert>
+    </div>
+  );
+}
+
+    

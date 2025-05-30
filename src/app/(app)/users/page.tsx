@@ -17,7 +17,8 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Users, AlertCircle, Loader2, ShieldOff, ShieldCheck } from "lucide-react"; // Added Shield icons
+import { Button } from "@/components/ui/button";
+import { Users, AlertCircle, Loader2, ShieldOff, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface User {
   id: string;
@@ -28,6 +29,8 @@ interface User {
   ipAddress?: string | null;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export default function UserListPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,13 +38,13 @@ export default function UserListPage() {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<"admin" | "restriction" | null>(null);
   const { toast } = useToast();
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const usersCollectionRef = collection(db, "users");
-      // Order by name for consistent listing
       const q = query(usersCollectionRef, orderBy("name"));
       const querySnapshot = await getDocs(q);
       const fetchedUsers: User[] = querySnapshot.docs.map((docSnap) => {
@@ -51,7 +54,7 @@ export default function UserListPage() {
           name: data.name || "N/A",
           username: data.username || docSnap.id,
           isAdmin: !!data.isAdmin,
-          isRestricted: !!data.isRestricted, // Default to false if not present
+          isRestricted: !!data.isRestricted,
           ipAddress: data.ipAddress || null,
         };
       });
@@ -130,7 +133,7 @@ export default function UserListPage() {
       });
     } catch (err: any) {
       console.error("Error updating restriction status:", err);
-      setUsers(originalUsers);
+      setUsers(originalUsers); // Revert on error
       toast({
         variant: "destructive",
         title: "Update Failed",
@@ -141,6 +144,12 @@ export default function UserListPage() {
       setActionType(null);
     }
   };
+
+  const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE);
+  const paginatedUsers = users.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   if (isLoading) {
     return (
@@ -154,16 +163,14 @@ export default function UserListPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="grid grid-cols-5 items-center gap-4 p-2 border-b">
+              {[...Array(ITEMS_PER_PAGE)].map((_, i) => (
+                <div key={i} className="grid grid-cols-6 items-center gap-4 p-2 border-b">
                   <Skeleton className="h-5 w-8" /> {/* Sr. No. */}
                   <Skeleton className="h-5 w-32" /> {/* Name */}
                   <Skeleton className="h-5 w-24" /> {/* Username */}
                   <Skeleton className="h-5 w-20" /> {/* IP Address */}
-                  <div className="flex justify-end gap-2">
-                    <Skeleton className="h-6 w-12 rounded-full" /> {/* Admin Toggle */}
-                    <Skeleton className="h-6 w-12 rounded-full" /> {/* Restricted Toggle */}
-                  </div>
+                  <Skeleton className="h-5 w-12 rounded-full" /> {/* Admin Toggle */}
+                  <Skeleton className="h-5 w-12 rounded-full" /> {/* Restricted Toggle */}
                 </div>
               ))}
             </div>
@@ -196,55 +203,84 @@ export default function UserListPage() {
           {users.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">No users found.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]">Sr. No.</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Username</TableHead>
-                  <TableHead>IP Address</TableHead>
-                  <TableHead className="text-right w-[100px]">Admin</TableHead>
-                  <TableHead className="text-right w-[120px]">Restricted</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user, index) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{index + 1}</TableCell>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.username}</TableCell>
-                    <TableCell>{user.ipAddress || "N/A"}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end">
-                        {updatingUserId === user.id && actionType === "admin" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        <Switch
-                          checked={user.isAdmin}
-                          onCheckedChange={() => handleAdminToggle(user.id, user.isAdmin)}
-                          disabled={updatingUserId === user.id}
-                          aria-label={`Toggle admin status for ${user.name}`}
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end">
-                        {updatingUserId === user.id && actionType === "restriction" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                         <Switch
-                          checked={user.isRestricted}
-                          onCheckedChange={() => handleRestrictionToggle(user.id, user.isRestricted)}
-                          disabled={updatingUserId === user.id}
-                          aria-label={`Toggle restriction status for ${user.name}`}
-                          className={user.isRestricted ? "data-[state=checked]:bg-destructive" : ""}
-                        />
-                        {user.isRestricted ? <ShieldOff className="ml-2 h-4 w-4 text-destructive" /> : <ShieldCheck className="ml-2 h-4 w-4 text-green-600" />}
-                      </div>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]">Sr. No.</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>IP Address</TableHead>
+                    <TableHead className="text-right w-[100px]">Admin</TableHead>
+                    <TableHead className="text-right w-[120px]">Restricted</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedUsers.map((user, index) => (
+                    <TableRow key={user.id}>
+                      <TableCell>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</TableCell>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.username}</TableCell>
+                      <TableCell>{user.ipAddress || "N/A"}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end">
+                          {updatingUserId === user.id && actionType === "admin" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          <Switch
+                            checked={user.isAdmin}
+                            onCheckedChange={() => handleAdminToggle(user.id, user.isAdmin)}
+                            disabled={updatingUserId === user.id}
+                            aria-label={`Toggle admin status for ${user.name}`}
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end">
+                          {updatingUserId === user.id && actionType === "restriction" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          <Switch
+                            checked={user.isRestricted}
+                            onCheckedChange={() => handleRestrictionToggle(user.id, user.isRestricted)}
+                            disabled={updatingUserId === user.id}
+                            aria-label={`Toggle restriction status for ${user.name}`}
+                            className={user.isRestricted ? "data-[state=checked]:bg-destructive" : ""}
+                          />
+                          {user.isRestricted ? <ShieldOff className="ml-2 h-4 w-4 text-destructive" /> : <ShieldCheck className="ml-2 h-4 w-4 text-green-600" />}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-end space-x-2 py-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

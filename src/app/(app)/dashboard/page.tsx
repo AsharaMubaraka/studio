@@ -3,13 +3,13 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { User, Phone, Hash, CalendarDays, Loader2 } from "lucide-react";
+import { User, Phone, Hash, CalendarDays, Loader2, Bell } from "lucide-react"; // Added Bell
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, orderBy, limit, getDocs, Timestamp } from "firebase/firestore"; // Added collection, query, orderBy, limit, getDocs, Timestamp
 
 interface DateInfo {
   monthYear: string;
@@ -29,7 +29,15 @@ interface HijriCalendarEntry {
 
 interface UserProfile {
   name: string;
-  username: string; // ITS ID
+  username: string;
+}
+
+interface AppNotification {
+    id: string;
+    title: string;
+    content: string;
+    createdAt: Date; // Will be a Date object after conversion
+    authorName?: string;
 }
 
 const placeholderHijri = {
@@ -42,6 +50,8 @@ export default function DashboardPage() {
   const { user: authUser } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [latestNotification, setLatestNotification] = useState<AppNotification | null>(null);
+  const [isLoadingNotification, setIsLoadingNotification] = useState(true);
 
   const [dateInfo, setDateInfo] = useState<DateInfo>({
     monthYear: "Loading...",
@@ -87,7 +97,6 @@ export default function DashboardPage() {
           });
         } else {
           setHijriJsonError(`Hijri date not found for ${formattedGregorianDateQuery} in local data.`);
-          // Fallback to system date if JSON entry not found
           setDateInfo({
             monthYear: format(systemToday, "MMMM yyyy"),
             dayOfMonth: format(systemToday, "dd"),
@@ -100,7 +109,6 @@ export default function DashboardPage() {
       } catch (error: any) {
         console.error("Error processing local calendar data:", error);
         setHijriJsonError(error.message || "Error loading local calendar data.");
-        // Fallback to system date on error
         setDateInfo({
           monthYear: format(systemToday, "MMMM yyyy"),
           dayOfMonth: format(systemToday, "dd"),
@@ -140,14 +148,43 @@ export default function DashboardPage() {
       }
     }
 
+    async function fetchLatestNotification() {
+        setIsLoadingNotification(true);
+        try {
+            const notificationsRef = collection(db, "notifications");
+            const q = query(notificationsRef, orderBy("createdAt", "desc"), limit(1));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                const docSnap = querySnapshot.docs[0];
+                const data = docSnap.data();
+                setLatestNotification({
+                    id: docSnap.id,
+                    title: data.title,
+                    content: data.content,
+                    createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(), // Convert Firestore Timestamp
+                    authorName: data.authorName,
+                });
+            } else {
+                setLatestNotification(null);
+            }
+        } catch (error) {
+            console.error("Error fetching latest notification:", error);
+            setLatestNotification(null); // Set to null or some error state
+        } finally {
+            setIsLoadingNotification(false);
+        }
+    }
+
     fetchDashboardData();
     fetchUserProfile();
+    fetchLatestNotification();
   }, [authUser]);
 
   return (
     <div className="animate-fadeIn space-y-6">
       <Card className="shadow-lg overflow-hidden relative">
-        <CardContent className="p-0 h-64 md:h-72">
+        <CardContent className="p-0 h-64 md:h-72"> {/* Fixed height for CardContent */}
           <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0">
             <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
             Your browser does not support the video tag.
@@ -165,11 +202,11 @@ export default function DashboardPage() {
                 </>
               )}
             </div>
-            <div className="hidden md:block h-24 w-px bg-white/30"></div> {/* Separator for larger screens */}
+            <div className="hidden md:block h-24 w-px bg-white/30"></div>
             {/* Islamic Date Block */}
             <div className="font-sans flex flex-col items-center">
               {isDateLoading ? (
-                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-2 md:hidden" /> 
+                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" /> 
               ) : hijriJsonError ? (
                 <p className="text-xs text-red-300 px-2">{hijriJsonError}</p>
               ) : (
@@ -218,24 +255,38 @@ export default function DashboardPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
-            <User className="mr-2 h-5 w-5 text-primary" />
-            Notification
+            <Bell className="mr-2 h-5 w-5 text-primary" /> {/* Changed icon */}
+            Latest Notification
           </CardTitle>
           <Separator className="my-2" />
         </CardHeader>
         <CardContent className="space-y-2 text-sm pt-0">
-          <p className="font-semibold">Salaam</p>
-          <p>Kem cho sagla behno aa ashara ohbat na dino ma Al Aqeeq committee ye Aaje Saturday 17th May Taheri Markaz ma</p>
-          <p className="font-bold text-primary">*ASHARA OHBAT NI MAJLIS ORGANISE KIDI CHE*</p>
-          <p className="text-muted-foreground">*Time : 4:30pm*</p>
-          <p>Muala tus ni khushi hasil karta huwa Taheri mohalla na tamam behno aa majlis ma shamil thai ane waqt par hazir thai em iltemas che</p>
-          <div className="flex items-center text-xs text-muted-foreground pt-2">
-            <CalendarDays className="mr-2 h-4 w-4" />
-            <span>17-May-2025</span>
-          </div>
+          {isLoadingNotification ? (
+            <div className="space-y-2">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-3 w-1/2 mt-2" />
+            </div>
+          ) : latestNotification ? (
+            <>
+              <p className="font-semibold text-lg">{latestNotification.title}</p>
+              <p className="whitespace-pre-line">{latestNotification.content}</p>
+              <div className="flex items-center text-xs text-muted-foreground pt-2">
+                <CalendarDays className="mr-2 h-4 w-4" />
+                <span>
+                    Posted on {format(latestNotification.createdAt, "MMM d, yyyy 'at' h:mm a")}
+                    {latestNotification.authorName && ` by ${latestNotification.authorName}`}
+                </span>
+              </div>
+            </>
+          ) : (
+            <p className="text-muted-foreground">No recent notifications.</p>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
 
+    

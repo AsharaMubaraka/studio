@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Bell, Globe, Youtube, Users } from 'lucide-react'; // Added Users
+import { LayoutDashboard, Bell, Globe, Youtube, Users, MessageSquarePlus } from 'lucide-react'; // Added MessageSquarePlus
 
 export type NavItemConfig = {
   title: string;
@@ -44,9 +44,14 @@ export const adminNavItems: NavItemConfig[] = [
     icon: Bell,
   },
   {
-    title: 'User List', // Changed from Website
-    href: '/users',   // New href for user list
-    icon: Users,        // New icon
+    title: 'User List',
+    href: '/users',
+    icon: Users,
+  },
+  {
+    title: 'Send Notification', // New item for admin
+    href: '/send-notification',
+    icon: MessageSquarePlus,
   },
   {
     title: 'Live Relay',
@@ -59,3 +64,5 @@ export const siteConfig = {
   name: "Anjuman Hub",
   description: "Community Hub for Anjuman Members.",
 };
+
+    
