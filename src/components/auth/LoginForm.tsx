@@ -1,8 +1,6 @@
 
 "use client";
 
-"use client";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -16,7 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +23,7 @@ import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import Link from "next/link"; // Added Link import
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters."),
@@ -59,6 +58,7 @@ export function LoginForm() {
           title: "Login Failed",
           description: "Invalid username or password.",
         });
+        setIsLoading(false); // Set loading to false
         return;
       }
 
@@ -71,18 +71,18 @@ export function LoginForm() {
           title: "Login Failed",
           description: "Invalid username or password.",
         });
+        setIsLoading(false); // Set loading to false
         return;
       }
 
       // Login successful
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-      // router.push(`/dashboard?name=${user.name}&username=${user.username}`);
-      const success = await login(values.username, values.password);
+      const success = await login(values.username, values.password); // Pass the actual password
       setIsLoading(false);
       if (success) {
+         toast({
+            title: "Login Successful",
+            description: "Welcome back!",
+        });
         router.push(`/dashboard?name=${user.name}&username=${user.username}`);
       } else {
         toast({
@@ -98,7 +98,6 @@ export function LoginForm() {
         title: "Login Failed",
         description: "Something went wrong. Please try again.",
       });
-    } finally {
       setIsLoading(false);
     }
   }
@@ -152,6 +151,14 @@ export function LoginForm() {
           </form>
         </Form>
       </CardContent>
+      <CardFooter className="flex justify-center pt-4">
+        <p className="text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="font-medium text-primary hover:underline">
+            Register
+          </Link>
+        </p>
+      </CardFooter>
     </Card>
   );
 }
