@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, updateDoc, DocumentData } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, DocumentData, orderBy, query } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import {
   Table,
@@ -17,14 +17,15 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Users, AlertCircle, Loader2 } from "lucide-react";
+import { Users, AlertCircle, Loader2, ShieldOff, ShieldCheck } from "lucide-react"; // Added Shield icons
 
 interface User {
   id: string;
   name: string;
   username: string;
   isAdmin: boolean;
-  // Add other fields if needed, e.g., email, createdAt
+  isRestricted: boolean;
+  ipAddress?: string | null;
 }
 
 export default function UserListPage() {
@@ -32,29 +33,29 @@ export default function UserListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [actionType, setActionType] = useState<"admin" | "restriction" | null>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    document.title = "User List | Anjuman Hub";
-    fetchUsers();
-  }, []);
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const usersCollectionRef = collection(db, "users");
-      const querySnapshot = await getDocs(usersCollectionRef);
+      // Order by name for consistent listing
+      const q = query(usersCollectionRef, orderBy("name"));
+      const querySnapshot = await getDocs(q);
       const fetchedUsers: User[] = querySnapshot.docs.map((docSnap) => {
         const data = docSnap.data() as DocumentData;
         return {
           id: docSnap.id,
           name: data.name || "N/A",
-          username: data.username || docSnap.id, // Fallback to ID if username field missing
-          isAdmin: !!data.isAdmin, // Ensure boolean
+          username: data.username || docSnap.id,
+          isAdmin: !!data.isAdmin,
+          isRestricted: !!data.isRestricted, // Default to false if not present
+          ipAddress: data.ipAddress || null,
         };
       });
-      setUsers(fetchedUsers.sort((a, b) => a.name.localeCompare(b.name)));
+      setUsers(fetchedUsers);
     } catch (err: any) {
       console.error("Error fetching users:", err);
       setError("Failed to load users. Please try again.");
@@ -68,11 +69,16 @@ export default function UserListPage() {
     }
   }, [toast]);
 
+  useEffect(() => {
+    document.title = "User List | Anjuman Hub";
+    fetchUsers();
+  }, [fetchUsers]);
+
   const handleAdminToggle = async (userId: string, currentIsAdmin: boolean) => {
     const originalUsers = [...users];
     setUpdatingUserId(userId);
+    setActionType("admin");
 
-    // Optimistic UI update
     setUsers(prevUsers =>
       prevUsers.map(user =>
         user.id === userId ? { ...user, isAdmin: !currentIsAdmin } : user
@@ -90,7 +96,6 @@ export default function UserListPage() {
       });
     } catch (err: any) {
       console.error("Error updating admin status:", err);
-      // Revert UI update on error
       setUsers(originalUsers);
       toast({
         variant: "destructive",
@@ -99,6 +104,41 @@ export default function UserListPage() {
       });
     } finally {
       setUpdatingUserId(null);
+      setActionType(null);
+    }
+  };
+
+  const handleRestrictionToggle = async (userId: string, currentIsRestricted: boolean) => {
+    const originalUsers = [...users];
+    setUpdatingUserId(userId);
+    setActionType("restriction");
+
+    setUsers(prevUsers =>
+      prevUsers.map(user =>
+        user.id === userId ? { ...user, isRestricted: !currentIsRestricted } : user
+      )
+    );
+
+    try {
+      const userDocRef = doc(db, "users", userId);
+      await updateDoc(userDocRef, {
+        isRestricted: !currentIsRestricted,
+      });
+      toast({
+        title: "Success",
+        description: `User restriction status updated.`,
+      });
+    } catch (err: any) {
+      console.error("Error updating restriction status:", err);
+      setUsers(originalUsers);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: "Could not update user restriction status. Please try again.",
+      });
+    } finally {
+      setUpdatingUserId(null);
+      setActionType(null);
     }
   };
 
@@ -115,12 +155,15 @@ export default function UserListPage() {
           <CardContent>
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex items-center justify-between p-2 border-b">
-                  <div className="space-y-1">
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-4 w-24" />
+                <div key={i} className="grid grid-cols-5 items-center gap-4 p-2 border-b">
+                  <Skeleton className="h-5 w-8" /> {/* Sr. No. */}
+                  <Skeleton className="h-5 w-32" /> {/* Name */}
+                  <Skeleton className="h-5 w-24" /> {/* Username */}
+                  <Skeleton className="h-5 w-20" /> {/* IP Address */}
+                  <div className="flex justify-end gap-2">
+                    <Skeleton className="h-6 w-12 rounded-full" /> {/* Admin Toggle */}
+                    <Skeleton className="h-6 w-12 rounded-full" /> {/* Restricted Toggle */}
                   </div>
-                  <Skeleton className="h-6 w-12 rounded-full" />
                 </div>
               ))}
             </div>
@@ -147,7 +190,7 @@ export default function UserListPage() {
           <CardTitle className="text-3xl font-bold tracking-tight flex items-center">
             <Users className="mr-3 h-8 w-8 text-primary" /> User List
           </CardTitle>
-          <CardDescription>Manage user accounts and permissions. Click the toggle to change admin status.</CardDescription>
+          <CardDescription>Manage user accounts, permissions, and login restrictions.</CardDescription>
         </CardHeader>
         <CardContent>
           {users.length === 0 ? (
@@ -156,25 +199,43 @@ export default function UserListPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]">Sr. No.</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Username (ITS ID)</TableHead>
-                  <TableHead className="text-right">Admin</TableHead>
+                  <TableHead>Username</TableHead>
+                  <TableHead>IP Address</TableHead>
+                  <TableHead className="text-right w-[100px]">Admin</TableHead>
+                  <TableHead className="text-right w-[120px]">Restricted</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {users.map((user, index) => (
                   <TableRow key={user.id}>
+                    <TableCell>{index + 1}</TableCell>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.username}</TableCell>
+                    <TableCell>{user.ipAddress || "N/A"}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end">
-                        {updatingUserId === user.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {updatingUserId === user.id && actionType === "admin" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         <Switch
                           checked={user.isAdmin}
                           onCheckedChange={() => handleAdminToggle(user.id, user.isAdmin)}
                           disabled={updatingUserId === user.id}
                           aria-label={`Toggle admin status for ${user.name}`}
                         />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end">
+                        {updatingUserId === user.id && actionType === "restriction" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                         <Switch
+                          checked={user.isRestricted}
+                          onCheckedChange={() => handleRestrictionToggle(user.id, user.isRestricted)}
+                          disabled={updatingUserId === user.id}
+                          aria-label={`Toggle restriction status for ${user.name}`}
+                          className={user.isRestricted ? "data-[state=checked]:bg-destructive" : ""}
+                        />
+                        {user.isRestricted ? <ShieldOff className="ml-2 h-4 w-4 text-destructive" /> : <ShieldCheck className="ml-2 h-4 w-4 text-green-600" />}
                       </div>
                     </TableCell>
                   </TableRow>

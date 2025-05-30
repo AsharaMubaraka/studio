@@ -22,8 +22,8 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import Link from "next/link"; // Added Link import
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore"; // Added doc, getDoc
+import Link from "next/link";
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters."),
@@ -47,22 +47,21 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      // Fetch user from Firestore
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("username", "==", values.username));
-      const querySnapshot = await getDocs(q);
+      // Fetch user from Firestore using username as document ID
+      const userDocRef = doc(db, "users", values.username);
+      const userDocSnap = await getDoc(userDocRef);
 
-      if (querySnapshot.empty) {
+      if (!userDocSnap.exists()) {
         toast({
           variant: "destructive",
           title: "Login Failed",
           description: "Invalid username or password.",
         });
-        setIsLoading(false); // Set loading to false
+        setIsLoading(false);
         return;
       }
 
-      const user = querySnapshot.docs[0].data();
+      const user = userDocSnap.data();
 
       // Validate password
       if (user.password !== values.password) {
@@ -71,12 +70,23 @@ export function LoginForm() {
           title: "Login Failed",
           description: "Invalid username or password.",
         });
-        setIsLoading(false); // Set loading to false
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if user is restricted
+      if (user.isRestricted) {
+        toast({
+          variant: "destructive",
+          title: "Login Restricted",
+          description: "Your account is currently restricted. Please contact support.",
+        });
+        setIsLoading(false);
         return;
       }
 
       // Login successful
-      const success = await login(values.username, values.password); // Pass the actual password
+      const success = await login(values.username, values.password);
       setIsLoading(false);
       if (success) {
          toast({
@@ -85,10 +95,12 @@ export function LoginForm() {
         });
         router.push(`/dashboard?name=${user.name}&username=${user.username}`);
       } else {
+        // This else might be redundant if login function itself handles Firestore fetch errors well
+        // but good as a fallback. AuthContext's login mostly handles localStorage now.
         toast({
           variant: "destructive",
           title: "Login Failed",
-          description: "Invalid username or password.",
+          description: "An unexpected error occurred during login.",
         });
       }
     } catch (error) {
@@ -105,12 +117,13 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-md shadow-xl animate-fadeIn">
       <CardHeader className="items-center text-center">
-        <Image 
-          src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png" 
-          alt="Anjuman Hub Logo" 
-          width={80} 
-          height={80} 
-          className="mb-4 rounded-full" 
+        <Image
+          src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png"
+          alt="Anjuman Hub Logo"
+          width={80}
+          height={80}
+          className="mb-4 rounded-full"
+          data-ai-hint="calligraphy logo"
         />
         <CardTitle className="text-3xl font-bold">Anjuman Hub</CardTitle>
         <CardDescription>Sign in to access your account</CardDescription>
