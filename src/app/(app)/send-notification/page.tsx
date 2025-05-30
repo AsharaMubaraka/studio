@@ -47,9 +47,6 @@ export default function SendNotificationPage() {
   });
 
   async function onSubmit(values: NotificationFormValues) {
-    // Updated authorization check:
-    // 1. Ensure adminUser and adminUser.username exist.
-    // 2. Ensure adminUser.isAdmin is true.
     if (!adminUser?.username || !adminUser?.isAdmin) {
         toast({
             variant: "destructive",
@@ -60,7 +57,6 @@ export default function SendNotificationPage() {
     }
     setIsLoading(true);
     try {
-        // Pass adminUser.username as author.id
         const result = await saveNotificationAction(values, {id: adminUser.username, name: adminUser.name});
         if (result.success) {
             toast({
@@ -108,7 +104,7 @@ export default function SendNotificationPage() {
             <MessageSquarePlus className="mr-3 h-8 w-8 text-primary" /> Send Notification
           </CardTitle>
           <CardDescription>
-            Compose and send a new notification to all users. This will also trigger a push notification if backend services are configured.
+            Compose and send a new notification. This will save the notification to Firestore.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -150,7 +146,7 @@ export default function SendNotificationPage() {
                 ) : (
                   <MessageSquarePlus className="mr-2 h-4 w-4" />
                 )}
-                Send Notification
+                Save Notification
               </Button>
             </form>
           </Form>
@@ -158,9 +154,13 @@ export default function SendNotificationPage() {
       </Card>
        <Alert variant="default" className="max-w-2xl mx-auto shadow-md">
           <Info className="h-4 w-4" />
-          <AlertTitle>Developer Note: Push Notification Backend</AlertTitle>
+          <AlertTitle>Developer Note: Backend Implementation Required</AlertTitle>
           <AlertDescription>
-            Saving this notification to Firestore is the first step. To actually send push notifications via Firebase Cloud Messaging (FCM) to user devices, you will need to set up backend logic (e.g., a Cloud Function) that triggers when a new document is added to the 'notifications' collection. That function would then use the Firebase Admin SDK to send messages to all subscribed users.
+            Saving this notification to Firestore is the first step. The "Time Sent" for each notification is its creation timestamp in Firestore, visible in the Notifications list and the database.
+            <br /><br />
+            To actually send **push notifications** via Firebase Cloud Messaging (FCM) to user devices, you will need to set up backend logic (e.g., a Cloud Function) that triggers when a new document is added to the 'notifications' collection. That function would then use the Firebase Admin SDK to send messages to all subscribed users.
+            <br /><br />
+            Similarly, tracking detailed **notification logs** (like "how many users read it") also requires significant backend implementation for data collection, storage, and aggregation.
           </AlertDescription>
         </Alert>
     </div>
