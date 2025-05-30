@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"; // Card components used for Skeleton
+import { Card, CardContent, CardHeader } from "@/components/ui/card"; // Card components used for Skeleton
 import { Bell } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
@@ -19,21 +19,21 @@ async function fetchFirestoreAnnouncements(): Promise<Announcement[]> {
   try {
     const querySnapshot = await getDocs(q);
     const announcements = querySnapshot.docs.map((doc) => {
-      const data = doc.data() as DocumentData; // Use DocumentData for broader compatibility
+      const data = doc.data() as DocumentData;
       return {
         id: doc.id,
         title: data.title || "No Title",
         content: data.content || "No Content",
-        date: (data.createdAt as Timestamp)?.toDate() || new Date(), // Convert Timestamp to Date
+        date: (data.createdAt as Timestamp)?.toDate() || new Date(),
         author: data.authorName || "Unknown Author",
-        status: 'unread' as Announcement['status'], // Default to 'unread'
-        // imageUrl and imageHint are not currently stored in Firestore notifications
+        status: 'unread' as Announcement['status'], // Default to 'unread' for now
+        imageUrl: data.imageUrl, // Fetch imageUrl
       };
     });
     return announcements;
   } catch (error) {
     console.error("Error fetching notifications from Firestore:", error);
-    return []; // Return empty array on error
+    return [];
   }
 }
 
@@ -41,7 +41,7 @@ export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState<"status" | "newest" | "oldest">("status"); // Default sort by status
+  const [sortOrder, setSortOrder] = useState<"status" | "newest" | "oldest">("status");
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -68,12 +68,12 @@ export default function AnnouncementsPage() {
         return b.date.getTime() - a.date.getTime();
       } else if (sortOrder === "oldest") {
         return a.date.getTime() - b.date.getTime();
-      } else { // Default to status sort (currently all are 'unread', so effectively newest first)
-        const statusOrder = { new: 0, unread: 1, read: 2 }; // Although status is static now, keep logic for future
+      } else {
+        const statusOrder = { new: 0, unread: 1, read: 2 };
         if (a.status !== b.status) {
              return statusOrder[a.status] - statusOrder[b.status];
         }
-        return b.date.getTime() - a.date.getTime(); // Secondary sort by newest
+        return b.date.getTime() - a.date.getTime();
       }
     });
 
@@ -113,6 +113,7 @@ export default function AnnouncementsPage() {
                 <Skeleton className="h-4 w-full mb-1.5" />
                 <Skeleton className="h-4 w-full mb-1.5" />
                 <Skeleton className="h-4 w-2/3" />
+                 <Skeleton className="h-8 w-full mt-4" /> {/* Placeholder for image download button */}
               </CardContent>
             </Card>
           ))}

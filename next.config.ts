@@ -9,9 +9,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // experimental: {
-  //   turbo: false,
-  // },
   images: {
     remotePatterns: [
       {
@@ -23,6 +20,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'live.lunawadajamaat.org',
+        port: '',
+        pathname: '/**',
+      },
+      { // Added for Firebase Storage
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
         port: '',
         pathname: '/**',
       }

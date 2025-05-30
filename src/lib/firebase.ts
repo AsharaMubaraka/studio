@@ -2,13 +2,14 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
-import { toast } from "@/hooks/use-toast"; // Import toast
+import { getStorage } from "firebase/storage"; // Added
+import { toast } from "@/hooks/use-toast";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA8w8a0ap2sOYroS8-qNSsMNPqmXB-vL8g",
   authDomain: "ashara-mubaraka-app.firebaseapp.com",
   projectId: "ashara-mubaraka-app",
-  storageBucket: "ashara-mubaraka-app.firebasestorage.app",
+  storageBucket: "ashara-mubaraka-app.appspot.com", // Corrected storageBucket
   messagingSenderId: "572648688031",
   appId: "1:572648688031:web:a13b4c2ad1c047482395aa",
   // measurementId: "YOUR_MEASUREMENT_ID" // Optional: Add if you use Analytics
@@ -23,6 +24,7 @@ if (getApps().length === 0) {
 }
 
 const db = getFirestore(firebaseApp);
+const storage = getStorage(firebaseApp); // Added
 
 // Initialize Firebase Cloud Messaging and get a reference to the service
 const getFcmMessaging = () => {
@@ -46,10 +48,9 @@ const requestNotificationPermission = async (): Promise<string | null> => {
         const messaging = getFcmMessaging();
         if (messaging) {
           // VAPID key from Firebase Console > Project settings > Cloud Messaging > Web configuration > Web Push certificates
-          const currentToken = await getToken(messaging, { vapidKey: 'BOCO7fqrEu4j4Jbvi-EjM5xeO05U3iTudgVyz2CkxlwXgtlmWBQi-KvBaWIfRLNFHISJTKnhetxCn_1-jzj8vdc' }); // Replace 'YOUR_VAPID_KEY' with your actual VAPID key
+          const currentToken = await getToken(messaging, { vapidKey: 'BOCO7fqrEu4j4Jbvi-EjM5xeO05U3iTudgVyz2CkxlwXgtlmWBQi-KvBaWIfRLNFHISJTKnhetxCn_1-jzj8vdc' });
           if (currentToken) {
             console.log('FCM Token:', currentToken);
-            // TODO: Send this token to your server and store it associated with the user
             return currentToken;
           } else {
             console.log('No registration token available. Request permission to generate one.');
@@ -75,20 +76,15 @@ if (typeof window !== 'undefined') {
   if (messagingInstance) {
     onMessage(messagingInstance, (payload) => {
       console.log('Message received in foreground. ', payload);
-      // Customize notification handling here (e.g., show a custom toast)
       toast({
         title: payload.notification?.title || "New Notification",
         description: payload.notification?.body,
       });
-      // Attempt to vibrate
       if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]); // Example vibration pattern: vibrate 200ms, pause 100ms, vibrate 200ms
+        navigator.vibrate([200, 100, 200]);
       }
-      // Potentially trigger a refetch of notifications on the dashboard or announcement page
-      // For example, by dispatching a custom event that relevant components listen to.
     });
   }
 }
 
-export { db, firebaseApp, requestNotificationPermission, getFcmMessaging };
-    
+export { db, firebaseApp, storage, requestNotificationPermission, getFcmMessaging };

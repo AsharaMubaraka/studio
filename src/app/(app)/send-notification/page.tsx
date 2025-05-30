@@ -15,14 +15,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"; // Keep for general errors if needed
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useCallback } from "react";
-import { Loader2, MessageSquarePlus, Info, ListChecks, CalendarClock, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback, ChangeEvent } from "react";
+import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, ImagePlus, Eye } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { saveNotificationAction, deleteNotificationAction, type NotificationFormValues } from "@/actions/notificationActions";
-import { db } from "@/lib/firebase";
+import { saveNotificationAction, deleteNotificationAction } from "@/actions/notificationActions";
+import { db, storage } from "@/lib/firebase"; // Import storage
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,14 +38,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
+import Image from "next/image";
 
 
-// Schema for client-side form validation
+// Schema for client-side form validation (title and content only)
 const notificationFormSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title must be at most 100 characters."),
-  content: z.string().min(10, "Content must be at least 10 characters.").max(1000, "Content must be at most 1000 characters."),
+  title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
+  content: z.string().min(2, "Content must be at least 2 characters.").max(1000, "Content must be at most 1000 characters."),
 });
+type ClientNotificationFormValues = z.infer<typeof notificationFormSchema>;
+
 
 interface PostedNotification {
   id: string;
@@ -52,6 +57,7 @@ interface PostedNotification {
   content: string;
   createdAt: Date;
   authorName?: string;
+  imageUrl?: string;
 }
 
 export default function SendNotificationPage() {
@@ -62,15 +68,34 @@ export default function SendNotificationPage() {
   const [postedNotifications, setPostedNotifications] = useState<PostedNotification[]>([]);
   const [isLoadingLog, setIsLoadingLog] = useState(true);
   const [logError, setLogError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null); // To track which notification is being deleted
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  const form = useForm<NotificationFormValues>({
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const form = useForm<ClientNotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
     defaultValues: {
       title: "",
       content: "",
     },
   });
+
+  const { watch } = form;
+  const watchedTitle = watch("title");
+  const watchedContent = watch("content");
+
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      setSelectedImageFile(file);
+      setImagePreviewUrl(URL.createObjectURL(file));
+    } else {
+      setSelectedImageFile(null);
+      setImagePreviewUrl(null);
+    }
+  };
 
   const fetchPostedNotifications = useCallback(async () => {
     setIsLoadingLog(true);
@@ -87,6 +112,7 @@ export default function SendNotificationPage() {
           content: data.content || "No Content",
           createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
           authorName: data.authorName,
+          imageUrl: data.imageUrl,
         };
       });
       setPostedNotifications(fetchedNotifications);
@@ -105,7 +131,7 @@ export default function SendNotificationPage() {
     }
   }, [adminUser, fetchPostedNotifications]);
 
-  async function onSubmit(values: NotificationFormValues) {
+  async function onSubmit(values: ClientNotificationFormValues) {
     if (!adminUser?.username || !adminUser?.isAdmin) {
         toast({
             variant: "destructive",
@@ -115,24 +141,37 @@ export default function SendNotificationPage() {
         return;
     }
     setIsSubmitting(true);
+    setIsUploadingImage(false);
+    let imageUrl: string | undefined = undefined;
+
     try {
-        const result = await saveNotificationAction(values, {id: adminUser.username, name: adminUser.name});
-        if (result.success) {
-            toast({
-                title: "Success",
-                description: result.message,
-            });
-            form.reset();
-            fetchPostedNotifications(); // Refresh the log after sending
-        } else {
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: result.message,
-            });
-        }
+      if (selectedImageFile) {
+        setIsUploadingImage(true);
+        const storageRef = ref(storage, `notification_images/${Date.now()}_${selectedImageFile.name}`);
+        await uploadBytes(storageRef, selectedImageFile);
+        imageUrl = await getDownloadURL(storageRef);
+        setIsUploadingImage(false);
+      }
+
+      const result = await saveNotificationAction(values, {id: adminUser.username, name: adminUser.name}, imageUrl);
+      if (result.success) {
+          toast({
+              title: "Success",
+              description: result.message,
+          });
+          form.reset();
+          setSelectedImageFile(null);
+          setImagePreviewUrl(null);
+          fetchPostedNotifications();
+      } else {
+          toast({
+              variant: "destructive",
+              title: "Error",
+              description: result.message,
+          });
+      }
     } catch (error) {
-      console.error("Error in onSubmit calling Server Action:", error);
+      console.error("Error in onSubmit:", error);
       toast({
         variant: "destructive",
         title: "Submission Error",
@@ -140,6 +179,7 @@ export default function SendNotificationPage() {
       });
     } finally {
       setIsSubmitting(false);
+      setIsUploadingImage(false);
     }
   }
 
@@ -152,7 +192,6 @@ export default function SendNotificationPage() {
           title: "Success",
           description: result.message,
         });
-        // Optimistically update UI or refetch
         setPostedNotifications(prev => prev.filter(n => n.id !== notificationId));
       } else {
         toast({
@@ -186,15 +225,26 @@ export default function SendNotificationPage() {
     )
   }
 
+  const previewAnnouncement: Announcement = {
+    id: 'preview',
+    title: watchedTitle || "Sample Title",
+    content: watchedContent || "Sample content for the notification will appear here.",
+    date: new Date(),
+    author: adminUser?.name || "Admin",
+    status: 'new',
+    imageUrl: imagePreviewUrl || undefined,
+  };
+
+
   return (
     <div className="space-y-8 animate-fadeIn">
       <Card className="shadow-lg w-full max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-3xl font-bold tracking-tight flex items-center">
+          <CardTitle className="text-2xl font-bold tracking-tight flex items-center">
             <MessageSquarePlus className="mr-3 h-8 w-8 text-primary" /> Send Notification
           </CardTitle>
           <CardDescription>
-            Compose and send a new notification. This will save the notification to Firestore.
+            Compose and send a new notification. Content supports basic HTML.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -230,13 +280,28 @@ export default function SendNotificationPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? (
+              <FormItem>
+                <FormLabel htmlFor="imageUpload" className="flex items-center cursor-pointer">
+                  <ImagePlus className="mr-2 h-5 w-5" />
+                  Upload Image (Optional)
+                </FormLabel>
+                <FormControl>
+                  <Input id="imageUpload" type="file" accept="image/*" onChange={handleImageChange} className="mt-1" />
+                </FormControl>
+                {imagePreviewUrl && (
+                  <div className="mt-4 relative w-full h-48 border rounded-md overflow-hidden">
+                    <Image src={imagePreviewUrl} alt="Selected image preview" fill style={{objectFit: "contain"}} />
+                  </div>
+                )}
+              </FormItem>
+
+              <Button type="submit" className="w-full" disabled={isSubmitting || isUploadingImage}>
+                {isSubmitting || isUploadingImage ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <MessageSquarePlus className="mr-2 h-4 w-4" />
                 )}
-                Save Notification
+                {isUploadingImage ? "Uploading Image..." : isSubmitting ? "Sending..." : "Send Notification"}
               </Button>
             </form>
           </Form>
@@ -245,7 +310,18 @@ export default function SendNotificationPage() {
 
       <Card className="shadow-lg w-full max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold tracking-tight flex items-center">
+          <CardTitle className="text-xl font-semibold tracking-tight flex items-center">
+            <Eye className="mr-3 h-6 w-6 text-primary" /> Live Preview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AnnouncementItem announcement={previewAnnouncement} />
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-lg w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold tracking-tight flex items-center">
             <ListChecks className="mr-3 h-7 w-7 text-primary" /> Posted Notifications Log
           </CardTitle>
           <CardDescription>
@@ -266,7 +342,7 @@ export default function SendNotificationPage() {
             </div>
           ) : logError ? (
             <Alert variant="destructive">
-              <Info className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" /> {/* Changed icon */}
               <AlertTitle>Error Loading Log</AlertTitle>
               <AlertDescription>{logError}</AlertDescription>
             </Alert>
@@ -280,6 +356,11 @@ export default function SendNotificationPage() {
                     <div>
                       <h3 className="font-semibold text-lg mb-1">{notification.title}</h3>
                       <p className="text-sm text-muted-foreground whitespace-pre-line mb-2">{notification.content}</p>
+                      {notification.imageUrl && (
+                        <div className="my-2">
+                            <a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">View Attached Image</a>
+                        </div>
+                      )}
                     </div>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -323,4 +404,3 @@ export default function SendNotificationPage() {
     </div>
   );
 }
-    
