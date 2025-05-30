@@ -23,7 +23,7 @@ export async function saveNotificationAction(data: NotificationFormValues, autho
       title: data.title,
       content: data.content,
       authorId: author.id,
-      authorName: author.name || "Admin", // Default to "Admin" if name is undefined
+      authorName: "Admin", // Changed to "Admin"
       createdAt: serverTimestamp(),
       // status: 'new' // You might want a default status for all users
     });
@@ -37,3 +37,4 @@ export async function saveNotificationAction(data: NotificationFormValues, autho
     return { success: false, message: "Failed to send notification. See server logs." };
   }
 }
+

@@ -38,20 +38,17 @@ export const adminNavItems: NavItemConfig[] = [
     href: '/dashboard',
     icon: LayoutDashboard,
   },
+  // Replaced 'Notifications' (/announcements) with 'Send Notification' for main admin nav
+  // Admins can still access /announcements via the Bell icon in the AppShell header
   {
-    title: 'Notifications',
-    href: '/announcements',
-    icon: Bell,
+    title: 'Send Notification', 
+    href: '/send-notification',
+    icon: MessageSquarePlus,
   },
   {
     title: 'User List',
     href: '/users',
     icon: Users,
-  },
-  {
-    title: 'Send Notification', // New item for admin
-    href: '/send-notification',
-    icon: MessageSquarePlus,
   },
   {
     title: 'Live Relay',
