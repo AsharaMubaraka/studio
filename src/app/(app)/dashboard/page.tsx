@@ -152,16 +152,16 @@ export default function DashboardPage() {
             <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
-          <div className="relative z-10 p-6 bg-black/50 h-full flex flex-col md:flex-row items-center justify-around gap-4 md:gap-8 text-center text-white">
+          <div className="relative z-10 p-6 bg-black/50 h-full flex flex-row items-center justify-around gap-4 text-center text-white">
             {/* Gregorian Date Block */}
             <div className="font-sans flex flex-col items-center">
               {isDateLoading ? (
                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
               ) : (
                 <>
-                  <p className="text-base md:text-lg font-medium">{dateInfo.monthYear}</p>
+                  <p className="text-sm md:text-base font-medium">{dateInfo.monthYear}</p>
                   <p className="text-4xl md:text-5xl font-bold my-1">{dateInfo.dayOfMonth}</p>
-                  <p className="text-base md:text-lg font-medium">{dateInfo.dayOfWeek}</p>
+                  <p className="text-sm md:text-base font-medium">{dateInfo.dayOfWeek}</p>
                 </>
               )}
             </div>
@@ -171,11 +171,11 @@ export default function DashboardPage() {
               {isDateLoading ? (
                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-2 md:hidden" /> 
               ) : hijriJsonError ? (
-                <p className="text-sm text-red-300 px-2">{hijriJsonError}</p>
+                <p className="text-xs text-red-300 px-2">{hijriJsonError}</p>
               ) : (
                 <>
                   <p className="text-4xl md:text-5xl font-bold my-1">{dateInfo.islamicDay}</p>
-                  <p className="text-base md:text-lg font-medium">{dateInfo.islamicMonth}</p>
+                  <p className="text-sm md:text-base font-medium">{dateInfo.islamicMonth}</p>
                   <p className="text-xs md:text-sm">{dateInfo.islamicYear}H</p>
                 </>
               )}
@@ -238,3 +238,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
