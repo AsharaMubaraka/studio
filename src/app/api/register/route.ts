@@ -1,15 +1,24 @@
 
 import { NextResponse } from 'next/server';
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, setDoc, doc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore"; // Removed unused collection, query, where, getDocs
 
 export async function POST(request: Request) {
-  let body;
+  let requestBody;
   try {
-    body = await request.json();
-    const { name, username, password, ipAddress, isAdmin } = body; // Added isAdmin
+    // Attempt to parse the request body as JSON
+    requestBody = await request.json();
+  } catch (jsonError: any) {
+    // If JSON parsing fails, log the error and return a 400 response
+    console.error("Error parsing JSON request body:", jsonError.message);
+    return NextResponse.json({ error: "Invalid request format. Expected JSON.", detail: jsonError.message }, { status: 400 });
+  }
 
-    // Basic validation
+  try {
+    // Destructure data from the parsed request body
+    const { name, username, password, ipAddress, isAdmin } = requestBody;
+
+    // Basic server-side validation
     if (!name || !username || !password) {
       return NextResponse.json({ error: "Name, username, and password are required" }, { status: 400 });
     }
@@ -20,9 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
     }
 
-
     // Check if username already exists
-    const usersRef = collection(db, "users");
     // It's common to use the username (ITS ID) as the document ID for easier lookups
     const userDocRef = doc(db, "users", username);
     const docSnap = await getDoc(userDocRef);
@@ -42,16 +49,19 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ message: "Registration successful" }, { status: 201 });
+
   } catch (error: any) {
-    console.error("Error registering user:", error);
-    console.error("Request body:", body); // Log the body for debugging
-    let errorMessage = "Registration failed";
-    if (error.message) {
-        errorMessage = error.message;
-    } else if (typeof error === 'string') {
-        errorMessage = error;
+    // Catch any other errors during the registration process
+    console.error("Error during user registration process:", error);
+    // It's crucial to log the full error object to understand the cause.
+    // If error.stack is available, it provides more context.
+    if (error.stack) {
+      console.error("Stack trace:", error.stack);
     }
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    console.error("Request body that led to error:", requestBody);
+
+    // Return a generic 500 error message to the client
+    // Avoid exposing raw internal error messages to the client in production
+    return NextResponse.json({ error: "Registration failed due to an internal server error." }, { status: 500 });
   }
 }
-
