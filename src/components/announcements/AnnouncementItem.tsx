@@ -4,13 +4,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import Image from "next/image";
-import { CalendarDays, Sparkle, Mail, CheckCircle2 } from "lucide-react"; // Changed Dot to Mail
+import { CalendarDays, Sparkle, Mail, CheckCircle2 } from "lucide-react";
 
 export interface Announcement {
   id: string;
   title: string;
   content: string;
-  date: string; // ISO string
+  date: Date; // Changed from ISO string to Date object
   author: string;
   status: 'new' | 'unread' | 'read';
   imageUrl?: string;
@@ -26,7 +26,7 @@ function StatusIndicator({ status }: { status: Announcement['status'] }) {
     return <Sparkle className="h-5 w-5 text-primary ml-2 shrink-0" aria-label="New announcement" />;
   }
   if (status === 'unread') {
-    return <Mail className="h-5 w-5 text-accent ml-2 shrink-0" aria-label="Unread announcement" />; // Changed Dot to Mail icon
+    return <Mail className="h-5 w-5 text-accent ml-2 shrink-0" aria-label="Unread announcement" />;
   }
   if (status === 'read') {
     return <CheckCircle2 className="h-5 w-5 text-muted-foreground ml-2 shrink-0" aria-label="Read announcement" />;
@@ -36,32 +36,32 @@ function StatusIndicator({ status }: { status: Announcement['status'] }) {
 
 export function AnnouncementItem({ announcement }: AnnouncementItemProps) {
   return (
-    <Card className="flex flex-col overflow-hidden shadow-lg transition-all hover:shadow-xl animate-fadeIn">
+    <Card className="flex flex-col overflow-hidden shadow-lg transition-all hover:shadow-xl animate-fadeIn bg-card">
       {announcement.imageUrl && (
         <div className="relative h-48 w-full">
           <Image
             src={announcement.imageUrl}
             alt={announcement.title}
-            layout="fill"
-            objectFit="cover"
+            fill // Replaced layout="fill" and objectFit="cover" with fill for Next 13+
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Example sizes, adjust as needed
+            style={{ objectFit: 'cover' }} // objectFit is now a style property
             data-ai-hint={announcement.imageHint || "announcement relevant"}
           />
         </div>
       )}
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-2xl">{announcement.title}</CardTitle>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-xl font-semibold">{announcement.title}</CardTitle>
           <StatusIndicator status={announcement.status} />
         </div>
-        <CardDescription className="flex items-center text-sm text-muted-foreground pt-1">
-          <CalendarDays className="mr-2 h-4 w-4" />
-          Posted on {format(new Date(announcement.date), "MMMM d, yyyy")} by {announcement.author}
+        <CardDescription className="flex items-center text-xs text-muted-foreground pt-1">
+          <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
+          Posted on {format(announcement.date, "MMMM d, yyyy")} by {announcement.author}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow">
-        <p className="whitespace-pre-line leading-relaxed">{announcement.content}</p>
+      <CardContent className="pt-0 flex-grow">
+        <p className="whitespace-pre-line text-sm leading-relaxed text-card-foreground/90">{announcement.content}</p>
       </CardContent>
     </Card>
   );
 }
-

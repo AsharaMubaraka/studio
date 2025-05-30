@@ -1,98 +1,62 @@
 
 "use client";
 
-import type { Metadata } from "next";
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Bell } from "lucide-react"; // Changed from Megaphone to Bell
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"; // Card components used for Skeleton
+import { Bell } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 
-// export const metadata: Metadata = { // Cannot be used in client component
-//   title: "Notifications",
-// };
+async function fetchFirestoreAnnouncements(): Promise<Announcement[]> {
+  const notificationsCollectionRef = collection(db, "notifications");
+  const q = query(notificationsCollectionRef, orderBy("createdAt", "desc"));
 
-
-// Mock data simulating Firestore fetch
-const mockAnnouncements: Announcement[] = [
-  {
-    id: "1",
-    title: "Community Meeting Next Week",
-    content: "Join us for our monthly community meeting on Tuesday at 7 PM in the main hall. We'll be discussing upcoming events and new initiatives.\n\nAgenda:\n- Review of last month's minutes\n- Budget update\n- Planning for the summer festival\n- Open Q&A session",
-    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-    author: "Admin Team",
-    status: "new",
-    imageUrl: "https://placehold.co/600x400.png",
-    imageHint: "meeting community"
-  },
-  {
-    id: "2",
-    title: "Volunteer Drive for Charity Event",
-    content: "We are looking for volunteers for our upcoming charity bake sale. All proceeds will go to local shelters. Sign up sheet is available at the front desk.\n\nRoles needed:\n- Bakers\n- Sales assistants\n- Setup and cleanup crew",
-    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
-    author: "Events Committee",
-    status: "unread",
-    imageUrl: "https://placehold.co/600x400.png",
-    imageHint: "volunteer charity"
-  },
-  {
-    id: "3",
-    title: "New Website Launch!",
-    content: "We're excited to announce the launch of our new community website! Explore new features and resources. Your feedback is welcome.",
-    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
-    author: "Tech Team",
-    status: "read",
-  },
-  {
-    id: "4",
-    title: "Maintenance Schedule Update",
-    content: "Please be advised that the community portal will be undergoing scheduled maintenance this Friday from 2 AM to 4 AM. Access may be intermittent during this period.",
-    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-    author: "Admin Team",
-    status: "new",
-    imageUrl: "https://placehold.co/600x400.png",
-    imageHint: "maintenance tools"
-  },
-  {
-    id: "5",
-    title: "Gardening Club Meetup",
-    content: "The gardening club's first meetup of the season is this Saturday at 10 AM by the community garden. Bring your gloves and enthusiasm!",
-    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-    author: "Sarah Green",
-    status: "unread",
-  },
-];
-
-async function fetchAnnouncements(): Promise<Announcement[]> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return mockAnnouncements.sort((a, b) => {
-    // Custom sort: new, then unread, then read, then by date
-    const statusOrder = { new: 0, unread: 1, read: 2 };
-    if (statusOrder[a.status] !== statusOrder[b.status]) {
-      return statusOrder[a.status] - statusOrder[b.status];
-    }
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
-  });
+  try {
+    const querySnapshot = await getDocs(q);
+    const announcements = querySnapshot.docs.map((doc) => {
+      const data = doc.data() as DocumentData; // Use DocumentData for broader compatibility
+      return {
+        id: doc.id,
+        title: data.title || "No Title",
+        content: data.content || "No Content",
+        date: (data.createdAt as Timestamp)?.toDate() || new Date(), // Convert Timestamp to Date
+        author: data.authorName || "Unknown Author",
+        status: 'unread' as Announcement['status'], // Default to 'unread'
+        // imageUrl and imageHint are not currently stored in Firestore notifications
+      };
+    });
+    return announcements;
+  } catch (error) {
+    console.error("Error fetching notifications from Firestore:", error);
+    return []; // Return empty array on error
+  }
 }
-
 
 export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState<"status" | "newest" | "oldest">("status");
+  const [sortOrder, setSortOrder] = useState<"status" | "newest" | "oldest">("status"); // Default sort by status
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Notifications | Anjuman Hub"; // Updated title
+    document.title = "Notifications | Anjuman Hub";
     async function loadAnnouncements() {
       setIsLoading(true);
-      const data = await fetchAnnouncements();
-      setAnnouncements(data);
-      setIsLoading(false);
+      setFetchError(null);
+      try {
+        const data = await fetchFirestoreAnnouncements();
+        setAnnouncements(data);
+      } catch (err) {
+        setFetchError("Failed to load notifications. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
     }
     loadAnnouncements();
   }, []);
@@ -101,25 +65,25 @@ export default function AnnouncementsPage() {
     .filter(ann => ann.title.toLowerCase().includes(searchTerm.toLowerCase()) || ann.content.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => {
       if (sortOrder === "newest") {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        return b.date.getTime() - a.date.getTime();
       } else if (sortOrder === "oldest") {
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
-      } else { // Default to status sort
-        const statusOrder = { new: 0, unread: 1, read: 2 };
-        if (statusOrder[a.status] !== statusOrder[b.status]) {
-          return statusOrder[a.status] - statusOrder[b.status];
+        return a.date.getTime() - b.date.getTime();
+      } else { // Default to status sort (currently all are 'unread', so effectively newest first)
+        const statusOrder = { new: 0, unread: 1, read: 2 }; // Although status is static now, keep logic for future
+        if (a.status !== b.status) {
+             return statusOrder[a.status] - statusOrder[b.status];
         }
-        return new Date(b.date).getTime() - new Date(a.date).getTime(); // Secondary sort by newest
+        return b.date.getTime() - a.date.getTime(); // Secondary sort by newest
       }
     });
 
   return (
     <div className="space-y-8 animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 bg-card rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold tracking-tight">Notifications</h1> {/* Updated heading */}
+        <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
         <div className="flex gap-4 w-full md:w-auto">
           <Input
-            placeholder="Search notifications..." // Updated placeholder
+            placeholder="Search notifications..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-xs"
@@ -141,22 +105,24 @@ export default function AnnouncementsPage() {
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           {[1, 2, 3, 4].map(i => (
             <Card key={i} className="shadow-lg animate-fadeIn">
-              <Skeleton className="h-48 w-full" />
-              <CardHeader>
-                <Skeleton className="h-8 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
+              <CardHeader className="pb-3">
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-3 w-1/2" />
               </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-full mb-2" />
+              <CardContent className="pt-0">
+                <Skeleton className="h-4 w-full mb-1.5" />
+                <Skeleton className="h-4 w-full mb-1.5" />
                 <Skeleton className="h-4 w-2/3" />
               </CardContent>
-              <CardFooter>
-                <Skeleton className="h-8 w-24" />
-              </CardFooter>
             </Card>
           ))}
         </div>
+      ) : fetchError ? (
+        <Alert variant="destructive" className="shadow-md animate-fadeIn">
+           <Bell className="h-5 w-5" />
+           <AlertTitle>Error</AlertTitle>
+           <AlertDescription>{fetchError}</AlertDescription>
+         </Alert>
       ) : filteredAndSortedAnnouncements.length > 0 ? (
         <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2">
           {filteredAndSortedAnnouncements.map((announcement) => (
@@ -165,10 +131,10 @@ export default function AnnouncementsPage() {
         </div>
       ) : (
          <Alert className="shadow-md animate-fadeIn">
-           <Bell className="h-5 w-5" /> {/* Updated icon */}
-           <AlertTitle>No Notifications Found</AlertTitle> {/* Updated title */}
+           <Bell className="h-5 w-5" />
+           <AlertTitle>No Notifications Found</AlertTitle>
            <AlertDescription>
-             {searchTerm ? "No notifications match your search criteria. Try a different search term." : "There are no notifications at this time. Please check back later."} {/* Updated description */}
+             {searchTerm ? "No notifications match your search criteria. Try a different search term." : "There are no notifications at this time. Please check back later."}
            </AlertDescription>
          </Alert>
       )}
