@@ -76,8 +76,7 @@ export default function DashboardPage() {
         );
 
         if (entryForToday) {
-          // Use date parts from the JSON if entry is found
-          const entryGregorianDate = new Date(entryForToday.gregorian_date + "T00:00:00"); // Ensure correct parsing by adding time
+          const entryGregorianDate = new Date(entryForToday.gregorian_date + "T00:00:00");
           setDateInfo({
             monthYear: format(entryGregorianDate, "MMMM yyyy"),
             dayOfMonth: format(entryGregorianDate, "dd"),
@@ -87,7 +86,6 @@ export default function DashboardPage() {
             islamicYear: entryForToday.hijri_year,
           });
         } else {
-          // Fallback to system date for Gregorian if not found in JSON, show error for Hijri
           setHijriJsonError(`Hijri date not found for ${formattedGregorianDateQuery} in local data.`);
           setDateInfo({
             monthYear: format(systemToday, "MMMM yyyy"),
@@ -101,7 +99,6 @@ export default function DashboardPage() {
       } catch (error: any) {
         console.error("Error processing local calendar data:", error);
         setHijriJsonError(error.message || "Error loading local calendar data.");
-        // Fallback to system date for Gregorian on error
         setDateInfo({
           monthYear: format(systemToday, "MMMM yyyy"),
           dayOfMonth: format(systemToday, "dd"),
@@ -124,7 +121,7 @@ export default function DashboardPage() {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setUserProfile({
-              name: data.name || authUser.name || "N/A",
+              name: data.name || authUser.name || "N/A", // Ensure name is present
               username: authUser.username,
             });
           } else {
@@ -161,7 +158,7 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <p className="text-base md:text-lg font-medium">{dateInfo.monthYear}</p>
-                  <p className="text-4xl md:text-6xl font-bold my-1">{dateInfo.dayOfMonth}</p>
+                  <p className="text-4xl md:text-5xl font-bold my-1">{dateInfo.dayOfMonth}</p> {/* Reduced font size */}
                   <p className="text-base md:text-lg font-medium">{dateInfo.dayOfWeek}</p>
                 </>
               )}
@@ -175,7 +172,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-red-300 px-2">{hijriJsonError}</p>
               ) : (
                 <>
-                  <p className="text-4xl md:text-6xl font-bold my-1">{dateInfo.islamicDay}</p>
+                  <p className="text-4xl md:text-5xl font-bold my-1">{dateInfo.islamicDay}</p> {/* Reduced font size */}
                   <p className="text-base md:text-lg font-medium">{dateInfo.islamicMonth}</p>
                   <p className="text-xs md:text-sm">{dateInfo.islamicYear}H</p>
                 </>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -17,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox"; // Added Checkbox import
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
@@ -25,6 +27,7 @@ const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
   username: z.string().min(3, "Username must be at least 3 characters."),
   password: z.string().min(6, "Password must be at least 6 characters."),
+  isAdmin: z.boolean().optional().default(false), // Added isAdmin field
 });
 
 const RegisterForm = () => {
@@ -40,6 +43,7 @@ const RegisterForm = () => {
       name: "",
       username: "",
       password: "",
+      isAdmin: false,
     },
   });
 
@@ -91,12 +95,25 @@ const RegisterForm = () => {
 
   const generateUsername = () => {
     const name = form.getValues("name");
+    if (!name) {
+        form.setValue("username", ""); // Clear username if name is empty
+        return;
+    }
     const firstName = name.split(' ')[0].toLowerCase();
-    const randomNumber = Math.floor(Math.random() * 100);
-    const generatedUsername = `${firstName}_${randomNumber}`;
+    const randomNumber = Math.floor(Math.random() * 1000); // Increased range for uniqueness
+    const generatedUsername = `${firstName}${randomNumber}`; // Removed underscore
     form.setValue("username", generatedUsername);
-    setAutoGenerateUsername(false);
+    setAutoGenerateUsername(false); // User has interacted, disable auto-generation unless they check the box again
   };
+  
+  // Effect to generate username when name changes and auto-generate is checked
+  useEffect(() => {
+    if (autoGenerateUsername && form.getValues("name")) {
+      generateUsername();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.watch("name"), autoGenerateUsername]);
+
 
   return (
     <Card className="w-full max-w-md shadow-xl animate-fadeIn">
@@ -134,35 +151,40 @@ const RegisterForm = () => {
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="username_123" {...field} disabled={autoGenerateUsername} />
+                    <Input placeholder="username123" {...field} disabled={autoGenerateUsername} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <div>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={autoGenerateUsername}
-                  onChange={() => {
-                    setAutoGenerateUsername(!autoGenerateUsername);
-                    if (!autoGenerateUsername) {
-                      form.setValue("username", "");
-                    } else {
-                      generateUsername();
-                    }
-                  }}
-                  className="h-4 w-4"
-                />
-                <span>Auto Generate Username</span>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="auto-generate-username"
+                checked={autoGenerateUsername}
+                onCheckedChange={(checked) => {
+                  const isChecked = Boolean(checked);
+                  setAutoGenerateUsername(isChecked);
+                  if (isChecked && form.getValues("name")) {
+                    generateUsername();
+                  } else if (!isChecked) {
+                    form.setValue("username", ""); // Clear username if unchecked
+                  }
+                }}
+              />
+              <label
+                htmlFor="auto-generate-username"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Auto Generate Username
               </label>
-              {autoGenerateUsername && (
-                <Button type="button" onClick={generateUsername} size="sm">
-                  Generate Username
-                </Button>
-              )}
             </div>
+             {!autoGenerateUsername && !form.getValues("username") && (
+                 <Button type="button" onClick={generateUsername} variant="outline" size="sm" className="w-full">
+                    Generate Username Manually
+                </Button>
+            )}
+
+
             <FormField
               control={form.control}
               name="password"
@@ -176,6 +198,29 @@ const RegisterForm = () => {
                 </FormItem>
               )}
             />
+            
+            {/* Temporary Admin Toggle */}
+            <FormField
+              control={form.control}
+              name="isAdmin"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Register as Administrator (Temporary)
+                    </FormLabel>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+
             <input type="hidden" name="ipAddress" value={ipAddress} />
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -189,3 +234,4 @@ const RegisterForm = () => {
 };
 
 export default RegisterForm;
+
