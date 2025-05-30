@@ -15,10 +15,10 @@ import {
   SidebarMenuButton,
   SidebarInset,
   useSidebar,
-  SidebarTrigger,
+  // SidebarTrigger, // Removed as per request
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { LogOut, Bell as BellIcon } from "lucide-react"; // Added BellIcon
+import { LogOut, Bell as BellIcon } from "lucide-react";
 import Image from "next/image";
 import { BottomNav } from "./BottomNav";
 import { useAuth } from '@/hooks/useAuth';
@@ -108,8 +108,7 @@ export function AppShell({ children }: AppShellProps) {
       <SidebarInset className="flex flex-col min-h-screen">
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
-            <SidebarTrigger /> {/* Kept for mobile sidebar access */}
-            {/* Logo and App Name removed from here */}
+            {/* SidebarTrigger removed */}
             <h1 className="text-xl font-bold text-nav-foreground truncate">{currentTitle}</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -136,7 +135,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
         
         <main className="flex flex-col flex-1 bg-transparent text-foreground relative">
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-8 h-full"> {/* Added h-full for webview */}
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-8 h-full">
             {children}
           </div>
           <div className="absolute bottom-16 left-0 right-0 md:hidden decorative-border-repeat decorative-border-repeat-h20"></div>

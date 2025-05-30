@@ -169,7 +169,7 @@ export default function DashboardPage() {
             {/* Islamic Date Block */}
             <div className="font-sans flex flex-col items-center">
               {isDateLoading ? (
-                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-2 md:hidden" /> // Show spinner if date is loading
+                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-2 md:hidden" /> 
               ) : hijriJsonError ? (
                 <p className="text-sm text-red-300 px-2">{hijriJsonError}</p>
               ) : (
@@ -185,27 +185,27 @@ export default function DashboardPage() {
       </Card>
 
       <Card className="shadow-lg">
-        <CardContent className="p-4 md:p-6 flex flex-col sm:flex-row items-center gap-4">
+        <CardContent className="p-4 md:p-6 flex items-center gap-4">
           <Image
             src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png"
             alt="User Profile"
-            width={60}
+            width={60} 
             height={60}
             className="rounded-md border"
           />
           {isLoadingProfile ? (
-             <div className="space-y-2 flex-1 text-center sm:text-left">
-                <div className="h-6 bg-muted rounded w-3/4 mx-auto sm:mx-0"></div>
-                <div className="h-4 bg-muted rounded w-1/2 mx-auto sm:mx-0"></div>
+             <div className="space-y-2 flex-1">
+                <div className="h-6 bg-muted rounded w-3/4"></div>
+                <div className="h-4 bg-muted rounded w-1/2"></div>
              </div>
           ) : userProfile ? (
-            <div className="space-y-1 text-sm text-center sm:text-left">
-              <p className="font-semibold text-lg flex items-center justify-center sm:justify-start">
-                <User className="mr-2 h-5 w-5 text-primary" />
+            <div className="space-y-1 text-sm">
+              <p className="font-semibold text-lg flex items-center">
+                <User className="mr-2 h-5 w-5 text-primary shrink-0" />
                 {userProfile.name}
               </p>
-              <p className="text-muted-foreground flex items-center justify-center sm:justify-start">
-                <Hash className="mr-2 h-4 w-4 text-primary/80" />
+              <p className="text-muted-foreground flex items-center">
+                <Hash className="mr-2 h-4 w-4 text-primary/80 shrink-0" />
                 {userProfile.username}
               </p>
             </div>

@@ -41,7 +41,7 @@ const requestNotificationPermission = async (): Promise<string | null> => {
         if (messaging) {
           // TODO: Replace 'YOUR_VAPID_KEY' with your actual VAPID key from Firebase Console
           // (Firebase Console > Project settings > Cloud Messaging > Web configuration > Web Push certificates)
-          const currentToken = await getToken(messaging, { vapidKey: 'BPiO8hP7rU8_q9y9Y1F2g0J6z_Q4O2X7K9y_y0J_sR0P6uY8o_bY2C7zQ_tX_y_sR5b_iR5B_kR_tK_lO7n_iE' });
+          const currentToken = await getToken(messaging, { vapidKey: 'BOCO7fqrEu4j4Jbvi-EjM5xeO05U3iTudgVyz2CkxlwXgtlmWBQi-KvBaWIfRLNFHISJTKnhetxCn_1-jzj8vdc' });
           if (currentToken) {
             return currentToken;
           } else {
