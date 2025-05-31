@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from 'react';
-import PlyrJS, { Options as PlyrOptions, SourceInfo } from 'plyr'; // Using PlyrJS directly
+import PlyrJS, { Options as PlyrOptions, SourceInfo } from 'plyr';
 import 'plyr/dist/plyr.css';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, VideoOff } from 'lucide-react';
@@ -18,14 +18,28 @@ const PlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!videoId || !videoRef.current) {
+    console.log(`PlyrPlayer: useEffect triggered. videoId: ${videoId}`);
+
+    if (!videoRef.current) {
+      console.error("PlyrPlayer: videoRef.current is null. Aborting initialization.");
+      // This case should ideally not happen if the component is structured correctly
+      // but as a fallback, ensure loading is false.
       setIsLoading(false);
-      if (!videoId) setError("No video ID provided.");
+      setError("Player internal error: video element not found.");
       return;
     }
 
+    if (!videoId) {
+      console.log("PlyrPlayer: No videoId provided. Setting error state.");
+      setError("No video ID provided.");
+      setIsLoading(false);
+      return;
+    }
+
+    // Start loading sequence
     setIsLoading(true);
     setError(null);
+    console.log("PlyrPlayer: isLoading set to true, error set to null.");
 
     const plyrSource: SourceInfo = {
       type: 'video',
@@ -37,66 +51,94 @@ const PlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
       ],
     };
 
+    // Enable debug mode for more console output from Plyr
     const plyrOptions: PlyrOptions = {
       autoplay: true,
-      // Add other Plyr options as needed
+      debug: true, // Enable Plyr's debug mode
       // controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings'],
-      // settings: ['captions', 'quality', 'speed'], // Example settings
+      // settings: ['captions', 'quality', 'speed'],
     };
 
     try {
+      // If a player instance already exists, destroy it before creating a new one
       if (playerInstanceRef.current) {
+        console.log("PlyrPlayer: Destroying existing player instance.");
         playerInstanceRef.current.destroy();
+        playerInstanceRef.current = null;
       }
-      
+
+      console.log("PlyrPlayer: Initializing new PlyrJS instance.");
       const player = new PlyrJS(videoRef.current, plyrOptions);
       playerInstanceRef.current = player;
+      console.log("PlyrPlayer: PlyrJS instance created.", player);
 
-      player.source = plyrSource;
-
+      // Event listeners
       player.on('ready', () => {
+        console.log("PlyrPlayer: 'ready' event fired.");
         setIsLoading(false);
-        // player.play(); // Ensure autoplay if not handled by options
+        // player.play(); // Autoplay is in options, but can be called explicitly if needed
       });
 
       player.on('error', (event: any) => {
-        console.error("Plyr Error:", event);
+        console.error("PlyrPlayer: 'error' event fired.", event.detail);
         let errorMessage = "An error occurred with the video player.";
-        if (event?.detail?.plyr?.source?.includes(videoId)) {
+        // Check if detail and plyr object exist, and if source is part of detail
+        if (event?.detail?.plyr?.source?.src?.includes(videoId)) {
           errorMessage = `Could not load video ID: ${videoId}. It might be private, deleted, or restricted.`;
+        } else if (event?.detail?.message) {
+          errorMessage = event.detail.message;
         }
         setError(errorMessage);
         setIsLoading(false);
       });
-      
-      player.on('playing', () => setIsLoading(false)); // Hide loader once playing
+
+      player.on('playing', () => {
+        console.log("PlyrPlayer: 'playing' event fired.");
+        setIsLoading(false); // Ensure loader is hidden when playing starts
+      });
+
+      player.on('loadstart', () => console.log("PlyrPlayer: 'loadstart' event fired."));
+      player.on('loadeddata', () => console.log("PlyrPlayer: 'loadeddata' event fired."));
+      player.on('canplay', () => console.log("PlyrPlayer: 'canplay' event fired."));
+      player.on('stalled', () => console.log("PlyrPlayer: 'stalled' event fired. Player might be having trouble loading media."));
+      player.on('waiting', () => console.log("PlyrPlayer: 'waiting' event fired. Player is waiting for data."));
+
+
       player.on('enterfullscreen', () => {
-         // Attempt to lock screen orientation on fullscreen enter if API available
+        console.log("PlyrPlayer: 'enterfullscreen' event fired.");
         if (screen.orientation && typeof screen.orientation.lock === 'function') {
-          screen.orientation.lock('landscape').catch(err => console.warn("Could not lock orientation:", err));
+          screen.orientation.lock('landscape').catch(err => console.warn("PlyrPlayer: Could not lock orientation:", err));
         }
       });
       player.on('exitfullscreen', () => {
-        // Attempt to unlock screen orientation on fullscreen exit if API available
+        console.log("PlyrPlayer: 'exitfullscreen' event fired.");
         if (screen.orientation && typeof screen.orientation.unlock === 'function') {
           screen.orientation.unlock();
         }
       });
 
+      // Set the source for the player
+      console.log("PlyrPlayer: Setting player source:", plyrSource);
+      player.source = plyrSource;
+      console.log("PlyrPlayer: Player source set.");
 
     } catch (e: any) {
-      console.error("Failed to initialize Plyr player:", e);
+      console.error("PlyrPlayer: Failed to initialize Plyr player in try-catch block.", e);
       setError(`Failed to initialize player: ${e.message}`);
       setIsLoading(false);
     }
 
+    // Cleanup function
     return () => {
       if (playerInstanceRef.current) {
+        console.log("PlyrPlayer: useEffect cleanup - Destroying player instance.");
         playerInstanceRef.current.destroy();
         playerInstanceRef.current = null;
+      } else {
+        console.log("PlyrPlayer: useEffect cleanup - No player instance to destroy.");
       }
     };
-  }, [videoId]);
+  }, [videoId]); // Re-run effect if videoId changes
 
   return (
     <div className="aspect-video w-full h-full bg-black relative">
@@ -115,7 +157,7 @@ const PlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
             </AlertDescription>
         </Alert>
       )}
-      {/* The video element that Plyr will attach to. Style to be hidden when loading/error */}
+      {/* The video element that Plyr will attach to. Hidden if loading or error. */}
       <video ref={videoRef} className={(isLoading || error) ? 'hidden' : ''} playsInline />
     </div>
   );
