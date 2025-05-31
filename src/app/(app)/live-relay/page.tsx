@@ -1,97 +1,435 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Youtube, PlayCircle, AlertCircle } from "lucide-react";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { format, parseISO, isWithinInterval, compareAsc, isPast } from "date-fns";
+import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2 } from "lucide-react";
+import { saveRelayAction, deleteRelayAction, fetchRelays, type LiveRelay, type RelayFormValues } from "@/actions/relayActions";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
-const extractVideoId = (urlOrId: string): string | null => {
-  if (!urlOrId) return null;
-  if (/^[a-zA-Z0-9_-]{11}$/.test(urlOrId)) {
-    return urlOrId;
+const formSchema = z.object({
+  name: z.string().min(2, "Miqaat name must be at least 2 characters.").max(100),
+  startDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Start date is required." }),
+  endDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "End date is required." }),
+  sourceType: z.enum(["youtube", "iframe"], { required_error: "Source type is required."}),
+  youtubeId: z.string().optional(),
+  iframeCode: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.sourceType === "youtube" && (!data.youtubeId || data.youtubeId.trim() === "")) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["youtubeId"], message: "YouTube Video ID is required." });
   }
-  const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-  const match = urlOrId.match(regex);
-  return match ? match[1] : null;
-};
+  if (data.sourceType === "iframe" && (!data.iframeCode || data.iframeCode.trim() === "")) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["iframeCode"], message: "iFrame code is required." });
+  }
+  if (data.startDate && data.endDate && new Date(data.startDate) > new Date(data.endDate)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["endDate"], message: "End date cannot be before start date." });
+  }
+});
 
+function AdminLiveRelayManager() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingRelays, setIsLoadingRelays] = useState(true);
+  const [relays, setRelays] = useState<LiveRelay[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-export default function LiveRelayPage() {
-  const [videoIdInput, setVideoIdInput] = useState("");
-  const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
-  const [inputError, setInputError] = useState<string | null>(null);
+  const form = useForm<RelayFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      startDate: format(new Date(), "yyyy-MM-dd"),
+      endDate: format(new Date(), "yyyy-MM-dd"),
+      sourceType: "youtube",
+      youtubeId: "",
+      iframeCode: "",
+      adminUsername: user?.username || "",
+    },
+  });
+
+  const sourceType = form.watch("sourceType");
+
+  const loadRelays = useCallback(async () => {
+    setIsLoadingRelays(true);
+    try {
+      const fetchedRelays = await fetchRelays();
+      setRelays(fetchedRelays);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch existing relays." });
+    } finally {
+      setIsLoadingRelays(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
-    document.title = "Live Relay | Anjuman Hub";
-  }, []);
+    loadRelays();
+  }, [loadRelays]);
 
-  const handleLoadVideo = () => {
-    const extractedId = extractVideoId(videoIdInput);
-    if (extractedId) {
-      setCurrentVideoId(extractedId);
-      setInputError(null);
-    } else {
-      setInputError("Please enter a valid YouTube Video ID or URL.");
-      setCurrentVideoId(null);
+  async function onSubmit(values: RelayFormValues) {
+    if (!user?.username) {
+      toast({ variant: "destructive", title: "Error", description: "User not authenticated." });
+      return;
     }
-  };
+    setIsSubmitting(true);
+    const result = await saveRelayAction({ ...values, adminUsername: user.username });
+    if (result.success) {
+      toast({ title: "Success", description: result.message });
+      form.reset({
+        name: "",
+        startDate: format(new Date(), "yyyy-MM-dd"),
+        endDate: format(new Date(), "yyyy-MM-dd"),
+        sourceType: "youtube",
+        youtubeId: "",
+        iframeCode: "",
+        adminUsername: user.username,
+      });
+      loadRelays(); // Refresh the list
+    } else {
+      toast({ variant: "destructive", title: "Error", description: result.message || "Failed to save relay." });
+    }
+    setIsSubmitting(false);
+  }
+
+  async function handleDelete(relayId: string) {
+    setDeletingId(relayId);
+    const result = await deleteRelayAction(relayId);
+    if (result.success) {
+      toast({ title: "Success", description: result.message });
+      setRelays(prev => prev.filter(r => r.id !== relayId));
+    } else {
+      toast({ variant: "destructive", title: "Error", description: result.message || "Failed to delete relay." });
+    }
+    setDeletingId(null);
+  }
 
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="space-y-8">
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-3xl font-bold tracking-tight flex items-center">
-            <Youtube className="mr-3 h-8 w-8 text-primary" /> Live Relay
+          <CardTitle className="text-2xl font-bold flex items-center">
+            <PlusCircle className="mr-3 h-7 w-7 text-primary" /> Add/Manage Live Relay Miqaat
           </CardTitle>
-          <CardDescription>
-            Watch live YouTube broadcasts and events. Enter a YouTube Video ID or URL below.
-          </CardDescription>
+          <CardDescription>Create or update live relay events (Miqaats).</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter YouTube Video ID or URL"
-              value={videoIdInput}
-              onChange={(e) => setVideoIdInput(e.target.value)}
-              className={inputError ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            <Button onClick={handleLoadVideo}>
-              <PlayCircle className="mr-2 h-4 w-4" /> Load Video
-            </Button>
-          </div>
-          {inputError && (
-             <p className="text-sm text-destructive flex items-center">
-              <AlertCircle className="mr-1 h-4 w-4" /> {inputError}
-            </p>
-          )}
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField control={form.control} name="name" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Miqaat Name</FormLabel>
+                  <FormControl><Input placeholder="e.g., Ashara Mubaraka 1446H" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <div className="grid md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="startDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Date</FormLabel>
+                    <FormControl><Input type="date" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="endDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>End Date</FormLabel>
+                    <FormControl><Input type="date" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+              <FormField control={form.control} name="sourceType" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Source Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Select source type" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      <SelectItem value="youtube">YouTube Video ID</SelectItem>
+                      <SelectItem value="iframe">Full iFrame Code</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              {sourceType === "youtube" && (
+                <FormField control={form.control} name="youtubeId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>YouTube Video ID</FormLabel>
+                    <FormControl><Input placeholder="e.g., dQw4w9WgXcQ" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
+              {sourceType === "iframe" && (
+                <FormField control={form.control} name="iframeCode" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full iFrame Code</FormLabel>
+                    <FormControl><Textarea placeholder='<iframe src="..." width="560" height="315" ...></iframe>' className="min-h-[100px]" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Miqaat
+              </Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
 
-      {currentVideoId ? (
-        <Card className="shadow-lg aspect-video overflow-hidden">
-          <CardContent className="p-0 h-full">
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold flex items-center">
+            <ListVideo className="mr-3 h-6 w-6 text-primary" /> Existing Miqaats
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoadingRelays ? (
+            <div className="space-y-4">
+              {[1,2].map(i => <Skeleton key={i} className="h-20 w-full" />)}
+            </div>
+          ) : relays.length === 0 ? (
+            <p className="text-muted-foreground">No Miqaats have been added yet.</p>
+          ) : (
+            <ul className="space-y-4">
+              {relays.map(relay => (
+                <li key={relay.id} className="p-4 border rounded-md flex justify-between items-center shadow-sm">
+                  <div>
+                    <p className="font-semibold">{relay.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(relay.startDate, "MMM d, yyyy")} - {format(relay.endDate, "MMM d, yyyy")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Type: {relay.sourceType}</p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={deletingId === relay.id}>
+                         {deletingId === relay.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the Miqaat: "{relay.name}".
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(relay.id)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function UserLiveRelayViewer() {
+  const [currentRelay, setCurrentRelay] = useState<LiveRelay | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadAndSetRelay() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const fetchedRelays = await fetchRelays();
+        if (fetchedRelays.length === 0) {
+          setCurrentRelay(null);
+          setIsLoading(false);
+          return;
+        }
+
+        const today = new Date();
+        // Normalize today to start of day for date comparisons, but keep time for active checks.
+        const todayStartOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+
+        const activeRelays = fetchedRelays.filter(relay => 
+          isWithinInterval(new Date(), { start: relay.startDate, end: new Date(relay.endDate.getTime() + (24*60*60*1000 -1)) }) // end of day for endDate
+        );
+        
+        let relayToDisplay: LiveRelay | null = null;
+
+        if (activeRelays.length > 0) {
+          // If multiple active, pick the one most recently created
+          relayToDisplay = activeRelays.sort((a, b) => compareAsc(b.createdAt, a.createdAt))[0];
+        } else {
+          // No active relays, find the next upcoming one
+          const upcomingRelays = fetchedRelays
+            .filter(relay => compareAsc(relay.startDate, todayStartOfDay) >= 0 && !isPast(relay.endDate)) // startDate is today or in the future, and event hasn't ended
+            .sort((a, b) => compareAsc(a.startDate, b.startDate)); // Sort by earliest startDate
+          
+          if (upcomingRelays.length > 0) {
+            relayToDisplay = upcomingRelays[0];
+          }
+        }
+        setCurrentRelay(relayToDisplay);
+
+      } catch (err) {
+        setError("Failed to load live relay information. Please try again later.");
+        console.error("Error fetching relays for user view:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadAndSetRelay();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        <Skeleton className="h-12 w-3/4" />
+        <Skeleton className="aspect-video w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="shadow-md animate-fadeIn">
+        <AlertCircle className="h-5 w-5" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!currentRelay) {
+    return (
+      <Alert variant="default" className="shadow-md animate-fadeIn">
+        <Youtube className="h-5 w-5" />
+        <AlertTitle>No Live Relay Available</AlertTitle>
+        <AlertDescription>
+          There are no active or upcoming live relays scheduled at this time. Please check back later.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  const now = new Date();
+  const isEventActive = isWithinInterval(now, { start: currentRelay.startDate, end: new Date(currentRelay.endDate.getTime() + (24*60*60*1000 -1)) });
+  const isEventUpcoming = !isEventActive && compareAsc(currentRelay.startDate, now) > 0;
+  const eventHasEnded = !isEventActive && !isEventUpcoming && isPast(currentRelay.endDate);
+
+
+  return (
+    <div className="space-y-6 animate-fadeIn">
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-2xl md:text-3xl font-bold tracking-tight flex items-center">
+            <PlayCircle className="mr-3 h-7 w-7 md:h-8 md:w-8 text-primary" /> {currentRelay.name}
+          </CardTitle>
+          <CardDescription className="flex items-center gap-2 flex-wrap">
+            <CalendarDays className="h-4 w-4"/> 
+            <span>
+              {format(currentRelay.startDate, "EEE, MMM d, yyyy")} to {format(currentRelay.endDate, "EEE, MMM d, yyyy")}
+            </span>
+             {isEventUpcoming && <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">Upcoming</span>}
+             {isEventActive && <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">Live Now</span>}
+             {eventHasEnded && <span className="px-2 py-0.5 text-xs bg-muted text-muted-foreground rounded-full">Ended</span>}
+          </CardDescription>
+        </CardHeader>
+        {isEventUpcoming && (
+           <CardContent>
+             <Alert>
+                <Youtube className="h-5 w-5" />
+                <AlertTitle>This Miqaat is Upcoming</AlertTitle>
+                <AlertDescription>
+                    The live relay for "{currentRelay.name}" will be available starting {format(currentRelay.startDate, "MMMM d, yyyy 'at' h:mm a")}.
+                </AlertDescription>
+             </Alert>
+           </CardContent>
+        )}
+        {isEventActive && currentRelay.sourceType === "youtube" && currentRelay.youtubeId && (
+          <CardContent className="p-0 aspect-video">
             <iframe
-              src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1&rel=0`}
-              title="YouTube Live Relay"
+              // Added modestbranding=1, rel=0 to minimize YouTube UI. showinfo is deprecated. controls=0 hides all controls.
+              // iv_load_policy=3 disables video annotations.
+              src={`https://www.youtube.com/embed/${currentRelay.youtubeId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3`}
+              title={currentRelay.name}
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
               className="h-full w-full"
             />
           </CardContent>
-        </Card>
-      ) : (
-        <Alert variant="default" className="shadow-md">
-          <Youtube className="h-5 w-5" />
-          <AlertTitle>No Video Loaded</AlertTitle>
-          <AlertDescription>
-            Enter a YouTube Video ID or URL above and click "Load Video" to start watching.
-          </AlertDescription>
-        </Alert>
-      )}
+        )}
+        {isEventActive && currentRelay.sourceType === "iframe" && currentRelay.iframeCode && (
+          // Ensure iframe content takes full height and width of the container
+          <CardContent className="p-0 aspect-video">
+            <div className="h-full w-full [&>iframe]:w-full [&>iframe]:h-full" dangerouslySetInnerHTML={{ __html: currentRelay.iframeCode }} />
+          </CardContent>
+        )}
+         {eventHasEnded && (
+             <CardContent>
+                <Alert>
+                    <Youtube className="h-5 w-5" />
+                    <AlertTitle>Miqaat Has Ended</AlertTitle>
+                    <AlertDescription>
+                        The live relay for "{currentRelay.name}" has concluded.
+                    </AlertDescription>
+                </Alert>
+            </CardContent>
+        )}
+        {(isEventActive) && (
+             <CardFooter className="pt-4">
+                <p className="text-xs text-muted-foreground">
+                    Note: For YouTube embeds, some YouTube branding and options may still appear as per YouTube's embedding policies.
+                    We've minimized them as much as possible.
+                </p>
+            </CardFooter>
+        )}
+      </Card>
     </div>
   );
+}
+
+
+export default function LiveRelayPage() {
+  const { user, isLoading: authLoading } = useAuth();
+  
+  useEffect(() => {
+    document.title = "Live Relay | Anjuman Hub";
+  }, []);
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-4">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return user?.isAdmin ? <AdminLiveRelayManager /> : <UserLiveRelayViewer />;
 }
