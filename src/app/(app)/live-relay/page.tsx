@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format, parseISO, isWithinInterval, compareAsc, isPast } from "date-fns";
-import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2 } from "lucide-react";
+import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2, HelpCircle } from "lucide-react";
 import { saveRelayAction, deleteRelayAction, fetchRelays, type LiveRelay, type RelayFormValues } from "@/actions/relayActions";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -29,17 +29,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useAdminMode } from "@/contexts/AdminModeContext";
+
+import ShakaPlayer from 'shaka-player-react';
+import 'shaka-player/dist/controls.css';
 
 const formSchema = z.object({
   name: z.string().min(2, "Miqaat name must be at least 2 characters.").max(100),
   startDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Start date is required." }),
   endDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "End date is required." }),
   sourceType: z.enum(["youtube", "iframe"], { required_error: "Source type is required."}),
-  youtubeId: z.string().optional(),
+  youtubeId: z.string().optional(), // This field will now be used as src for ShakaPlayer if sourceType is youtube
   iframeCode: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.sourceType === "youtube" && (!data.youtubeId || data.youtubeId.trim() === "")) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["youtubeId"], message: "YouTube Video ID is required." });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["youtubeId"], message: "YouTube Video ID or Manifest URL is required for YouTube source type." });
   }
   if (data.sourceType === "iframe" && (!data.iframeCode || data.iframeCode.trim() === "")) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["iframeCode"], message: "iFrame code is required." });
@@ -106,7 +110,7 @@ function AdminLiveRelayManager() {
         iframeCode: "",
         adminUsername: user.username,
       });
-      loadRelays(); // Refresh the list
+      loadRelays(); 
     } else {
       toast({ variant: "destructive", title: "Error", description: result.message || "Failed to save relay." });
     }
@@ -166,7 +170,7 @@ function AdminLiveRelayManager() {
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select source type" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="youtube">YouTube Video ID</SelectItem>
+                      <SelectItem value="youtube">YouTube (via Shaka Player - needs Manifest URL or ID)</SelectItem>
                       <SelectItem value="iframe">Full iFrame Code</SelectItem>
                     </SelectContent>
                   </Select>
@@ -176,9 +180,14 @@ function AdminLiveRelayManager() {
               {sourceType === "youtube" && (
                 <FormField control={form.control} name="youtubeId" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>YouTube Video ID</FormLabel>
-                    <FormControl><Input placeholder="e.g., dQw4w9WgXcQ" {...field} /></FormControl>
+                    <FormLabel>YouTube Video ID or Manifest URL (DASH/HLS)</FormLabel>
+                    <FormControl><Input placeholder="e.g., dQw4w9WgXcQ OR https://example.com/manifest.mpd" {...field} /></FormControl>
                     <FormMessage />
+                    <FormDescription className="text-xs">
+                      For Shaka Player with YouTube content, a direct manifest URL (DASH/HLS) is ideal. 
+                      Providing just a Video ID might not work as Shaka Player doesn't natively resolve these.
+                      Using YouTube content outside official embeds may have ToS implications.
+                    </FormDescription>
                   </FormItem>
                 )} />
               )}
@@ -257,6 +266,7 @@ function UserLiveRelayViewer() {
   const [currentRelay, setCurrentRelay] = useState<LiveRelay | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const shakaPlayerRef = useRef<any>(null); // For potential direct Shaka interactions if needed
 
   useEffect(() => {
     async function loadAndSetRelay() {
@@ -271,24 +281,20 @@ function UserLiveRelayViewer() {
         }
 
         const today = new Date();
-        // Normalize today to start of day for date comparisons, but keep time for active checks.
         const todayStartOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-
         const activeRelays = fetchedRelays.filter(relay => 
-          isWithinInterval(new Date(), { start: relay.startDate, end: new Date(relay.endDate.getTime() + (24*60*60*1000 -1)) }) // end of day for endDate
+          isWithinInterval(new Date(), { start: relay.startDate, end: new Date(relay.endDate.getTime() + (24*60*60*1000 -1)) }) 
         );
         
         let relayToDisplay: LiveRelay | null = null;
 
         if (activeRelays.length > 0) {
-          // If multiple active, pick the one most recently created
           relayToDisplay = activeRelays.sort((a, b) => compareAsc(b.createdAt, a.createdAt))[0];
         } else {
-          // No active relays, find the next upcoming one
           const upcomingRelays = fetchedRelays
-            .filter(relay => compareAsc(relay.startDate, todayStartOfDay) >= 0 && !isPast(relay.endDate)) // startDate is today or in the future, and event hasn't ended
-            .sort((a, b) => compareAsc(a.startDate, b.startDate)); // Sort by earliest startDate
+            .filter(relay => compareAsc(relay.startDate, todayStartOfDay) >= 0 && !isPast(relay.endDate))
+            .sort((a, b) => compareAsc(a.startDate, b.startDate)); 
           
           if (upcomingRelays.length > 0) {
             relayToDisplay = upcomingRelays[0];
@@ -342,7 +348,6 @@ function UserLiveRelayViewer() {
   const isEventUpcoming = !isEventActive && compareAsc(currentRelay.startDate, now) > 0;
   const eventHasEnded = !isEventActive && !isEventUpcoming && isPast(currentRelay.endDate);
 
-
   return (
     <div className="space-y-6 animate-fadeIn">
       <Card className="shadow-lg">
@@ -372,21 +377,20 @@ function UserLiveRelayViewer() {
            </CardContent>
         )}
         {isEventActive && currentRelay.sourceType === "youtube" && currentRelay.youtubeId && (
-          <CardContent className="p-0 aspect-video">
-            <iframe
-              // Added modestbranding=1, rel=0 to minimize YouTube UI. showinfo is deprecated. controls=0 hides all controls.
-              // iv_load_policy=3 disables video annotations.
-              src={`https://www.youtube.com/embed/${currentRelay.youtubeId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3`}
-              title={currentRelay.name}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="h-full w-full"
-            />
+          <CardContent className="p-0 aspect-video bg-black">
+            <ShakaPlayer ref={shakaPlayerRef} src={currentRelay.youtubeId} className="w-full h-full" />
+            <Alert variant="default" className="mt-2 rounded-none border-x-0 border-b-0">
+              <HelpCircle className="h-5 w-5" />
+              <AlertTitle>Shaka Player for YouTube</AlertTitle>
+              <AlertDescription className="text-xs">
+                Attempting to play using Shaka Player. For YouTube content, this player requires a direct video manifest URL (DASH/HLS), not just a Video ID. 
+                If you see an error, the provided ID is likely not a compatible manifest. 
+                Using YouTube content outside of official embeds may also have Terms of Service implications.
+              </AlertDescription>
+            </Alert>
           </CardContent>
         )}
         {isEventActive && currentRelay.sourceType === "iframe" && currentRelay.iframeCode && (
-          // Ensure iframe content takes full height and width of the container
           <CardContent className="p-0 aspect-video">
             <div className="h-full w-full [&>iframe]:w-full [&>iframe]:h-full" dangerouslySetInnerHTML={{ __html: currentRelay.iframeCode }} />
           </CardContent>
@@ -402,14 +406,6 @@ function UserLiveRelayViewer() {
                 </Alert>
             </CardContent>
         )}
-        {(isEventActive) && (
-             <CardFooter className="pt-4">
-                <p className="text-xs text-muted-foreground">
-                    Note: For YouTube embeds, some YouTube branding and options may still appear as per YouTube's embedding policies.
-                    We've minimized them as much as possible.
-                </p>
-            </CardFooter>
-        )}
       </Card>
     </div>
   );
@@ -418,9 +414,15 @@ function UserLiveRelayViewer() {
 
 export default function LiveRelayPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const { isAdminMode } = useAdminMode();
   
   useEffect(() => {
     document.title = "Live Relay | Anjuman Hub";
+    console.warn(
+      "Shaka Player for YouTube: Playing YouTube content directly with Shaka Player (using Video IDs or trying to source manifest URLs) can be against YouTube's Terms of Service. " +
+      "It's recommended to use the official YouTube iFrame API for embedding YouTube videos to ensure compliance and stability. " +
+      "The current Shaka Player integration for 'youtube' sourceType will attempt to load the provided 'youtubeId' as a manifest source, which will likely fail if it's just a standard YouTube video ID."
+    );
   }, []);
 
   if (authLoading) {
@@ -431,5 +433,5 @@ export default function LiveRelayPage() {
     );
   }
 
-  return user?.isAdmin ? <AdminLiveRelayManager /> : <UserLiveRelayViewer />;
+  return user?.isAdmin && isAdminMode ? <AdminLiveRelayManager /> : <UserLiveRelayViewer />;
 }
