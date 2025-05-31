@@ -3,10 +3,11 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, CalendarDays, Sparkle, Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import Image from "next/image";
-import { CalendarDays, Sparkle, Mail, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Announcement {
   id: string;
@@ -17,7 +18,7 @@ export interface Announcement {
   status: 'new' | 'unread' | 'read';
   imageUrl?: string;
   imageHint?: string;
-  readByUserIds?: string[]; // Added to interface
+  readByUserIds?: string[];
 }
 
 interface AnnouncementItemProps {
@@ -39,16 +40,88 @@ function StatusIndicator({ status }: { status: Announcement['status'] }) {
 }
 
 export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItemProps) {
+  const { toast } = useToast();
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const handleCardClick = () => {
     if (onCardClick) {
       onCardClick(announcement.id);
     }
   };
 
+  const handleDownloadImage = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation(); // Prevent card click if this button is inside the clickable card area
+    if (!announcement.imageUrl) return;
+
+    setIsDownloading(true);
+    try {
+      const response = await fetch(announcement.imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = objectUrl;
+
+      let filename = "downloaded_image";
+      try {
+        // Try to get filename from URL
+        const url = new URL(announcement.imageUrl);
+        const pathnameParts = url.pathname.split('/');
+        const lastPart = pathnameParts[pathnameParts.length - 1];
+        if (lastPart) {
+          filename = lastPart.replace(/[^a-zA-Z0-9_.-]/g, '_'); // Sanitize
+        }
+
+        // Try to get extension from blob type or URL
+        const extensionFromUrl = announcement.imageUrl.split('.').pop()?.split(/[?#]/)[0]?.toLowerCase();
+        const typeExtension = blob.type.split('/')[1]?.toLowerCase();
+
+        if (!filename.includes('.')) { // If no extension in filename part
+            if (typeExtension && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(typeExtension)) {
+                filename += `.${typeExtension}`;
+            } else if (extensionFromUrl && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extensionFromUrl)) {
+                filename += `.${extensionFromUrl}`;
+            } else {
+                filename += '.png'; // Default extension
+            }
+        }
+      } catch (e) {
+        console.warn("Could not parse image URL for filename, using default.", e);
+        filename = "downloaded_image.png"; 
+      }
+      
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+
+      toast({
+        title: "Download Started",
+        description: `Downloading ${filename}...`,
+      });
+
+    } catch (error: any) {
+      console.error("Error downloading image:", error);
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: error.message || "Could not download image. The image host may not allow direct downloads or there's a network issue.",
+      });
+      // As a fallback, you could open the image in a new tab:
+      // window.open(announcement.imageUrl, '_blank');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <Card 
-      className="flex flex-col overflow-hidden shadow-lg transition-all hover:shadow-xl animate-fadeIn bg-card cursor-pointer group"
-      onClick={handleCardClick}
+      className="flex flex-col overflow-hidden shadow-lg transition-all hover:shadow-xl animate-fadeIn bg-card group"
+      onClick={handleCardClick} // Removed cursor-pointer as the whole card might not always be clickable if button is distinct
     >
       {announcement.imageUrl && (
         <div className="aspect-video w-full relative overflow-hidden">
@@ -64,7 +137,7 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
       )}
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-xl font-semibold">{announcement.title}</CardTitle>
+          <CardTitle className="text-xl font-semibold" style={{cursor: onCardClick ? 'pointer' : 'default'}}>{announcement.title}</CardTitle>
           <StatusIndicator status={announcement.status} />
         </div>
         <CardDescription className="flex items-center text-xs text-muted-foreground pt-1">
@@ -72,7 +145,7 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
           Posted on {format(announcement.date, "MMMM d, yyyy")} by {announcement.author}
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-0 flex-grow">
+      <CardContent className="pt-0 flex-grow" style={{cursor: onCardClick ? 'pointer' : 'default'}}>
         <div 
           className="text-sm leading-relaxed text-card-foreground/90"
           dangerouslySetInnerHTML={{ __html: announcement.content.replace(/\n/g, '<br />') }} 
@@ -80,16 +153,22 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
       </CardContent>
       {announcement.imageUrl && (
         <CardFooter className="pt-3">
-          <Button variant="outline" size="sm" asChild className="w-full">
-            <a href={announcement.imageUrl} download target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full" 
+            onClick={handleDownloadImage}
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
               <Download className="mr-2 h-4 w-4" />
-              Download Image
-            </a>
+            )}
+            {isDownloading ? "Downloading..." : "Download Image"}
           </Button>
         </CardFooter>
       )}
     </Card>
   );
 }
-
-    
