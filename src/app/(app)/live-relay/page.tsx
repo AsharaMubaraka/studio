@@ -30,14 +30,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAdminMode } from "@/contexts/AdminModeContext";
-import ClapprPlayer from "@/components/live-relay/ClapprPlayer";
+import VimePlayer from "@/components/live-relay/VimePlayer";
 
 const formSchema = z.object({
   name: z.string().min(2, "Miqaat name must be at least 2 characters.").max(100),
   startDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Start date is required." }),
   endDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "End date is required." }),
   sourceType: z.enum(["youtube", "iframe"], { required_error: "Source type is required."}),
-  youtubeId: z.string().optional(), 
+  youtubeId: z.string().optional(),
   iframeCode: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.sourceType === "youtube" && (!data.youtubeId || data.youtubeId.trim() === "")) {
@@ -108,7 +108,7 @@ function AdminLiveRelayManager() {
         iframeCode: "",
         adminUsername: user.username,
       });
-      loadRelays(); 
+      loadRelays();
     } else {
       toast({ variant: "destructive", title: "Error", description: result.message || "Failed to save relay." });
     }
@@ -168,7 +168,7 @@ function AdminLiveRelayManager() {
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select source type" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="youtube">YouTube (via Clappr Player)</SelectItem>
+                      <SelectItem value="youtube">YouTube (via Vime.js Player)</SelectItem>
                       <SelectItem value="iframe">Full iFrame Code</SelectItem>
                     </SelectContent>
                   </Select>
@@ -182,7 +182,7 @@ function AdminLiveRelayManager() {
                     <FormControl><Input placeholder="e.g., dQw4w9WgXcQ" {...field} /></FormControl>
                     <FormMessage />
                     <FormDescription className="text-xs">
-                      Enter the standard YouTube Video ID. Clappr player will be used for playback.
+                      Enter the standard YouTube Video ID. Vime.js player will be used for playback.
                     </FormDescription>
                   </FormItem>
                 )} />
@@ -278,10 +278,10 @@ function UserLiveRelayViewer() {
         const today = new Date();
         const todayStartOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-        const activeRelays = fetchedRelays.filter(relay => 
-          isWithinInterval(new Date(), { start: relay.startDate, end: new Date(relay.endDate.getTime() + (24*60*60*1000 -1)) }) 
+        const activeRelays = fetchedRelays.filter(relay =>
+          isWithinInterval(new Date(), { start: relay.startDate, end: new Date(relay.endDate.getTime() + (24*60*60*1000 -1)) })
         );
-        
+
         let relayToDisplay: LiveRelay | null = null;
 
         if (activeRelays.length > 0) {
@@ -289,8 +289,8 @@ function UserLiveRelayViewer() {
         } else {
           const upcomingRelays = fetchedRelays
             .filter(relay => compareAsc(relay.startDate, todayStartOfDay) >= 0 && !isPast(relay.endDate))
-            .sort((a, b) => compareAsc(a.startDate, b.startDate)); 
-          
+            .sort((a, b) => compareAsc(a.startDate, b.startDate));
+
           if (upcomingRelays.length > 0) {
             relayToDisplay = upcomingRelays[0];
           }
@@ -337,7 +337,7 @@ function UserLiveRelayViewer() {
       </Alert>
     );
   }
-  
+
   const now = new Date();
   const isEventActive = isWithinInterval(now, { start: currentRelay.startDate, end: new Date(currentRelay.endDate.getTime() + (24*60*60*1000 -1)) });
   const isEventUpcoming = !isEventActive && compareAsc(currentRelay.startDate, now) > 0;
@@ -351,7 +351,7 @@ function UserLiveRelayViewer() {
             <PlayCircle className="mr-3 h-7 w-7 md:h-8 md:w-8 text-primary" /> {currentRelay.name}
           </CardTitle>
           <CardDescription className="flex items-center gap-2 flex-wrap">
-            <CalendarDays className="h-4 w-4"/> 
+            <CalendarDays className="h-4 w-4"/>
             <span>
               {format(currentRelay.startDate, "EEE, MMM d, yyyy")} to {format(currentRelay.endDate, "EEE, MMM d, yyyy")}
             </span>
@@ -373,13 +373,13 @@ function UserLiveRelayViewer() {
         )}
         {isEventActive && currentRelay.sourceType === "youtube" && currentRelay.youtubeId && (
           <CardContent className="p-0 aspect-video bg-black">
-            <ClapprPlayer videoId={currentRelay.youtubeId} />
+            <VimePlayer videoId={currentRelay.youtubeId} />
              <Alert variant="default" className="mt-0 rounded-none border-x-0 border-b-0">
               <HelpCircle className="h-5 w-5" />
-              <AlertTitle>Clappr Player for YouTube</AlertTitle>
+              <AlertTitle>Vime.js Player for YouTube</AlertTitle>
               <AlertDescription className="text-xs">
-                Playback using Clappr Player. Clappr provides the player interface, but the underlying video stream is from YouTube.
-                Full control over YouTube's embedded features may be limited by YouTube's policies.
+                Playback using Vime.js Player. Vime.js provides the player interface.
+                Some YouTube controls/overlays may still appear based on YouTube's embedding policies.
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -409,7 +409,7 @@ function UserLiveRelayViewer() {
 export default function LiveRelayPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { isAdminMode } = useAdminMode();
-  
+
   useEffect(() => {
     document.title = "Live Relay | Anjuman Hub";
   }, []);
@@ -424,4 +424,3 @@ export default function LiveRelayPage() {
 
   return user?.isAdmin && isAdminMode ? <AdminLiveRelayManager /> : <UserLiveRelayViewer />;
 }
-

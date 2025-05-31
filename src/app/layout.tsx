@@ -1,6 +1,7 @@
 
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+// Removed Vime player CSS import from here
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';

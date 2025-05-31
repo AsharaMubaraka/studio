@@ -1,4 +1,8 @@
 
+/* @import "@vime/core/themes/default.css"; */
+/* The above Vime CSS import is commented out because the package might not be installed due to 'npm install' errors. */
+/* If Vime player is used, it will lack default styling until '@vime/core' is successfully installed and this line is uncommented. */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -235,7 +239,6 @@ body {
 }
 
 /* Vime Player specific styling to ensure it fills its container */
-/* You might need to adjust these or add more specific selectors if Vime's default UI doesn't fill correctly */
 [data-vime-player] {
   width: 100%;
   height: 100%;
