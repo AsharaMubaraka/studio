@@ -233,3 +233,11 @@ body {
   height: 20px;
   background-size: auto 20px; /* Adjust height of the pattern slice */
 }
+
+/* Vime Player specific styling to ensure it fills its container */
+/* You might need to adjust these or add more specific selectors if Vime's default UI doesn't fill correctly */
+[data-vime-player] {
+  width: 100%;
+  height: 100%;
+  display: block; /* Ensure it takes up block space */
+}
