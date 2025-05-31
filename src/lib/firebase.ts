@@ -2,7 +2,6 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
-// Removed getStorage import
 import { toast } from "@/hooks/use-toast";
 
 const firebaseConfig = {
@@ -24,8 +23,6 @@ if (getApps().length === 0) {
 }
 
 const db = getFirestore(firebaseApp);
-// Removed storage initialization
-// const storage = getStorage(firebaseApp); 
 
 // Initialize Firebase Cloud Messaging and get a reference to the service
 const getFcmMessaging = () => {
@@ -76,7 +73,7 @@ if (typeof window !== 'undefined') {
   const messagingInstance = getFcmMessaging();
   if (messagingInstance) {
     onMessage(messagingInstance, (payload) => {
-      console.log('Message received in foreground. ', payload);
+      console.log('Foreground message received:', payload); // Added console log
       toast({
         title: payload.notification?.title || "New Notification",
         description: payload.notification?.body,
@@ -88,4 +85,5 @@ if (typeof window !== 'undefined') {
   }
 }
 
-export { db, firebaseApp, requestNotificationPermission, getFcmMessaging }; // Removed storage from exports
+export { db, firebaseApp, requestNotificationPermission, getFcmMessaging };
+

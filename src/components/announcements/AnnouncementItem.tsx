@@ -21,6 +21,7 @@ export interface Announcement {
 
 interface AnnouncementItemProps {
   announcement: Announcement;
+  onCardClick?: (id: string) => void; // Added onCardClick prop
 }
 
 function StatusIndicator({ status }: { status: Announcement['status'] }) {
@@ -36,9 +37,18 @@ function StatusIndicator({ status }: { status: Announcement['status'] }) {
   return null;
 }
 
-export function AnnouncementItem({ announcement }: AnnouncementItemProps) {
+export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItemProps) {
+  const handleCardClick = () => {
+    if (onCardClick) {
+      onCardClick(announcement.id);
+    }
+  };
+
   return (
-    <Card className="flex flex-col overflow-hidden shadow-lg transition-all hover:shadow-xl animate-fadeIn bg-card">
+    <Card 
+      className="flex flex-col overflow-hidden shadow-lg transition-all hover:shadow-xl animate-fadeIn bg-card cursor-pointer group"
+      onClick={handleCardClick} // Added onClick handler to the Card
+    >
       {announcement.imageUrl && (
         <div className="aspect-video w-full relative overflow-hidden">
           <Image
@@ -70,7 +80,7 @@ export function AnnouncementItem({ announcement }: AnnouncementItemProps) {
       {announcement.imageUrl && (
         <CardFooter className="pt-3">
           <Button variant="outline" size="sm" asChild className="w-full">
-            <a href={announcement.imageUrl} download target="_blank" rel="noopener noreferrer">
+            <a href={announcement.imageUrl} download target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
               <Download className="mr-2 h-4 w-4" />
               Download Image
             </a>
@@ -80,4 +90,3 @@ export function AnnouncementItem({ announcement }: AnnouncementItemProps) {
     </Card>
   );
 }
-

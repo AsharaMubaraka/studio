@@ -2,7 +2,7 @@
 "use client";
 
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +12,9 @@ import { Bell } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 
-async function fetchFirestoreAnnouncements(): Promise<Announcement[]> {
+const READ_NOTIFICATIONS_STORAGE_KEY = "anjuman_hub_read_notifications";
+
+async function fetchFirestoreAnnouncements(): Promise<Omit<Announcement, 'status'>[]> {
   const notificationsCollectionRef = collection(db, "notifications");
   const q = query(notificationsCollectionRef, orderBy("createdAt", "desc"));
 
@@ -26,7 +28,6 @@ async function fetchFirestoreAnnouncements(): Promise<Announcement[]> {
         content: data.content || "No Content",
         date: (data.createdAt as Timestamp)?.toDate() || new Date(),
         author: data.authorName || "Unknown Author",
-        status: 'unread' as Announcement['status'], // Default to 'unread' for now
         imageUrl: data.imageUrl, 
         imageHint: data.title ? data.title.split(" ").slice(0,2).join(" ") : "notification image"
       };
@@ -44,23 +45,59 @@ export default function AnnouncementsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"status" | "newest" | "oldest">("status");
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [readNotificationIds, setReadNotificationIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     document.title = "Notifications | Anjuman Hub";
-    async function loadAnnouncements() {
-      setIsLoading(true);
-      setFetchError(null);
-      try {
-        const data = await fetchFirestoreAnnouncements();
-        setAnnouncements(data);
-      } catch (err) {
-        setFetchError("Failed to load notifications. Please try again later.");
-      } finally {
-        setIsLoading(false);
+    try {
+      const storedReadIds = localStorage.getItem(READ_NOTIFICATIONS_STORAGE_KEY);
+      if (storedReadIds) {
+        setReadNotificationIds(new Set(JSON.parse(storedReadIds)));
       }
+    } catch (error) {
+      console.error("Error loading read notifications from localStorage:", error);
     }
-    loadAnnouncements();
   }, []);
+
+  const loadAnnouncements = useCallback(async () => {
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      const baseData = await fetchFirestoreAnnouncements();
+      // Determine status based on readNotificationIds
+      const dataWithStatus: Announcement[] = baseData.map(ann => ({
+        ...ann,
+        status: readNotificationIds.has(ann.id) ? 'read' : 'unread', // Default to 'unread' if not in localStorage
+      }));
+      setAnnouncements(dataWithStatus);
+    } catch (err) {
+      setFetchError("Failed to load notifications. Please try again later.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [readNotificationIds]); // Depend on readNotificationIds to re-calculate status
+
+  useEffect(() => {
+    loadAnnouncements();
+  }, [loadAnnouncements]);
+
+
+  const handleMarkAsRead = (id: string) => {
+    setReadNotificationIds(prevIds => {
+      const newIds = new Set(prevIds);
+      newIds.add(id);
+      try {
+        localStorage.setItem(READ_NOTIFICATIONS_STORAGE_KEY, JSON.stringify(Array.from(newIds)));
+      } catch (error) {
+        console.error("Error saving read notifications to localStorage:", error);
+      }
+      return newIds;
+    });
+    // Update the status in the main announcements list immediately for UI responsiveness
+    setAnnouncements(prevAnns => 
+      prevAnns.map(ann => ann.id === id ? { ...ann, status: 'read' } : ann)
+    );
+  };
 
   const filteredAndSortedAnnouncements = announcements
     .filter(ann => ann.title.toLowerCase().includes(searchTerm.toLowerCase()) || ann.content.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -69,11 +106,12 @@ export default function AnnouncementsPage() {
         return b.date.getTime() - a.date.getTime();
       } else if (sortOrder === "oldest") {
         return a.date.getTime() - b.date.getTime();
-      } else {
+      } else { // sort by status
         const statusOrder = { new: 0, unread: 1, read: 2 };
         if (a.status !== b.status) {
              return statusOrder[a.status] - statusOrder[b.status];
         }
+        // If statuses are the same, sort by date (newest first) as a secondary criterion
         return b.date.getTime() - a.date.getTime();
       }
     });
@@ -129,7 +167,11 @@ export default function AnnouncementsPage() {
       ) : filteredAndSortedAnnouncements.length > 0 ? (
         <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2">
           {filteredAndSortedAnnouncements.map((announcement) => (
-            <AnnouncementItem key={announcement.id} announcement={announcement} />
+            <AnnouncementItem 
+              key={announcement.id} 
+              announcement={announcement} 
+              onCardClick={handleMarkAsRead} // Pass the handler
+            />
           ))}
         </div>
       ) : (
@@ -144,4 +186,3 @@ export default function AnnouncementsPage() {
     </div>
   );
 }
-
