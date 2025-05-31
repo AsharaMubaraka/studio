@@ -379,14 +379,6 @@ function UserLiveRelayViewer() {
         {isEventActive && currentRelay.sourceType === "youtube" && currentRelay.youtubeId && (
           <CardContent className="p-0 aspect-video bg-black">
             <ClapprPlayer videoId={currentRelay.youtubeId} />
-             <Alert variant="default" className="mt-0 rounded-none border-x-0 border-b-0">
-              <HelpCircle className="h-5 w-5" />
-              <AlertTitle>Clappr Player for YouTube</AlertTitle>
-              <AlertDescription className="text-xs">
-                Playback using Clappr Player. Clappr provides the player interface.
-                Some YouTube controls/overlays may still appear based on YouTube's embedding policies.
-              </AlertDescription>
-            </Alert>
           </CardContent>
         )}
         {isEventActive && currentRelay.sourceType === "iframe" && currentRelay.iframeCode && (
@@ -429,3 +421,4 @@ export default function LiveRelayPage() {
 
   return user?.isAdmin && isAdminMode ? <AdminLiveRelayManager /> : <UserLiveRelayViewer />;
 }
+
