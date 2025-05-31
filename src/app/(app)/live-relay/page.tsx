@@ -30,12 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAdminMode } from "@/contexts/AdminModeContext";
-import dynamic from 'next/dynamic';
-
-const ClapprPlayer = dynamic(() => import('@/components/live-relay/ClapprPlayer'), {
-  ssr: false,
-  loading: () => <div className="flex items-center justify-center aspect-video bg-black text-white"><Loader2 className="h-8 w-8 animate-spin" /> <span className="ml-2">Loading Player...</span></div>
-});
+import PlyrPlayer from '@/components/live-relay/PlyrPlayer'; // Changed import
 
 const formSchema = z.object({
   name: z.string().min(2, "Miqaat name must be at least 2 characters.").max(100),
@@ -173,7 +168,7 @@ function AdminLiveRelayManager() {
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select source type" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="youtube">YouTube (via Clappr Player)</SelectItem>
+                      <SelectItem value="youtube">YouTube (via Plyr.io)</SelectItem>
                       <SelectItem value="iframe">Full iFrame Code</SelectItem>
                     </SelectContent>
                   </Select>
@@ -187,7 +182,7 @@ function AdminLiveRelayManager() {
                     <FormControl><Input placeholder="e.g., dQw4w9WgXcQ" {...field} /></FormControl>
                     <FormMessage />
                     <FormDescription className="text-xs">
-                      Enter the standard YouTube Video ID. Clappr player will be used for playback.
+                      Enter the standard YouTube Video ID. Plyr.io player will be used for playback.
                     </FormDescription>
                   </FormItem>
                 )} />
@@ -378,7 +373,7 @@ function UserLiveRelayViewer() {
         )}
         {isEventActive && currentRelay.sourceType === "youtube" && currentRelay.youtubeId && (
           <CardContent className="p-0 aspect-video bg-black">
-            <ClapprPlayer videoId={currentRelay.youtubeId} />
+            <PlyrPlayer videoId={currentRelay.youtubeId} />
           </CardContent>
         )}
         {isEventActive && currentRelay.sourceType === "iframe" && currentRelay.iframeCode && (
@@ -421,4 +416,3 @@ export default function LiveRelayPage() {
 
   return user?.isAdmin && isAdminMode ? <AdminLiveRelayManager /> : <UserLiveRelayViewer />;
 }
-
