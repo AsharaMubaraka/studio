@@ -32,7 +32,7 @@ import {
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import dynamic from 'next/dynamic';
 
-const VimePlayer = dynamic(() => import('@/components/live-relay/VimePlayer'), {
+const ClapprPlayer = dynamic(() => import('@/components/live-relay/ClapprPlayer'), {
   ssr: false,
   loading: () => <div className="flex items-center justify-center aspect-video bg-black text-white"><Loader2 className="h-8 w-8 animate-spin" /> <span className="ml-2">Loading Player...</span></div>
 });
@@ -173,7 +173,7 @@ function AdminLiveRelayManager() {
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select source type" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="youtube">YouTube (via Vime.js Player)</SelectItem>
+                      <SelectItem value="youtube">YouTube (via Clappr Player)</SelectItem>
                       <SelectItem value="iframe">Full iFrame Code</SelectItem>
                     </SelectContent>
                   </Select>
@@ -187,7 +187,7 @@ function AdminLiveRelayManager() {
                     <FormControl><Input placeholder="e.g., dQw4w9WgXcQ" {...field} /></FormControl>
                     <FormMessage />
                     <FormDescription className="text-xs">
-                      Enter the standard YouTube Video ID. Vime.js player will be used for playback.
+                      Enter the standard YouTube Video ID. Clappr player will be used for playback.
                     </FormDescription>
                   </FormItem>
                 )} />
@@ -378,12 +378,12 @@ function UserLiveRelayViewer() {
         )}
         {isEventActive && currentRelay.sourceType === "youtube" && currentRelay.youtubeId && (
           <CardContent className="p-0 aspect-video bg-black">
-            <VimePlayer videoId={currentRelay.youtubeId} />
+            <ClapprPlayer videoId={currentRelay.youtubeId} />
              <Alert variant="default" className="mt-0 rounded-none border-x-0 border-b-0">
               <HelpCircle className="h-5 w-5" />
-              <AlertTitle>Vime.js Player for YouTube</AlertTitle>
+              <AlertTitle>Clappr Player for YouTube</AlertTitle>
               <AlertDescription className="text-xs">
-                Playback using Vime.js Player. Vime.js provides the player interface.
+                Playback using Clappr Player. Clappr provides the player interface.
                 Some YouTube controls/overlays may still appear based on YouTube's embedding policies.
               </AlertDescription>
             </Alert>
