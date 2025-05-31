@@ -30,7 +30,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAdminMode } from "@/contexts/AdminModeContext";
-import VimePlayer from "@/components/live-relay/VimePlayer";
+import dynamic from 'next/dynamic';
+
+const VimePlayer = dynamic(() => import('@/components/live-relay/VimePlayer'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center aspect-video bg-black text-white"><Loader2 className="h-8 w-8 animate-spin" /> <span className="ml-2">Loading Player...</span></div>
+});
 
 const formSchema = z.object({
   name: z.string().min(2, "Miqaat name must be at least 2 characters.").max(100),
