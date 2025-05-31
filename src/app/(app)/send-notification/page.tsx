@@ -16,12 +16,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Removed CardFooter
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, Image as ImageIcon } from "lucide-react";
+import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { saveNotificationAction, deleteNotificationAction, type NotificationFormValues as ClientNotificationFormValues } from "@/actions/notificationActions"; // Updated import
+import { saveNotificationAction, deleteNotificationAction, type NotificationFormValues } from "@/actions/notificationActions";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 import { format } from "date-fns";
@@ -40,13 +40,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
 
-// Schema for client-side form validation
 const notificationFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
   content: z.string().min(2, "Content must be at least 2 characters.").max(5000, "Content must be at most 5000 characters."),
   imageUrl: z.string().url("Must be a valid URL if provided, or leave empty.").optional().or(z.literal('')),
 });
-
 
 interface PostedNotification {
   id: string;
@@ -55,6 +53,7 @@ interface PostedNotification {
   createdAt: Date;
   authorName?: string;
   imageUrl?: string;
+  readByUserIds?: string[];
 }
 
 export default function SendNotificationPage() {
@@ -67,7 +66,7 @@ export default function SendNotificationPage() {
   const [logError, setLogError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  const form = useForm<ClientNotificationFormValues>({
+  const form = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
     defaultValues: {
       title: "",
@@ -80,7 +79,6 @@ export default function SendNotificationPage() {
   const watchedTitle = watch("title");
   const watchedContent = watch("content");
   const watchedImageUrl = watch("imageUrl");
-
 
   const fetchPostedNotifications = useCallback(async () => {
     setIsLoadingLog(true);
@@ -98,6 +96,7 @@ export default function SendNotificationPage() {
           createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
           authorName: data.authorName,
           imageUrl: data.imageUrl,
+          readByUserIds: (data.readByUserIds as string[] | undefined) || [],
         };
       });
       setPostedNotifications(fetchedNotifications);
@@ -116,7 +115,7 @@ export default function SendNotificationPage() {
     }
   }, [adminUser, fetchPostedNotifications]);
 
-  async function onSubmit(values: ClientNotificationFormValues) {
+  async function onSubmit(values: NotificationFormValues) {
     if (!adminUser?.username || !adminUser?.isAdmin) {
         toast({
             variant: "destructive",
@@ -138,7 +137,7 @@ export default function SendNotificationPage() {
               description: result.message,
           });
           form.reset();
-          fetchPostedNotifications(); // Refresh log
+          fetchPostedNotifications(); 
       } else {
           toast({
               variant: "destructive",
@@ -203,12 +202,12 @@ export default function SendNotificationPage() {
   const previewAnnouncement: Announcement = {
     id: 'preview',
     title: watchedTitle || "Sample Title",
-    content: watchedContent || "Sample content for the notification will appear here. Supports basic HTML like <b>bold</b>, <i>italic</i>, and <br> for line breaks.",
+    content: watchedContent || "Sample content for the notification. Supports basic HTML like <b>bold</b>.",
     date: new Date(),
     author: adminUser?.name || "Admin",
-    status: 'new',
+    status: 'new', // Preview status
     imageUrl: watchedImageUrl || undefined,
-    imageHint: "preview image" // generic hint for preview
+    imageHint: "preview image"
   };
 
 
@@ -271,7 +270,7 @@ export default function SendNotificationPage() {
                       <Input placeholder="https://example.com/image.png" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Paste a direct link to an image. Ensure the image is publicly accessible.
+                      Paste a direct link to an image. Ensure the image is publicly accessible and the hostname is allowed in `next.config.js`.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -378,7 +377,7 @@ export default function SendNotificationPage() {
                       <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
                        Posted: {format(notification.createdAt, "MMM d, yyyy, h:mm a")} by {notification.authorName || 'Admin'}
                     </div>
-                    <span className="italic">Read by: (Tracking not implemented)</span>
+                    <span className="italic">Read by: {notification.readByUserIds?.length || 0} user(s)</span>
                   </div>
                 </div>
               ))}
@@ -390,3 +389,4 @@ export default function SendNotificationPage() {
   );
 }
 
+    

@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card"; // CardContent, CardHeader removed as not directly used here
 import { Bell } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
+import { useAuth } from "@/hooks/useAuth";
+import { markNotificationAsReadAction } from "@/actions/notificationActions";
+import { useToast } from "@/hooks/use-toast";
 
-const READ_NOTIFICATIONS_STORAGE_KEY = "anjuman_hub_read_notifications";
+const READ_NOTIFICATIONS_STORAGE_KEY_PREFIX = "anjuman_hub_read_notifications_";
 
 async function fetchFirestoreAnnouncements(): Promise<Omit<Announcement, 'status'>[]> {
   const notificationsCollectionRef = collection(db, "notifications");
@@ -20,7 +23,7 @@ async function fetchFirestoreAnnouncements(): Promise<Omit<Announcement, 'status
 
   try {
     const querySnapshot = await getDocs(q);
-    const announcements = querySnapshot.docs.map((doc) => {
+    const announcementsData = querySnapshot.docs.map((doc) => {
       const data = doc.data() as DocumentData;
       return {
         id: doc.id,
@@ -29,10 +32,11 @@ async function fetchFirestoreAnnouncements(): Promise<Omit<Announcement, 'status
         date: (data.createdAt as Timestamp)?.toDate() || new Date(),
         author: data.authorName || "Unknown Author",
         imageUrl: data.imageUrl, 
-        imageHint: data.title ? data.title.split(" ").slice(0,2).join(" ") : "notification image"
+        imageHint: data.title ? data.title.split(" ").slice(0,2).join(" ") : "notification image",
+        readByUserIds: (data.readByUserIds as string[] | undefined) || [],
       };
     });
-    return announcements;
+    return announcementsData;
   } catch (error) {
     console.error("Error fetching notifications from Firestore:", error);
     return [];
@@ -40,34 +44,52 @@ async function fetchFirestoreAnnouncements(): Promise<Omit<Announcement, 'status
 }
 
 export default function AnnouncementsPage() {
+  const { user: authUser } = useAuth();
+  const { toast } = useToast();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"status" | "newest" | "oldest">("status");
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [readNotificationIds, setReadNotificationIds] = useState<Set<string>>(new Set());
+  
+  // For client-side immediate visual feedback using localStorage
+  const [localStorageReadIds, setLocalStorageReadIds] = useState<Set<string>>(new Set());
+  const READ_NOTIFICATIONS_STORAGE_KEY = authUser ? `${READ_NOTIFICATIONS_STORAGE_KEY_PREFIX}${authUser.username}` : '';
+
 
   useEffect(() => {
     document.title = "Notifications | Anjuman Hub";
-    try {
-      const storedReadIds = localStorage.getItem(READ_NOTIFICATIONS_STORAGE_KEY);
-      if (storedReadIds) {
-        setReadNotificationIds(new Set(JSON.parse(storedReadIds)));
+    if (READ_NOTIFICATIONS_STORAGE_KEY) {
+      try {
+        const storedReadIds = localStorage.getItem(READ_NOTIFICATIONS_STORAGE_KEY);
+        if (storedReadIds) {
+          setLocalStorageReadIds(new Set(JSON.parse(storedReadIds)));
+        }
+      } catch (error) {
+        console.error("Error loading read notifications from localStorage:", error);
       }
-    } catch (error) {
-      console.error("Error loading read notifications from localStorage:", error);
     }
-  }, []);
+  }, [READ_NOTIFICATIONS_STORAGE_KEY]);
+
+  const determineStatus = useCallback((ann: Omit<Announcement, 'status'>): Announcement['status'] => {
+    if (authUser && ann.readByUserIds?.includes(authUser.username)) {
+      return 'read';
+    }
+    if (localStorageReadIds.has(ann.id)) {
+        return 'read';
+    }
+    // Could add a 'new' status based on date if desired, e.g., if ann.date is within last 24 hours
+    return 'unread';
+  }, [authUser, localStorageReadIds]);
 
   const loadAnnouncements = useCallback(async () => {
     setIsLoading(true);
     setFetchError(null);
     try {
       const baseData = await fetchFirestoreAnnouncements();
-      // Determine status based on readNotificationIds
       const dataWithStatus: Announcement[] = baseData.map(ann => ({
         ...ann,
-        status: readNotificationIds.has(ann.id) ? 'read' : 'unread', // Default to 'unread' if not in localStorage
+        status: determineStatus(ann),
       }));
       setAnnouncements(dataWithStatus);
     } catch (err) {
@@ -75,28 +97,43 @@ export default function AnnouncementsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [readNotificationIds]); // Depend on readNotificationIds to re-calculate status
+  }, [determineStatus]);
 
   useEffect(() => {
     loadAnnouncements();
   }, [loadAnnouncements]);
 
 
-  const handleMarkAsRead = (id: string) => {
-    setReadNotificationIds(prevIds => {
+  const handleMarkAsRead = async (id: string) => {
+    if (!authUser?.username) return;
+
+    // Optimistic UI update (localStorage and local state)
+    setLocalStorageReadIds(prevIds => {
       const newIds = new Set(prevIds);
       newIds.add(id);
-      try {
-        localStorage.setItem(READ_NOTIFICATIONS_STORAGE_KEY, JSON.stringify(Array.from(newIds)));
-      } catch (error) {
-        console.error("Error saving read notifications to localStorage:", error);
+      if (READ_NOTIFICATIONS_STORAGE_KEY) {
+        try {
+          localStorage.setItem(READ_NOTIFICATIONS_STORAGE_KEY, JSON.stringify(Array.from(newIds)));
+        } catch (error) {
+          console.error("Error saving read notifications to localStorage:", error);
+        }
       }
       return newIds;
     });
-    // Update the status in the main announcements list immediately for UI responsiveness
     setAnnouncements(prevAnns => 
-      prevAnns.map(ann => ann.id === id ? { ...ann, status: 'read' } : ann)
+      prevAnns.map(ann => ann.id === id ? { ...ann, status: 'read', readByUserIds: [...(ann.readByUserIds || []), authUser.username] } : ann)
     );
+
+    // Call server action to update Firestore
+    const result = await markNotificationAsReadAction(id, authUser.username);
+    if (!result.success) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to mark notification as read on server. Your local view is updated.",
+      });
+      // Optionally revert UI changes or handle error more gracefully
+    }
   };
 
   const filteredAndSortedAnnouncements = announcements
@@ -106,12 +143,11 @@ export default function AnnouncementsPage() {
         return b.date.getTime() - a.date.getTime();
       } else if (sortOrder === "oldest") {
         return a.date.getTime() - b.date.getTime();
-      } else { // sort by status
-        const statusOrder = { new: 0, unread: 1, read: 2 };
+      } else { 
+        const statusOrder = { new: 0, unread: 1, read: 2 }; // 'new' could be added if logic exists
         if (a.status !== b.status) {
              return statusOrder[a.status] - statusOrder[b.status];
         }
-        // If statuses are the same, sort by date (newest first) as a secondary criterion
         return b.date.getTime() - a.date.getTime();
       }
     });
@@ -144,17 +180,13 @@ export default function AnnouncementsPage() {
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           {[1, 2, 3, 4].map(i => (
             <Card key={i} className="shadow-lg animate-fadeIn">
-              <CardHeader className="pb-3">
-                <Skeleton className="h-6 w-3/4 mb-2" />
+              <Skeleton className="aspect-video w-full mb-3" />
+              <div className="p-4 space-y-2">
+                <Skeleton className="h-6 w-3/4" />
                 <Skeleton className="h-3 w-1/2" />
-              </CardHeader>
-              <CardContent className="pt-0">
-                 <Skeleton className="aspect-video w-full mb-3" />
-                <Skeleton className="h-4 w-full mb-1.5" />
-                <Skeleton className="h-4 w-full mb-1.5" />
+                <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-2/3" />
-                 <Skeleton className="h-8 w-full mt-3" /> 
-              </CardContent>
+              </div>
             </Card>
           ))}
         </div>
@@ -170,7 +202,7 @@ export default function AnnouncementsPage() {
             <AnnouncementItem 
               key={announcement.id} 
               announcement={announcement} 
-              onCardClick={handleMarkAsRead} // Pass the handler
+              onCardClick={handleMarkAsRead}
             />
           ))}
         </div>
@@ -186,3 +218,5 @@ export default function AnnouncementsPage() {
     </div>
   );
 }
+
+    

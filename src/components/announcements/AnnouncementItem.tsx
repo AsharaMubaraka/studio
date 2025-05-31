@@ -17,11 +17,12 @@ export interface Announcement {
   status: 'new' | 'unread' | 'read';
   imageUrl?: string;
   imageHint?: string;
+  readByUserIds?: string[]; // Added to interface
 }
 
 interface AnnouncementItemProps {
   announcement: Announcement;
-  onCardClick?: (id: string) => void; // Added onCardClick prop
+  onCardClick?: (id: string) => void;
 }
 
 function StatusIndicator({ status }: { status: Announcement['status'] }) {
@@ -47,7 +48,7 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
   return (
     <Card 
       className="flex flex-col overflow-hidden shadow-lg transition-all hover:shadow-xl animate-fadeIn bg-card cursor-pointer group"
-      onClick={handleCardClick} // Added onClick handler to the Card
+      onClick={handleCardClick}
     >
       {announcement.imageUrl && (
         <div className="aspect-video w-full relative overflow-hidden">
@@ -90,3 +91,5 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
     </Card>
   );
 }
+
+    

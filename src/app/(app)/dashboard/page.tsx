@@ -37,8 +37,10 @@ interface AppNotification {
     id: string;
     title: string;
     content: string;
-    createdAt: Date; // Will be a Date object after conversion
+    createdAt: Date;
     authorName?: string;
+    imageUrl?: string;
+    imageHint?: string;
 }
 
 const placeholderHijri = {
@@ -163,15 +165,17 @@ export default function DashboardPage() {
                     id: docSnap.id,
                     title: data.title,
                     content: data.content,
-                    createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(), // Convert Firestore Timestamp
+                    createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
                     authorName: data.authorName,
+                    imageUrl: data.imageUrl,
+                    imageHint: data.title ? data.title.split(" ").slice(0,2).join(" ") : "notification image"
                 });
             } else {
                 setLatestNotification(null);
             }
         } catch (error) {
             console.error("Error fetching latest notification:", error);
-            setLatestNotification(null); // Set to null or some error state
+            setLatestNotification(null); 
         } finally {
             setIsLoadingNotification(false);
         }
@@ -185,14 +189,12 @@ export default function DashboardPage() {
   return (
     <div className="animate-fadeIn space-y-6">
       <Card className="shadow-lg overflow-hidden relative">
-        <CardContent className="p-0 h-64 md:h-72"> {/* Fixed height for CardContent */}
+        <CardContent className="p-0 h-64 md:h-72"> 
           <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0">
             <source src="https://misbah.info/wp-content/uploads/2024/05/misbah-bg.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
-          {/* Changed flex-col md:flex-row to flex-row */}
           <div className="relative z-10 p-6 bg-black/50 h-full flex flex-row items-center justify-around gap-4 text-center text-white">
-            {/* Gregorian Date Block */}
             <div className="font-sans flex flex-col items-center">
               {isDateLoading ? (
                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
@@ -204,9 +206,7 @@ export default function DashboardPage() {
                 </>
               )}
             </div>
-            {/* Vertical separator for all screen sizes where items are in a row, though it might look tight on mobile */}
             <div className="h-24 w-px bg-white/30"></div> 
-            {/* Islamic Date Block */}
             <div className="font-sans flex flex-col items-center">
               {isDateLoading ? (
                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" /> 
@@ -232,6 +232,7 @@ export default function DashboardPage() {
             width={60} 
             height={60} 
             className="rounded-md border"
+            data-ai-hint="logo"
           />
           {isLoadingProfile ? (
              <div className="space-y-2 flex-1">
@@ -263,7 +264,7 @@ export default function DashboardPage() {
           </CardTitle>
           <Separator className="my-2" />
         </CardHeader>
-        <CardContent className="space-y-2 text-sm pt-0">
+        <CardContent className="space-y-3 text-sm pt-0">
           {isLoadingNotification ? (
             <div className="space-y-2">
                 <Skeleton className="h-5 w-3/4" />
@@ -274,7 +275,22 @@ export default function DashboardPage() {
           ) : latestNotification ? (
             <>
               <p className="font-semibold text-lg">{latestNotification.title}</p>
-              <p className="whitespace-pre-line">{latestNotification.content}</p>
+              {latestNotification.imageUrl && (
+                <div className="my-3 aspect-video w-full max-w-md mx-auto relative overflow-hidden rounded-md border">
+                  <Image
+                    src={latestNotification.imageUrl}
+                    alt={latestNotification.title || "Notification image"}
+                    fill
+                    className="object-cover"
+                    data-ai-hint={latestNotification.imageHint || "notification visual"}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                </div>
+              )}
+              <div 
+                className="whitespace-pre-line"
+                dangerouslySetInnerHTML={{ __html: latestNotification.content.replace(/\n/g, '<br />') }} 
+              />
               <div className="flex items-center text-xs text-muted-foreground pt-2">
                 <CalendarDays className="mr-2 h-4 w-4" />
                 <span>
@@ -291,4 +307,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+    
+
     
