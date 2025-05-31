@@ -49,15 +49,15 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
     }
   };
 
-  const handleDownloadImage = async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation(); // Prevent card click if this button is inside the clickable card area
+  const handleDownloadFile = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation(); 
     if (!announcement.imageUrl) return;
 
     setIsDownloading(true);
     try {
       const response = await fetch(announcement.imageUrl);
       if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
       }
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -65,32 +65,32 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
       const link = document.createElement('a');
       link.href = objectUrl;
 
-      let filename = "downloaded_image";
+      let filename = "downloaded_file"; // Default generic name
       try {
-        // Try to get filename from URL
         const url = new URL(announcement.imageUrl);
         const pathnameParts = url.pathname.split('/');
         const lastPart = pathnameParts[pathnameParts.length - 1];
+        
         if (lastPart) {
-          filename = lastPart.replace(/[^a-zA-Z0-9_.-]/g, '_'); // Sanitize
+          // Decode URI component and sanitize, keeping dots for extensions
+          filename = decodeURIComponent(lastPart).replace(/[^a-zA-Z0-9_.-]/g, '_');
         }
 
-        // Try to get extension from blob type or URL
-        const extensionFromUrl = announcement.imageUrl.split('.').pop()?.split(/[?#]/)[0]?.toLowerCase();
-        const typeExtension = blob.type.split('/')[1]?.toLowerCase();
-
-        if (!filename.includes('.')) { // If no extension in filename part
-            if (typeExtension && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(typeExtension)) {
-                filename += `.${typeExtension}`;
-            } else if (extensionFromUrl && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extensionFromUrl)) {
-                filename += `.${extensionFromUrl}`;
-            } else {
-                filename += '.png'; // Default extension
-            }
+        // If the derived filename doesn't have an extension, try to get one from blob type
+        if (!filename.includes('.')) {
+          const typeParts = blob.type.split('/');
+          if (typeParts.length === 2 && typeParts[1] && typeParts[1].length < 6 && /^[a-z0-9]+$/.test(typeParts[1])) {
+            // Use common simple extensions from MIME type e.g. jpeg, png, pdf, zip
+            filename += `.${typeParts[1]}`;
+          }
         }
       } catch (e) {
-        console.warn("Could not parse image URL for filename, using default.", e);
-        filename = "downloaded_image.png"; 
+        console.warn("Could not parse URL for filename, using default.", e);
+        // filename remains "downloaded_file" or can be appended with a generic extension if blob type is known
+        if (blob.type && blob.type !== 'application/octet-stream') {
+            const ext = blob.type.split('/')[1];
+            if (ext) filename += `.${ext}`;
+        }
       }
       
       link.download = filename;
@@ -105,14 +105,12 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
       });
 
     } catch (error: any) {
-      console.error("Error downloading image:", error);
+      console.error("Error downloading file:", error);
       toast({
         variant: "destructive",
         title: "Download Failed",
-        description: error.message || "Could not download image. The image host may not allow direct downloads or there's a network issue.",
+        description: error.message || "Could not download file. The host may not allow direct downloads or there's a network issue.",
       });
-      // As a fallback, you could open the image in a new tab:
-      // window.open(announcement.imageUrl, '_blank');
     } finally {
       setIsDownloading(false);
     }
@@ -121,17 +119,21 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
   return (
     <Card 
       className="flex flex-col overflow-hidden shadow-lg transition-all hover:shadow-xl animate-fadeIn bg-card group"
-      onClick={handleCardClick} // Removed cursor-pointer as the whole card might not always be clickable if button is distinct
+      onClick={handleCardClick}
     >
       {announcement.imageUrl && (
         <div className="aspect-video w-full relative overflow-hidden">
           <Image
             src={announcement.imageUrl}
-            alt={announcement.title || "Announcement image"}
+            alt={announcement.title || "Announcement visual (may not render if not an image)"}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-contain transition-transform duration-300 group-hover:scale-105" // Changed to object-contain
             data-ai-hint={announcement.imageHint || "announcement visual"}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            onError={(e) => {
+              // Optional: Hide image container or show placeholder on error if it's not an image
+              // e.currentTarget.style.display = 'none'; 
+            }}
           />
         </div>
       )}
@@ -157,7 +159,7 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
             variant="outline" 
             size="sm" 
             className="w-full" 
-            onClick={handleDownloadImage}
+            onClick={handleDownloadFile}
             disabled={isDownloading}
           >
             {isDownloading ? (
@@ -165,7 +167,7 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
             ) : (
               <Download className="mr-2 h-4 w-4" />
             )}
-            {isDownloading ? "Downloading..." : "Download Image"}
+            {isDownloading ? "Downloading..." : "Download File"}
           </Button>
         </CardFooter>
       )}
