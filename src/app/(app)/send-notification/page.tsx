@@ -16,15 +16,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Removed CardFooter
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye } from "lucide-react"; // Removed ImagePlus
+import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { saveNotificationAction, deleteNotificationAction } from "@/actions/notificationActions";
-import { db } from "@/lib/firebase"; // Removed storage import
-// Removed Firebase Storage imports: ref, uploadBytes, getDownloadURL
+import { saveNotificationAction, deleteNotificationAction, type NotificationFormValues as ClientNotificationFormValues } from "@/actions/notificationActions"; // Updated import
+import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,14 +39,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
-// Removed Image component import from next/image as it's not used for preview here anymore
 
-// Schema for client-side form validation (title and content only)
+// Schema for client-side form validation
 const notificationFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
   content: z.string().min(2, "Content must be at least 2 characters.").max(5000, "Content must be at most 5000 characters."),
+  imageUrl: z.string().url("Must be a valid URL if provided, or leave empty.").optional().or(z.literal('')),
 });
-type ClientNotificationFormValues = z.infer<typeof notificationFormSchema>;
 
 
 interface PostedNotification {
@@ -57,7 +54,7 @@ interface PostedNotification {
   content: string;
   createdAt: Date;
   authorName?: string;
-  // imageUrl?: string; // Removed imageUrl
+  imageUrl?: string;
 }
 
 export default function SendNotificationPage() {
@@ -70,24 +67,20 @@ export default function SendNotificationPage() {
   const [logError, setLogError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  // Removed state related to image file and preview
-  // const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-  // const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  // const [isUploadingImage, setIsUploadingImage] = useState(false);
-
   const form = useForm<ClientNotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
     defaultValues: {
       title: "",
       content: "",
+      imageUrl: "",
     },
   });
 
   const { watch } = form;
   const watchedTitle = watch("title");
   const watchedContent = watch("content");
+  const watchedImageUrl = watch("imageUrl");
 
-  // Removed handleImageChange function
 
   const fetchPostedNotifications = useCallback(async () => {
     setIsLoadingLog(true);
@@ -104,7 +97,7 @@ export default function SendNotificationPage() {
           content: data.content || "No Content",
           createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
           authorName: data.authorName,
-          // imageUrl: data.imageUrl, // Removed imageUrl
+          imageUrl: data.imageUrl,
         };
       });
       setPostedNotifications(fetchedNotifications);
@@ -121,7 +114,6 @@ export default function SendNotificationPage() {
     if (adminUser?.isAdmin) {
       fetchPostedNotifications();
     }
-    // Removed imagePreviewUrl cleanup
   }, [adminUser, fetchPostedNotifications]);
 
   async function onSubmit(values: ClientNotificationFormValues) {
@@ -134,26 +126,18 @@ export default function SendNotificationPage() {
         return;
     }
     setIsSubmitting(true);
-    // Removed image upload logic
-    // setIsUploadingImage(false);
-    // let imageUrl: string | undefined = undefined;
 
     try {
-      // Removed image upload block
-
-      const result = await saveNotificationAction(values, {id: adminUser.username, name: adminUser.name}); // Removed imageUrl argument
+      const result = await saveNotificationAction(
+        { title: values.title, content: values.content, imageUrl: values.imageUrl || undefined },
+        {id: adminUser.username, name: adminUser.name}
+      );
       if (result.success) {
           toast({
               title: "Success",
               description: result.message,
           });
           form.reset();
-          // Removed image state reset
-          // setSelectedImageFile(null);
-          // if (imagePreviewUrl) {
-          //   URL.revokeObjectURL(imagePreviewUrl);
-          // }
-          // setImagePreviewUrl(null);
           fetchPostedNotifications(); // Refresh log
       } else {
           toast({
@@ -171,7 +155,6 @@ export default function SendNotificationPage() {
       });
     } finally {
       setIsSubmitting(false);
-      // setIsUploadingImage(false);
     }
   }
 
@@ -224,7 +207,8 @@ export default function SendNotificationPage() {
     date: new Date(),
     author: adminUser?.name || "Admin",
     status: 'new',
-    // imageUrl: imagePreviewUrl || undefined, // Removed imageUrl from preview
+    imageUrl: watchedImageUrl || undefined,
+    imageHint: "preview image" // generic hint for preview
   };
 
 
@@ -236,7 +220,7 @@ export default function SendNotificationPage() {
             <MessageSquarePlus className="mr-3 h-8 w-8 text-primary" /> Send Notification
           </CardTitle>
           <CardDescription>
-            Compose and send a new notification.
+            Compose and send a new notification. You can include an image by providing its URL.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -275,7 +259,24 @@ export default function SendNotificationPage() {
                   </FormItem>
                 )}
               />
-              {/* Removed image upload FormItem */}
+              <FormField
+                control={form.control}
+                name="imageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center">
+                      <ImageIcon className="mr-2 h-4 w-4" /> Image URL (Optional)
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com/image.png" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Paste a direct link to an image. Ensure the image is publicly accessible.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
@@ -323,11 +324,10 @@ export default function SendNotificationPage() {
               ))}
             </div>
           ) : logError ? (
-            <Alert variant="destructive">
-              <Trash2 className="h-4 w-4" />
-              <AlertTitle>Error Loading Log</AlertTitle>
-              <AlertDescription>{logError}</AlertDescription>
-            </Alert>
+            <div className="p-4 border rounded-md bg-destructive/10 text-destructive">
+              <h4 className="font-semibold mb-1">Error Loading Log</h4>
+              <p className="text-sm">{logError}</p>
+            </div>
           ) : postedNotifications.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">No notifications have been posted yet.</p>
           ) : (
@@ -341,7 +341,11 @@ export default function SendNotificationPage() {
                         className="text-sm text-muted-foreground whitespace-pre-line mb-2"
                         dangerouslySetInnerHTML={{ __html: notification.content.replace(/\n/g, '<br />') }} 
                       />
-                      {/* Removed image URL link */}
+                      {notification.imageUrl && (
+                        <a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                          View/Download Image
+                        </a>
+                      )}
                     </div>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -385,3 +389,4 @@ export default function SendNotificationPage() {
     </div>
   );
 }
+

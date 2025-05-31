@@ -2,9 +2,10 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-// Removed Button and Download icon as they were for image download
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import { format } from "date-fns";
-// Removed Image from next/image
+import Image from "next/image";
 import { CalendarDays, Sparkle, Mail, CheckCircle2 } from "lucide-react";
 
 export interface Announcement {
@@ -14,8 +15,8 @@ export interface Announcement {
   date: Date;
   author: string;
   status: 'new' | 'unread' | 'read';
-  // imageUrl?: string; // Removed imageUrl
-  // imageHint?: string; // Removed imageHint
+  imageUrl?: string;
+  imageHint?: string;
 }
 
 interface AnnouncementItemProps {
@@ -38,7 +39,18 @@ function StatusIndicator({ status }: { status: Announcement['status'] }) {
 export function AnnouncementItem({ announcement }: AnnouncementItemProps) {
   return (
     <Card className="flex flex-col overflow-hidden shadow-lg transition-all hover:shadow-xl animate-fadeIn bg-card">
-      {/* Removed image display block */}
+      {announcement.imageUrl && (
+        <div className="aspect-video w-full relative overflow-hidden">
+          <Image
+            src={announcement.imageUrl}
+            alt={announcement.title || "Announcement image"}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            data-ai-hint={announcement.imageHint || "announcement visual"}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        </div>
+      )}
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-xl font-semibold">{announcement.title}</CardTitle>
@@ -55,7 +67,17 @@ export function AnnouncementItem({ announcement }: AnnouncementItemProps) {
           dangerouslySetInnerHTML={{ __html: announcement.content.replace(/\n/g, '<br />') }} 
         />
       </CardContent>
-      {/* Removed CardFooter with image download button */}
+      {announcement.imageUrl && (
+        <CardFooter className="pt-3">
+          <Button variant="outline" size="sm" asChild className="w-full">
+            <a href={announcement.imageUrl} download target="_blank" rel="noopener noreferrer">
+              <Download className="mr-2 h-4 w-4" />
+              Download Image
+            </a>
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 }
+

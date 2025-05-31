@@ -27,7 +27,8 @@ async function fetchFirestoreAnnouncements(): Promise<Announcement[]> {
         date: (data.createdAt as Timestamp)?.toDate() || new Date(),
         author: data.authorName || "Unknown Author",
         status: 'unread' as Announcement['status'], // Default to 'unread' for now
-        // imageUrl: data.imageUrl, // Removed imageUrl
+        imageUrl: data.imageUrl, 
+        imageHint: data.title ? data.title.split(" ").slice(0,2).join(" ") : "notification image"
       };
     });
     return announcements;
@@ -110,10 +111,11 @@ export default function AnnouncementsPage() {
                 <Skeleton className="h-3 w-1/2" />
               </CardHeader>
               <CardContent className="pt-0">
+                 <Skeleton className="aspect-video w-full mb-3" />
                 <Skeleton className="h-4 w-full mb-1.5" />
                 <Skeleton className="h-4 w-full mb-1.5" />
                 <Skeleton className="h-4 w-2/3" />
-                 {/* Removed skeleton placeholder for image download button */}
+                 <Skeleton className="h-8 w-full mt-3" /> 
               </CardContent>
             </Card>
           ))}
@@ -142,3 +144,4 @@ export default function AnnouncementsPage() {
     </div>
   );
 }
+

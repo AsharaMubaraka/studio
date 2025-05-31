@@ -13,20 +13,21 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'placehold.co',
+        hostname: 'placehold.co', // For placeholder images
         port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'live.lunawadajamaat.org',
+        hostname: 'live.lunawadajamaat.org', // Existing, kept
         port: '',
         pathname: '/**',
       },
-      // Removed Firebase Storage remote pattern
-      // { 
+      // IMPORTANT: Add hostnames for any external image services you use here.
+      // For example, if you use Imgur:
+      // {
       //   protocol: 'https',
-      //   hostname: 'firebasestorage.googleapis.com',
+      //   hostname: 'i.imgur.com',
       //   port: '',
       //   pathname: '/**',
       // }
@@ -38,3 +39,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+

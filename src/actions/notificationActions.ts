@@ -5,29 +5,28 @@ import { z } from "zod";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, doc, deleteDoc } from "firebase/firestore";
 
-// This schema is for client-side form validation, not directly used by the server action's signature here.
-const notificationFormSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title must be at most 100 characters."),
-  content: z.string().min(10, "Content must be at least 10 characters.").max(1000, "Content must be at most 1000 characters."),
-  // imageUrl: z.string().url().optional(), // Removed imageUrl
+// Schema for client-side form validation
+const notificationFormSchemaClient = z.object({
+  title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
+  content: z.string().min(2, "Content must be at least 2 characters.").max(5000, "Content must be at most 5000 characters."),
+  imageUrl: z.string().url("Must be a valid URL if provided.").optional().or(z.literal('')),
 });
 
-export type NotificationFormValues = z.infer<typeof notificationFormSchema>;
+export type NotificationFormValues = z.infer<typeof notificationFormSchemaClient>;
 
-// Server Action updated to remove imageUrl
+// Server Action updated to include imageUrl
 export async function saveNotificationAction(
-  data: { title: string; content: string },
+  data: { title: string; content: string; imageUrl?: string },
   author: {id: string; name: string | undefined}
-  // imageUrl?: string // Removed imageUrl
 ) {
   try {
     await addDoc(collection(db, "notifications"), {
       title: data.title,
       content: data.content,
       authorId: author.id,
-      authorName: "Admin",
+      authorName: "Admin", // Hardcoded as "Admin"
       createdAt: serverTimestamp(),
-      // imageUrl: imageUrl || null, // Removed imageUrl
+      imageUrl: data.imageUrl || null, // Save imageUrl
     });
     return { success: true, message: "Notification sent successfully!" };
   } catch (error: any) {
@@ -51,3 +50,4 @@ export async function deleteNotificationAction(notificationId: string) {
     return { success: false, message: "Failed to delete notification. See server logs." };
   }
 }
+
