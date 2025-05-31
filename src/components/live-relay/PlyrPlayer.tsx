@@ -2,8 +2,8 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from 'react';
-import Plyr, { PlyrProps, APITypes } from 'plyr-react';
-import 'plyr-react/dist/plyr.css'; // Ensure CSS for plyr-react is imported
+import Plyr, { type PlyrProps, type APITypes } from 'plyr-react';
+import 'plyr/dist/plyr.css'; // Changed import path
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, VideoOff } from 'lucide-react';
 
@@ -14,7 +14,7 @@ interface PlyrPlayerProps {
 const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
   const plyrRef = useRef<APITypes>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Keep loading state for UI feedback
+  const [isLoading, setIsLoading] = useState(true);
 
   const plyrSource: PlyrProps['source'] = {
     type: 'video',
@@ -28,15 +28,12 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
 
   const plyrOptions: PlyrProps['options'] = {
     autoplay: true,
-    debug: process.env.NODE_ENV === 'development', // Enable debug only in development
-    // controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings'],
-    // settings: ['captions', 'quality', 'speed'],
-    // Ensure events are handled to update loading/error states
-    events: ['ready', 'playing', 'error', 'enterfullscreen', 'exitfullscreen'],
+    debug: process.env.NODE_ENV === 'development',
+    events: ['ready', 'playing', 'error', 'enterfullscreen', 'exitfullscreen', 'canplay'],
   };
 
   useEffect(() => {
-    setIsLoading(true); // Reset loading state when videoId changes
+    setIsLoading(true);
     setError(null);
     console.log(`PlyrPlayer: videoId prop changed to: ${videoId}`);
   }, [videoId]);
@@ -44,15 +41,13 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
   const handleReady = (event: any) => {
     console.log("PlyrPlayer: 'ready' event fired from plyr-react.", event);
     setIsLoading(false);
-    // Access the Plyr instance for more direct control if needed
     // const player = plyrRef.current?.plyr;
-    // player?.play(); // autoplay is in options
+    // player?.play(); // autoplay is in options, but sometimes direct play is needed
   };
 
   const handleError = (event: any) => {
     console.error("PlyrPlayer: 'error' event fired from plyr-react.", event);
     let errorMessage = "An error occurred with the video player.";
-    // plyr-react might wrap the error differently, check event structure
     if (event?.detail?.plyr?.source?.src?.includes(videoId)) {
         errorMessage = `Could not load video ID: ${videoId}. It might be private, deleted, or restricted.`;
     } else if (event?.detail?.message) {
@@ -63,10 +58,15 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
     setError(errorMessage);
     setIsLoading(false);
   };
-
+  
   const handlePlaying = () => {
     console.log("PlyrPlayer: 'playing' event fired from plyr-react.");
-    setIsLoading(false);
+    setIsLoading(false); // Ensure loading is false when playing starts
+  };
+
+  const handleCanPlay = () => {
+    console.log("PlyrPlayer: 'canplay' event fired from plyr-react.");
+    setIsLoading(false); // Should be ready to play now
   };
 
   const handleEnterFullScreen = () => {
@@ -118,22 +118,11 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
           source={plyrSource}
           options={plyrOptions}
           onReady={handleReady}
-          // plyr-react uses on (event name) e.g. onPlaying, onError
-          // Need to map these. Let's check plyr-react event prop names
-          // Standard HTML event names (lowercase) are typically used or camelCase.
-          // The 'events' option above configures PlyrJS, but plyr-react uses props for handlers.
-          // on['ready'] is not how plyr-react props work.
-          // It's typically onReady, onPlaying, etc.
-          // After checking docs: It's indeed onReady, onPlaying, etc.
-          // Let's assume the following event handlers are correct based on typical React component patterns.
-          // If these specific prop names are wrong, they'll need adjustment based on plyr-react's actual API.
-          // Update: plyr-react provides direct access to the Plyr events via the instance.
-          // For simplicity with `plyr-react`, relying on `onReady` and `options.events` for logging is better.
-          // The `Plyr` component itself doesn't take onError, onPlaying as direct props in the way some wrappers do.
-          // We use the ref and attach listeners if needed, or rely on options.events.
-          // For now, will simplify and rely on onReady. Error handling will be via try/catch or player events if exposed.
-          // The error in the log likely means internal Plyr errors.
-          // Let's ensure options.event_listeners is set if we want to handle them via plyrRef.current.plyr.on(...)
+          onPlaying={handlePlaying}
+          onError={handleError} // Assuming plyr-react has an onError prop
+          onEnterFullscreen={handleEnterFullScreen}
+          onExitFullscreen={handleExitFullScreen}
+          onCanPlay={handleCanPlay}
         />
       </div>
     </div>
