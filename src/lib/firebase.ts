@@ -8,9 +8,9 @@ const firebaseConfig = {
   apiKey: "AIzaSyA8w8a0ap2sOYroS8-qNSsMNPqmXB-vL8g",
   authDomain: "ashara-mubaraka-app.firebaseapp.com",
   projectId: "ashara-mubaraka-app",
-  storageBucket: "ashara-mubaraka-app.appspot.com",
+  storageBucket: "ashara-mubaraka-app.firebasestorage.app", // Updated
   messagingSenderId: "572648688031",
-  appId: "1:572648688031:web:a13b4c2ad1c047482395aa",
+  appId: "1:572648688031:web:6e1dd3e6903d64f82395aa", // Updated
   // measurementId: "YOUR_MEASUREMENT_ID" // Optional: Add if you use Analytics
 };
 
@@ -73,7 +73,7 @@ if (typeof window !== 'undefined') {
   const messagingInstance = getFcmMessaging();
   if (messagingInstance) {
     onMessage(messagingInstance, (payload) => {
-      console.log('Foreground message received:', payload); // Added console log
+      console.log('Foreground message received:', payload);
       toast({
         title: payload.notification?.title || "New Notification",
         description: payload.notification?.body,
