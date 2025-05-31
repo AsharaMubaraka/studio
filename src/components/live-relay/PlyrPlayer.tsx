@@ -3,7 +3,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import Plyr, { type PlyrProps, type APITypes } from 'plyr-react';
-import 'plyr/dist/plyr.css'; // Changed import path
+import 'plyr/dist/plyr.css';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, VideoOff } from 'lucide-react';
 
@@ -16,7 +16,15 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const plyrSource: PlyrProps['source'] = {
+  // This effect ensures that when videoId changes, we reset loading/error states
+  // and prepare for a new player instance (if keying is used) or source update.
+  useEffect(() => {
+    console.log(`PlyrPlayer: videoId prop updated or component mounted. New videoId: ${videoId}`);
+    setIsLoading(true);
+    setError(null);
+  }, [videoId]);
+
+  const plyrSource: PlyrProps['source'] | null = videoId ? {
     type: 'video',
     sources: [
       {
@@ -24,36 +32,44 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
         provider: 'youtube',
       },
     ],
-  };
+  } : null;
 
   const plyrOptions: PlyrProps['options'] = {
-    autoplay: true,
+    // autoplay: true, // Removing autoplay to see if it resolves initialization conflicts
     debug: process.env.NODE_ENV === 'development',
-    events: ['ready', 'playing', 'error', 'enterfullscreen', 'exitfullscreen', 'canplay'],
+    events: ['ready', 'playing', 'error', 'enterfullscreen', 'exitfullscreen', 'canplay', 'loadstart'],
+    // Ensure controls are available if autoplay is off
+    controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
   };
 
-  useEffect(() => {
-    setIsLoading(true);
-    setError(null);
-    console.log(`PlyrPlayer: videoId prop changed to: ${videoId}`);
-  }, [videoId]);
+  const handleLoadStart = (event: any) => {
+    console.log("PlyrPlayer: 'loadstart' event fired.", event);
+    setIsLoading(true); // Explicitly set loading on loadstart
+  };
 
   const handleReady = (event: any) => {
     console.log("PlyrPlayer: 'ready' event fired from plyr-react.", event);
     setIsLoading(false);
-    // const player = plyrRef.current?.plyr;
-    // player?.play(); // autoplay is in options, but sometimes direct play is needed
+    const player = plyrRef.current?.plyr;
+    if (player) {
+      console.log("PlyrPlayer: Player instance onReady:", player);
+      // If not autoplaying, user will need to click play.
+    } else {
+      console.warn("PlyrPlayer: Plyr instance not available onReady in ref.");
+    }
   };
 
   const handleError = (event: any) => {
     console.error("PlyrPlayer: 'error' event fired from plyr-react.", event);
     let errorMessage = "An error occurred with the video player.";
     if (event?.detail?.plyr?.source?.src?.includes(videoId)) {
-        errorMessage = `Could not load video ID: ${videoId}. It might be private, deleted, or restricted.`;
+        errorMessage = `Could not load video ID: ${videoId}. It might be private, deleted, or restricted. Check browser console (Network tab) for 403 errors from YouTube.`;
     } else if (event?.detail?.message) {
         errorMessage = event.detail.message;
     } else if (typeof event === 'string') {
         errorMessage = event;
+    } else if (event?.message) { // General Error object
+        errorMessage = event.message;
     }
     setError(errorMessage);
     setIsLoading(false);
@@ -61,7 +77,8 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
   
   const handlePlaying = () => {
     console.log("PlyrPlayer: 'playing' event fired from plyr-react.");
-    setIsLoading(false); // Ensure loading is false when playing starts
+    setIsLoading(false);
+    setError(null); // Clear error if playing starts
   };
 
   const handleCanPlay = () => {
@@ -83,13 +100,13 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
     }
   };
   
-  if (!videoId) {
+  if (!videoId || !plyrSource) {
       return (
           <Alert variant="destructive" className="m-0 aspect-video flex flex-col items-center justify-center bg-muted/30 w-full h-full">
               <VideoOff className="h-10 w-10 mb-3 text-muted-foreground" />
               <AlertTitle className="text-lg font-semibold">Video Not Available</AlertTitle>
               <AlertDescription className="text-center text-muted-foreground px-4">
-                  No video ID has been provided to the player.
+                  No valid video ID has been provided to the player.
               </AlertDescription>
           </Alert>
       );
@@ -112,17 +129,21 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
             </AlertDescription>
         </Alert>
       )}
+      {/* Key the Plyr component with the videoId to force re-initialization on change */}
+      {/* Conditionally render Plyr only when not actively showing a critical error or initial load */}
       <div className={(isLoading || error) ? 'hidden' : 'w-full h-full'}>
         <Plyr
+          key={videoId} 
           ref={plyrRef}
           source={plyrSource}
           options={plyrOptions}
           onReady={handleReady}
           onPlaying={handlePlaying}
-          onError={handleError} // Assuming plyr-react has an onError prop
+          onError={handleError}
           onEnterFullscreen={handleEnterFullScreen}
           onExitFullscreen={handleExitFullScreen}
           onCanPlay={handleCanPlay}
+          onLoadStart={handleLoadStart} // Added loadstart
         />
       </div>
     </div>
@@ -130,3 +151,5 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
 };
 
 export default CustomPlyrPlayer;
+
+    
