@@ -21,7 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
 import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { saveNotificationAction, deleteNotificationAction, type NotificationFormValues } from "@/actions/notificationActions";
+import { saveNotificationAction, deleteNotificationAction } from "@/actions/notificationActions";
+import type { NotificationFormValues } from "@/actions/notificationActions";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 import { format } from "date-fns";
@@ -75,10 +76,24 @@ export default function SendNotificationPage() {
     },
   });
 
-  const { watch } = form;
+  const { watch, formState: { isDirty } } = form;
   const watchedTitle = watch("title");
   const watchedContent = watch("content");
   const watchedImageUrl = watch("imageUrl");
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isDirty) {
+        event.preventDefault();
+        event.returnValue = ''; // Required for Chrome
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   const fetchPostedNotifications = useCallback(async () => {
     setIsLoadingLog(true);
@@ -136,7 +151,7 @@ export default function SendNotificationPage() {
               title: "Success",
               description: result.message,
           });
-          form.reset();
+          form.reset(); // Reset form, which also sets isDirty to false
           fetchPostedNotifications(); 
       } else {
           toast({
@@ -207,7 +222,7 @@ export default function SendNotificationPage() {
     author: adminUser?.name || "Admin",
     status: 'new', // Preview status
     imageUrl: watchedImageUrl || undefined,
-    imageHint: "preview image"
+    imageHint: watchedTitle ? watchedTitle.split(" ").slice(0,2).join(" ") : "preview image"
   };
 
 
@@ -297,7 +312,7 @@ export default function SendNotificationPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <AnnouncementItem announcement={previewAnnouncement} />
+          <AnnouncementItem announcement={previewAnnouncement} onCardClick={() => {}} />
         </CardContent>
       </Card>
 
@@ -388,5 +403,6 @@ export default function SendNotificationPage() {
     </div>
   );
 }
+    
 
     
