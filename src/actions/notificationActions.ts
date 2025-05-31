@@ -9,16 +9,16 @@ import { collection, addDoc, serverTimestamp, doc, deleteDoc } from "firebase/fi
 const notificationFormSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title must be at most 100 characters."),
   content: z.string().min(10, "Content must be at least 10 characters.").max(1000, "Content must be at most 1000 characters."),
-  imageUrl: z.string().url().optional(), // Added for image URL
+  // imageUrl: z.string().url().optional(), // Removed imageUrl
 });
 
 export type NotificationFormValues = z.infer<typeof notificationFormSchema>;
 
-// Server Action updated to accept imageUrl
+// Server Action updated to remove imageUrl
 export async function saveNotificationAction(
   data: { title: string; content: string },
-  author: {id: string; name: string | undefined},
-  imageUrl?: string // Optional imageUrl
+  author: {id: string; name: string | undefined}
+  // imageUrl?: string // Removed imageUrl
 ) {
   try {
     await addDoc(collection(db, "notifications"), {
@@ -27,12 +27,11 @@ export async function saveNotificationAction(
       authorId: author.id,
       authorName: "Admin",
       createdAt: serverTimestamp(),
-      imageUrl: imageUrl || null, // Save imageUrl or null
+      // imageUrl: imageUrl || null, // Removed imageUrl
     });
     return { success: true, message: "Notification sent successfully!" };
   } catch (error: any) {
     console.error("Error saving notification (Server Action):", error);
-    // Avoid ZodError check here as data is not directly Zod-parsed in this function signature
     return { success: false, message: "Failed to send notification. See server logs." };
   }
 }

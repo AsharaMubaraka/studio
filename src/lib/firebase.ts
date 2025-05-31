@@ -2,14 +2,14 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
-import { getStorage } from "firebase/storage"; // Added
+// Removed getStorage import
 import { toast } from "@/hooks/use-toast";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA8w8a0ap2sOYroS8-qNSsMNPqmXB-vL8g",
   authDomain: "ashara-mubaraka-app.firebaseapp.com",
   projectId: "ashara-mubaraka-app",
-  storageBucket: "ashara-mubaraka-app.appspot.com", // Corrected storageBucket
+  storageBucket: "ashara-mubaraka-app.appspot.com",
   messagingSenderId: "572648688031",
   appId: "1:572648688031:web:a13b4c2ad1c047482395aa",
   // measurementId: "YOUR_MEASUREMENT_ID" // Optional: Add if you use Analytics
@@ -24,7 +24,8 @@ if (getApps().length === 0) {
 }
 
 const db = getFirestore(firebaseApp);
-const storage = getStorage(firebaseApp); // Added
+// Removed storage initialization
+// const storage = getStorage(firebaseApp); 
 
 // Initialize Firebase Cloud Messaging and get a reference to the service
 const getFcmMessaging = () => {
@@ -87,4 +88,4 @@ if (typeof window !== 'undefined') {
   }
 }
 
-export { db, firebaseApp, storage, requestNotificationPermission, getFcmMessaging };
+export { db, firebaseApp, requestNotificationPermission, getFcmMessaging }; // Removed storage from exports

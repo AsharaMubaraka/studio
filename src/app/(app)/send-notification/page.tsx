@@ -19,12 +19,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useCallback, ChangeEvent } from "react";
-import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, ImagePlus, Eye } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye } from "lucide-react"; // Removed ImagePlus
 import { useAuth } from "@/hooks/useAuth";
 import { saveNotificationAction, deleteNotificationAction } from "@/actions/notificationActions";
-import { db, storage } from "@/lib/firebase"; // Import storage
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db } from "@/lib/firebase"; // Removed storage import
+// Removed Firebase Storage imports: ref, uploadBytes, getDownloadURL
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,13 +41,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
-import Image from "next/image";
-
+// Removed Image component import from next/image as it's not used for preview here anymore
 
 // Schema for client-side form validation (title and content only)
 const notificationFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
-  content: z.string().min(2, "Content must be at least 2 characters.").max(5000, "Content must be at most 5000 characters."), // Increased max length
+  content: z.string().min(2, "Content must be at least 2 characters.").max(5000, "Content must be at most 5000 characters."),
 });
 type ClientNotificationFormValues = z.infer<typeof notificationFormSchema>;
 
@@ -58,7 +57,7 @@ interface PostedNotification {
   content: string;
   createdAt: Date;
   authorName?: string;
-  imageUrl?: string;
+  // imageUrl?: string; // Removed imageUrl
 }
 
 export default function SendNotificationPage() {
@@ -71,9 +70,10 @@ export default function SendNotificationPage() {
   const [logError, setLogError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  // Removed state related to image file and preview
+  // const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  // const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  // const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const form = useForm<ClientNotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
@@ -87,22 +87,7 @@ export default function SendNotificationPage() {
   const watchedTitle = watch("title");
   const watchedContent = watch("content");
 
-  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-      setSelectedImageFile(file);
-      if (imagePreviewUrl) {
-        URL.revokeObjectURL(imagePreviewUrl); // Clean up previous preview
-      }
-      setImagePreviewUrl(URL.createObjectURL(file));
-    } else {
-      setSelectedImageFile(null);
-      if (imagePreviewUrl) {
-        URL.revokeObjectURL(imagePreviewUrl);
-      }
-      setImagePreviewUrl(null);
-    }
-  };
+  // Removed handleImageChange function
 
   const fetchPostedNotifications = useCallback(async () => {
     setIsLoadingLog(true);
@@ -119,7 +104,7 @@ export default function SendNotificationPage() {
           content: data.content || "No Content",
           createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
           authorName: data.authorName,
-          imageUrl: data.imageUrl,
+          // imageUrl: data.imageUrl, // Removed imageUrl
         };
       });
       setPostedNotifications(fetchedNotifications);
@@ -136,13 +121,8 @@ export default function SendNotificationPage() {
     if (adminUser?.isAdmin) {
       fetchPostedNotifications();
     }
-    // Cleanup object URL on component unmount
-    return () => {
-      if (imagePreviewUrl) {
-        URL.revokeObjectURL(imagePreviewUrl);
-      }
-    };
-  }, [adminUser, fetchPostedNotifications, imagePreviewUrl]);
+    // Removed imagePreviewUrl cleanup
+  }, [adminUser, fetchPostedNotifications]);
 
   async function onSubmit(values: ClientNotificationFormValues) {
     if (!adminUser?.username || !adminUser?.isAdmin) {
@@ -154,42 +134,26 @@ export default function SendNotificationPage() {
         return;
     }
     setIsSubmitting(true);
-    setIsUploadingImage(false);
-    let imageUrl: string | undefined = undefined;
+    // Removed image upload logic
+    // setIsUploadingImage(false);
+    // let imageUrl: string | undefined = undefined;
 
     try {
-      if (selectedImageFile) {
-        setIsUploadingImage(true);
-        try {
-          const storageRef = ref(storage, `notification_images/${Date.now()}_${selectedImageFile.name}`);
-          await uploadBytes(storageRef, selectedImageFile);
-          imageUrl = await getDownloadURL(storageRef);
-        } catch (uploadError: any) {
-          console.error("Firebase Storage upload error:", uploadError);
-          toast({
-            variant: "destructive",
-            title: "Image Upload Failed",
-            description: uploadError.message || "Could not upload the image. Please check console for details.",
-          });
-          setIsUploadingImage(false);
-          setIsSubmitting(false);
-          return; // Stop further execution
-        }
-        setIsUploadingImage(false);
-      }
+      // Removed image upload block
 
-      const result = await saveNotificationAction(values, {id: adminUser.username, name: adminUser.name}, imageUrl);
+      const result = await saveNotificationAction(values, {id: adminUser.username, name: adminUser.name}); // Removed imageUrl argument
       if (result.success) {
           toast({
               title: "Success",
               description: result.message,
           });
           form.reset();
-          setSelectedImageFile(null);
-          if (imagePreviewUrl) {
-            URL.revokeObjectURL(imagePreviewUrl);
-          }
-          setImagePreviewUrl(null);
+          // Removed image state reset
+          // setSelectedImageFile(null);
+          // if (imagePreviewUrl) {
+          //   URL.revokeObjectURL(imagePreviewUrl);
+          // }
+          // setImagePreviewUrl(null);
           fetchPostedNotifications(); // Refresh log
       } else {
           toast({
@@ -199,7 +163,7 @@ export default function SendNotificationPage() {
           });
       }
     } catch (error: any) {
-      console.error("Error in onSubmit (after image upload if any):", error);
+      console.error("Error in onSubmit:", error);
       toast({
         variant: "destructive",
         title: "Submission Error",
@@ -207,7 +171,7 @@ export default function SendNotificationPage() {
       });
     } finally {
       setIsSubmitting(false);
-      setIsUploadingImage(false);
+      // setIsUploadingImage(false);
     }
   }
 
@@ -260,7 +224,7 @@ export default function SendNotificationPage() {
     date: new Date(),
     author: adminUser?.name || "Admin",
     status: 'new',
-    imageUrl: imagePreviewUrl || undefined,
+    // imageUrl: imagePreviewUrl || undefined, // Removed imageUrl from preview
   };
 
 
@@ -311,30 +275,15 @@ export default function SendNotificationPage() {
                   </FormItem>
                 )}
               />
-              <FormItem>
-                <FormLabel htmlFor="imageUpload" className="flex items-center cursor-pointer">
-                  <ImagePlus className="mr-2 h-5 w-5" />
-                  Upload Image (Optional)
-                </FormLabel>
-                <FormControl>
-                  <Input id="imageUpload" type="file" accept="image/*" onChange={handleImageChange} className="mt-1" />
-                </FormControl>
-                {imagePreviewUrl && (
-                  <div className="mt-4 relative w-full max-w-xs mx-auto aspect-video border rounded-md overflow-hidden"> {/* Constrained preview size */}
-                    <Image src={imagePreviewUrl} alt="Selected image preview" fill style={{objectFit: "contain"}} />
-                  </div>
-                )}
-              </FormItem>
-
-              <Button type="submit" className="w-full" disabled={isSubmitting || isUploadingImage}>
-                {isUploadingImage ? (
-                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : isSubmitting ? (
+              {/* Removed image upload FormItem */}
+              
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <MessageSquarePlus className="mr-2 h-4 w-4" />
                 )}
-                {isUploadingImage ? "Uploading Image..." : isSubmitting ? "Sending..." : "Send Notification"}
+                {isSubmitting ? "Sending..." : "Send Notification"}
               </Button>
             </form>
           </Form>
@@ -392,11 +341,7 @@ export default function SendNotificationPage() {
                         className="text-sm text-muted-foreground whitespace-pre-line mb-2"
                         dangerouslySetInnerHTML={{ __html: notification.content.replace(/\n/g, '<br />') }} 
                       />
-                      {notification.imageUrl && (
-                        <div className="my-2">
-                            <a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">View Attached Image</a>
-                        </div>
-                      )}
+                      {/* Removed image URL link */}
                     </div>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -440,5 +385,3 @@ export default function SendNotificationPage() {
     </div>
   );
 }
-
-    

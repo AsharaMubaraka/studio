@@ -2,10 +2,10 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+// Removed Button and Download icon as they were for image download
 import { format } from "date-fns";
-import Image from "next/image";
-import { CalendarDays, Sparkle, Mail, CheckCircle2, Download } from "lucide-react";
+// Removed Image from next/image
+import { CalendarDays, Sparkle, Mail, CheckCircle2 } from "lucide-react";
 
 export interface Announcement {
   id: string;
@@ -14,8 +14,8 @@ export interface Announcement {
   date: Date;
   author: string;
   status: 'new' | 'unread' | 'read';
-  imageUrl?: string;
-  imageHint?: string;
+  // imageUrl?: string; // Removed imageUrl
+  // imageHint?: string; // Removed imageHint
 }
 
 interface AnnouncementItemProps {
@@ -38,18 +38,7 @@ function StatusIndicator({ status }: { status: Announcement['status'] }) {
 export function AnnouncementItem({ announcement }: AnnouncementItemProps) {
   return (
     <Card className="flex flex-col overflow-hidden shadow-lg transition-all hover:shadow-xl animate-fadeIn bg-card">
-      {announcement.imageUrl && (
-        <div className="relative h-48 w-full">
-          <Image
-            src={announcement.imageUrl}
-            alt={announcement.title}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            style={{ objectFit: 'cover' }}
-            data-ai-hint={announcement.imageHint || "notification image"}
-          />
-        </div>
-      )}
+      {/* Removed image display block */}
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-xl font-semibold">{announcement.title}</CardTitle>
@@ -61,28 +50,12 @@ export function AnnouncementItem({ announcement }: AnnouncementItemProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0 flex-grow">
-        {/* 
-          SECURITY NOTE: When rendering user-generated HTML, 
-          ensure it's properly sanitized to prevent XSS attacks if content 
-          can come from less trusted sources or contains complex HTML.
-          For admin-generated content with basic tags, this might be acceptable
-          in a controlled environment, but always consider sanitization.
-        */}
         <div 
           className="text-sm leading-relaxed text-card-foreground/90"
           dangerouslySetInnerHTML={{ __html: announcement.content.replace(/\n/g, '<br />') }} 
         />
       </CardContent>
-      {announcement.imageUrl && (
-        <CardFooter className="pt-2 pb-4">
-          <Button asChild variant="outline" size="sm" className="w-full">
-            <a href={announcement.imageUrl} download target="_blank" rel="noopener noreferrer">
-              <Download className="mr-2 h-4 w-4" />
-              Download Image
-            </a>
-          </Button>
-        </CardFooter>
-      )}
+      {/* Removed CardFooter with image download button */}
     </Card>
   );
 }

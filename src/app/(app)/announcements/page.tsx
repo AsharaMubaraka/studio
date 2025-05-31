@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader } from "@/components/ui/card"; // Card components used for Skeleton
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Bell } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
@@ -27,7 +27,7 @@ async function fetchFirestoreAnnouncements(): Promise<Announcement[]> {
         date: (data.createdAt as Timestamp)?.toDate() || new Date(),
         author: data.authorName || "Unknown Author",
         status: 'unread' as Announcement['status'], // Default to 'unread' for now
-        imageUrl: data.imageUrl, // Fetch imageUrl
+        // imageUrl: data.imageUrl, // Removed imageUrl
       };
     });
     return announcements;
@@ -113,7 +113,7 @@ export default function AnnouncementsPage() {
                 <Skeleton className="h-4 w-full mb-1.5" />
                 <Skeleton className="h-4 w-full mb-1.5" />
                 <Skeleton className="h-4 w-2/3" />
-                 <Skeleton className="h-8 w-full mt-4" /> {/* Placeholder for image download button */}
+                 {/* Removed skeleton placeholder for image download button */}
               </CardContent>
             </Card>
           ))}
