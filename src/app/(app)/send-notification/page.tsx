@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -46,7 +47,7 @@ import Image from "next/image";
 // Schema for client-side form validation (title and content only)
 const notificationFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
-  content: z.string().min(2, "Content must be at least 2 characters.").max(1000, "Content must be at most 1000 characters."),
+  content: z.string().min(2, "Content must be at least 2 characters.").max(5000, "Content must be at most 5000 characters."), // Increased max length
 });
 type ClientNotificationFormValues = z.infer<typeof notificationFormSchema>;
 
@@ -162,7 +163,7 @@ export default function SendNotificationPage() {
           form.reset();
           setSelectedImageFile(null);
           setImagePreviewUrl(null);
-          fetchPostedNotifications();
+          fetchPostedNotifications(); // Refresh log
       } else {
           toast({
               variant: "destructive",
@@ -228,7 +229,7 @@ export default function SendNotificationPage() {
   const previewAnnouncement: Announcement = {
     id: 'preview',
     title: watchedTitle || "Sample Title",
-    content: watchedContent || "Sample content for the notification will appear here.",
+    content: watchedContent || "Sample content for the notification will appear here. Supports basic HTML like <b>bold</b>, <i>italic</i>, and <br> for line breaks.",
     date: new Date(),
     author: adminUser?.name || "Admin",
     status: 'new',
@@ -244,7 +245,7 @@ export default function SendNotificationPage() {
             <MessageSquarePlus className="mr-3 h-8 w-8 text-primary" /> Send Notification
           </CardTitle>
           <CardDescription>
-            Compose and send a new notification. Content supports basic HTML.
+            Compose and send a new notification.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -276,6 +277,9 @@ export default function SendNotificationPage() {
                         {...field}
                       />
                     </FormControl>
+                    <FormDescription>
+                      You can use basic HTML tags for formatting (e.g., &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;, &lt;u&gt;underline&lt;/u&gt;, &lt;br&gt; for line breaks).
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -342,7 +346,7 @@ export default function SendNotificationPage() {
             </div>
           ) : logError ? (
             <Alert variant="destructive">
-              <Trash2 className="h-4 w-4" /> {/* Changed icon */}
+              <Trash2 className="h-4 w-4" />
               <AlertTitle>Error Loading Log</AlertTitle>
               <AlertDescription>{logError}</AlertDescription>
             </Alert>
@@ -355,7 +359,11 @@ export default function SendNotificationPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-semibold text-lg mb-1">{notification.title}</h3>
-                      <p className="text-sm text-muted-foreground whitespace-pre-line mb-2">{notification.content}</p>
+                      {/* Render content as HTML */}
+                      <div 
+                        className="text-sm text-muted-foreground whitespace-pre-line mb-2"
+                        dangerouslySetInnerHTML={{ __html: notification.content.replace(/\n/g, '<br />') }} 
+                      />
                       {notification.imageUrl && (
                         <div className="my-2">
                             <a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">View Attached Image</a>

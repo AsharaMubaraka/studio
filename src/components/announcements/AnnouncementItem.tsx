@@ -15,7 +15,7 @@ export interface Announcement {
   author: string;
   status: 'new' | 'unread' | 'read';
   imageUrl?: string;
-  imageHint?: string; // Keep if you plan to use Unsplash hints later
+  imageHint?: string;
 }
 
 interface AnnouncementItemProps {
@@ -61,7 +61,17 @@ export function AnnouncementItem({ announcement }: AnnouncementItemProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0 flex-grow">
-        <p className="whitespace-pre-line text-sm leading-relaxed text-card-foreground/90">{announcement.content}</p>
+        {/* 
+          SECURITY NOTE: When rendering user-generated HTML, 
+          ensure it's properly sanitized to prevent XSS attacks if content 
+          can come from less trusted sources or contains complex HTML.
+          For admin-generated content with basic tags, this might be acceptable
+          in a controlled environment, but always consider sanitization.
+        */}
+        <div 
+          className="text-sm leading-relaxed text-card-foreground/90"
+          dangerouslySetInnerHTML={{ __html: announcement.content.replace(/\n/g, '<br />') }} 
+        />
       </CardContent>
       {announcement.imageUrl && (
         <CardFooter className="pt-2 pb-4">
