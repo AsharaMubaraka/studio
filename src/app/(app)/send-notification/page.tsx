@@ -91,9 +91,15 @@ export default function SendNotificationPage() {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
       setSelectedImageFile(file);
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl); // Clean up previous preview
+      }
       setImagePreviewUrl(URL.createObjectURL(file));
     } else {
       setSelectedImageFile(null);
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
       setImagePreviewUrl(null);
     }
   };
@@ -130,7 +136,13 @@ export default function SendNotificationPage() {
     if (adminUser?.isAdmin) {
       fetchPostedNotifications();
     }
-  }, [adminUser, fetchPostedNotifications]);
+    // Cleanup object URL on component unmount
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [adminUser, fetchPostedNotifications, imagePreviewUrl]);
 
   async function onSubmit(values: ClientNotificationFormValues) {
     if (!adminUser?.username || !adminUser?.isAdmin) {
@@ -148,9 +160,21 @@ export default function SendNotificationPage() {
     try {
       if (selectedImageFile) {
         setIsUploadingImage(true);
-        const storageRef = ref(storage, `notification_images/${Date.now()}_${selectedImageFile.name}`);
-        await uploadBytes(storageRef, selectedImageFile);
-        imageUrl = await getDownloadURL(storageRef);
+        try {
+          const storageRef = ref(storage, `notification_images/${Date.now()}_${selectedImageFile.name}`);
+          await uploadBytes(storageRef, selectedImageFile);
+          imageUrl = await getDownloadURL(storageRef);
+        } catch (uploadError: any) {
+          console.error("Firebase Storage upload error:", uploadError);
+          toast({
+            variant: "destructive",
+            title: "Image Upload Failed",
+            description: uploadError.message || "Could not upload the image. Please check console for details.",
+          });
+          setIsUploadingImage(false);
+          setIsSubmitting(false);
+          return; // Stop further execution
+        }
         setIsUploadingImage(false);
       }
 
@@ -162,6 +186,9 @@ export default function SendNotificationPage() {
           });
           form.reset();
           setSelectedImageFile(null);
+          if (imagePreviewUrl) {
+            URL.revokeObjectURL(imagePreviewUrl);
+          }
           setImagePreviewUrl(null);
           fetchPostedNotifications(); // Refresh log
       } else {
@@ -171,12 +198,12 @@ export default function SendNotificationPage() {
               description: result.message,
           });
       }
-    } catch (error) {
-      console.error("Error in onSubmit:", error);
+    } catch (error: any) {
+      console.error("Error in onSubmit (after image upload if any):", error);
       toast({
         variant: "destructive",
         title: "Submission Error",
-        description: "An unexpected error occurred while sending the notification.",
+        description: error.message || "An unexpected error occurred while sending the notification.",
       });
     } finally {
       setIsSubmitting(false);
@@ -293,14 +320,16 @@ export default function SendNotificationPage() {
                   <Input id="imageUpload" type="file" accept="image/*" onChange={handleImageChange} className="mt-1" />
                 </FormControl>
                 {imagePreviewUrl && (
-                  <div className="mt-4 relative w-full h-48 border rounded-md overflow-hidden">
+                  <div className="mt-4 relative w-full max-w-xs mx-auto aspect-video border rounded-md overflow-hidden"> {/* Constrained preview size */}
                     <Image src={imagePreviewUrl} alt="Selected image preview" fill style={{objectFit: "contain"}} />
                   </div>
                 )}
               </FormItem>
 
               <Button type="submit" className="w-full" disabled={isSubmitting || isUploadingImage}>
-                {isSubmitting || isUploadingImage ? (
+                {isUploadingImage ? (
+                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : isSubmitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <MessageSquarePlus className="mr-2 h-4 w-4" />
@@ -359,7 +388,6 @@ export default function SendNotificationPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-semibold text-lg mb-1">{notification.title}</h3>
-                      {/* Render content as HTML */}
                       <div 
                         className="text-sm text-muted-foreground whitespace-pre-line mb-2"
                         dangerouslySetInnerHTML={{ __html: notification.content.replace(/\n/g, '<br />') }} 
@@ -412,3 +440,5 @@ export default function SendNotificationPage() {
     </div>
   );
 }
+
+    
