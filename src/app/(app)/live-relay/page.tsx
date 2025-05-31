@@ -30,7 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAdminMode } from "@/contexts/AdminModeContext";
-import VimePlayer from "@/components/live-relay/VimePlayer"; // Changed import
+import ClapprPlayer from "@/components/live-relay/ClapprPlayer";
 
 const formSchema = z.object({
   name: z.string().min(2, "Miqaat name must be at least 2 characters.").max(100),
@@ -168,7 +168,7 @@ function AdminLiveRelayManager() {
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select source type" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="youtube">YouTube (via Vime Player)</SelectItem>
+                      <SelectItem value="youtube">YouTube (via Clappr Player)</SelectItem>
                       <SelectItem value="iframe">Full iFrame Code</SelectItem>
                     </SelectContent>
                   </Select>
@@ -182,7 +182,7 @@ function AdminLiveRelayManager() {
                     <FormControl><Input placeholder="e.g., dQw4w9WgXcQ" {...field} /></FormControl>
                     <FormMessage />
                     <FormDescription className="text-xs">
-                      Enter the standard YouTube Video ID. Vime player will be used for playback.
+                      Enter the standard YouTube Video ID. Clappr player will be used for playback.
                     </FormDescription>
                   </FormItem>
                 )} />
@@ -373,13 +373,13 @@ function UserLiveRelayViewer() {
         )}
         {isEventActive && currentRelay.sourceType === "youtube" && currentRelay.youtubeId && (
           <CardContent className="p-0 aspect-video bg-black">
-            <VimePlayer videoId={currentRelay.youtubeId} />
+            <ClapprPlayer videoId={currentRelay.youtubeId} />
              <Alert variant="default" className="mt-0 rounded-none border-x-0 border-b-0">
               <HelpCircle className="h-5 w-5" />
-              <AlertTitle>Vime Player for YouTube</AlertTitle>
+              <AlertTitle>Clappr Player for YouTube</AlertTitle>
               <AlertDescription className="text-xs">
-                Playback using Vime Player. Vime provides the player interface, but the underlying video stream is from YouTube.
-                Full control over YouTube's embedded features (like 'Watch Later' or 'Share' buttons) may be limited by YouTube's policies.
+                Playback using Clappr Player. Clappr provides the player interface, but the underlying video stream is from YouTube.
+                Full control over YouTube's embedded features may be limited by YouTube's policies.
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -424,3 +424,4 @@ export default function LiveRelayPage() {
 
   return user?.isAdmin && isAdminMode ? <AdminLiveRelayManager /> : <UserLiveRelayViewer />;
 }
+
