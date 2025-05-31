@@ -1,41 +1,28 @@
 
 "use client";
 
-import React, { useEffect, useRef } from 'react';
-import { Player, Youtube, DefaultUi, usePlayerContext } from '@vime/react';
+import React from 'react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { VideoOff } from 'lucide-react';
 
-interface VimePlayerProps {
-  videoId: string;
+interface VimePlayerPlaceholderProps {
+  videoId?: string;
 }
 
-const VimePlayer: React.FC<VimePlayerProps> = ({ videoId }) => {
-  const player = useRef<HTMLVmPlayerElement>(null);
-
-  // Optional: Log Vime player events for debugging
-  // useEffect(() => {
-  //   if (!player.current) return;
-  //   const p = player.current;
-  //   const onPlay = () => console.log('VimePlayer: Play event');
-  //   const onPause = () => console.log('VimePlayer: Pause event');
-  //   const onError = (e: any) => console.error('VimePlayer: Error event', e.detail);
-
-  //   p.addEventListener('vmPlay', onPlay);
-  //   p.addEventListener('vmPause', onPause);
-  //   p.addEventListener('vmError', onError);
-
-  //   return () => {
-  //     p.removeEventListener('vmPlay', onPlay);
-  //     p.removeEventListener('vmPause', onPause);
-  //     p.removeEventListener('vmError', onError);
-  //   };
-  // }, [player]);
-
+// Placeholder component
+const VimePlayerPlaceholder: React.FC<VimePlayerPlaceholderProps> = ({ videoId }) => {
   return (
-    <Player ref={player} theme="dark" style={{ '--vm-player-theme': 'hsl(var(--primary))' } as any}>
-      <Youtube videoId={videoId} />
-      <DefaultUi />
-    </Player>
+    <Alert variant="destructive" className="m-4 aspect-video flex flex-col items-center justify-center">
+      <VideoOff className="h-8 w-8 mb-2" />
+      <AlertTitle className="text-lg">Video Player Unavailable</AlertTitle>
+      <AlertDescription className="text-center">
+        The Vime.js player component could not be loaded.
+        This is likely due to missing packages (<code>@vime/react</code>, <code>@vime/core</code>).
+        Please resolve any <code>npm install</code> issues.
+        {videoId && <p className="mt-1 text-xs">Attempted video ID: {videoId}</p>}
+      </AlertDescription>
+    </Alert>
   );
 };
 
-export default VimePlayer;
+export default VimePlayerPlaceholder;
