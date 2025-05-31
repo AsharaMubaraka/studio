@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, doc, deleteDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, deleteDoc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
 
 // Schema for client-side form validation (used in send-notification page)
 const notificationFormSchemaClient = z.object({
@@ -55,8 +55,20 @@ export async function markNotificationAsReadAction(notificationId: string, userI
   }
   try {
     const notificationRef = doc(db, "notifications", notificationId);
+    // Check if user has already read it to prevent unnecessary updates, though arrayUnion handles duplicates.
+    // For more complex logic (e.g. only add if not present), a transaction might be better,
+    // but arrayUnion is idempotent for adding unique values.
+    const docSnap = await getDoc(notificationRef);
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.readByUserIds && data.readByUserIds.includes(userId)) {
+            // console.log(`User ${userId} has already read notification ${notificationId}. No update needed.`);
+            return { success: true, message: "Notification already marked as read by this user." };
+        }
+    }
+
     await updateDoc(notificationRef, {
-      readByUserIds: arrayUnion(userId)
+      readByUserIds: arrayUnion(userId) // arrayUnion ensures the userId is added only if not already present
     });
     return { success: true, message: "Notification marked as read." };
   } catch (error: any) {
@@ -64,5 +76,3 @@ export async function markNotificationAsReadAction(notificationId: string, userI
     return { success: false, message: "Failed to mark notification as read. See server logs." };
   }
 }
-
-    

@@ -12,24 +12,67 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, UserCircle, ChevronDown, Settings, ShieldCheck, BellRing } from "lucide-react"; // Added BellRing
+import { LogOut, UserCircle, ChevronDown, Settings, ShieldCheck, BellRing as BellRingIconLucide } from "lucide-react";
 import { ThemeToggleMenuItem } from "./ThemeToggle";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAdminMode } from "@/contexts/AdminModeContext";
-import { requestNotificationPermission } from "@/lib/firebase"; // Import the function
+import { requestNotificationPermission, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
+import { collection, query, getDocs, DocumentData, Timestamp } from "firebase/firestore";
+import Link from "next/link"; // Import Link for the bell icon
 
+interface AppNotificationDoc {
+  id: string;
+  readByUserIds?: string[];
+  // other fields are not needed for this specific check
+}
 
 export function UserProfileMenu() {
   const { user, logout } = useAuth();
   const { isAdminMode, setIsAdminMode } = useAdminMode();
   const { toast } = useToast();
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+
+  useEffect(() => {
+    if (!user?.username) {
+      setHasUnreadNotifications(false);
+      return;
+    }
+
+    const fetchNotificationsAndCheckUnread = async () => {
+      try {
+        const notificationsRef = collection(db, "notifications");
+        // Potentially add ordering and limits if performance becomes an issue
+        // For now, fetching all to check read status for current user.
+        const q = query(notificationsRef);
+        const querySnapshot = await getDocs(q);
+        
+        let unreadFound = false;
+        for (const docSnap of querySnapshot.docs) {
+          const notification = docSnap.data() as DocumentData;
+          const readBy = (notification.readByUserIds as string[] | undefined) || [];
+          if (!readBy.includes(user.username)) {
+            unreadFound = true;
+            break; 
+          }
+        }
+        setHasUnreadNotifications(unreadFound);
+      } catch (error) {
+        console.error("Error fetching notifications for unread check:", error);
+        setHasUnreadNotifications(false); // Default to no dot on error
+      }
+    };
+
+    fetchNotificationsAndCheckUnread();
+    // Re-check when user changes, or potentially on an event indicating new notification
+  }, [user]);
+
 
   if (!user) return null;
 
   const initials = user.username.substring(0, 2).toUpperCase();
-  
   const isActualAdmin = !!user?.isAdmin; 
 
   const handleAdminModeChange = (checked: boolean) => {
@@ -41,7 +84,6 @@ export function UserProfileMenu() {
       const token = await requestNotificationPermission();
       if (token) {
         console.log("FCM Token:", token);
-        // You would typically send this token to your server to store it
         toast({
           title: "Notifications Enabled",
           description: "You will now receive push notifications.",
@@ -64,65 +106,79 @@ export function UserProfileMenu() {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 gap-2 px-2">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png" alt={user.username} />
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-          <div className="hidden sm:block">
-            <p className="font-medium leading-none">{user.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">({user.username})</p>
-          </div>
-          <ChevronDown className="h-4 w-4 opacity-50 hidden sm:inline-block" />
+    <div className="flex items-center gap-2">
+      <Link href="/announcements" passHref>
+        <Button variant="ghost" size="icon" className="relative text-nav-foreground hover:bg-nav-foreground/10">
+          <BellRingIconLucide className="h-5 w-5" />
+          {hasUnreadNotifications && (
+            <span className="absolute top-1 right-1 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+            </span>
+          )}
+          <span className="sr-only">Notifications</span>
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {user.username} ({user.isAdmin ? "Admin" : "Member"})
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <UserCircle className="mr-2 h-4 w-4" />
-          <span>Profile</span>
-        </DropdownMenuItem>
-        <ThemeToggleMenuItem />
-        <DropdownMenuItem onClick={handleEnableNotifications}>
-          <BellRing className="mr-2 h-4 w-4" />
-          <span>Enable Notifications</span>
-        </DropdownMenuItem>
-        
-        {isActualAdmin && ( 
-          <>
-            <DropdownMenuSeparator />
-            <div className="px-2 py-1.5 text-sm">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="admin-mode-toggle" className="flex items-center gap-2 cursor-pointer">
-                  <ShieldCheck className="h-4 w-4" />
-                  <span>Admin Mode</span>
-                </Label>
-                <Switch
-                  id="admin-mode-toggle"
-                  checked={isAdminMode}
-                  onCheckedChange={handleAdminModeChange}
-                />
-              </div>
+      </Link>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-10 gap-2 px-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png" alt={user.username} />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <div className="hidden sm:block">
+              <p className="font-medium leading-none">{user.name}</p>
+              <p className="text-xs leading-none text-muted-foreground">({user.username})</p>
             </div>
-          </>
-        )}
+            <ChevronDown className="h-4 w-4 opacity-50 hidden sm:inline-block" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-64" align="end" forceMount>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">{user.name}</p>
+              <p className="text-xs leading-none text-muted-foreground">
+                {user.username} ({user.isAdmin ? "Admin" : "Member"})
+              </p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>
+            <UserCircle className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </DropdownMenuItem>
+          <ThemeToggleMenuItem />
+          <DropdownMenuItem onClick={handleEnableNotifications}>
+            <BellRingIconLucide className="mr-2 h-4 w-4" />
+            <span>Enable Push Notifications</span>
+          </DropdownMenuItem>
+          
+          {isActualAdmin && ( 
+            <>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="admin-mode-toggle" className="flex items-center gap-2 cursor-pointer">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>Admin Mode</span>
+                  </Label>
+                  <Switch
+                    id="admin-mode-toggle"
+                    checked={isAdminMode}
+                    onCheckedChange={handleAdminModeChange}
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer">
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Log out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

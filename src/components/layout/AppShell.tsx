@@ -15,10 +15,9 @@ import {
   SidebarMenuButton,
   SidebarInset,
   useSidebar,
-  // SidebarTrigger, // Removed as per request
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { LogOut, Bell as BellIcon } from "lucide-react";
+import { LogOut } from "lucide-react";
 import Image from "next/image";
 import { BottomNav } from "./BottomNav";
 import { useAuth } from '@/hooks/useAuth';
@@ -108,19 +107,12 @@ export function AppShell({ children }: AppShellProps) {
       <SidebarInset className="flex flex-col min-h-screen">
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
-            {/* SidebarTrigger removed */}
             <h1 className="text-xl font-bold text-nav-foreground truncate">{currentTitle}</h1>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/announcements" passHref>
-              <Button variant="ghost" size="icon" className="text-nav-foreground hover:bg-nav-foreground/10">
-                <BellIcon className="h-5 w-5" />
-                <span className="sr-only">Notifications</span>
-              </Button>
-            </Link>
-            {pathname === '/dashboard' ? (
-              <UserProfileMenu />
-            ) : (
+            {/* UserProfileMenu now includes the Bell icon link and dot logic */}
+            <UserProfileMenu />
+            {pathname !== '/dashboard' && ( // Show logout button only if not on dashboard where UserProfileMenu is primary
               <Button 
                 variant="ghost" 
                 onClick={logout} 
