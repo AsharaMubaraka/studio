@@ -27,7 +27,7 @@ const PlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
     setIsLoading(true);
     setError(null);
 
-    constplyrSource: SourceInfo = {
+    const plyrSource: SourceInfo = {
       type: 'video',
       sources: [
         {
