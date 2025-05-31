@@ -23,6 +23,18 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'pbs.twimg.com', // Added for this error
+        port: '',
+        pathname: '/**',
+      },
+      { // For Firebase Storage
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '/**',
+      },
       // IMPORTANT: Add hostnames for any external image services you use here.
       // For example, if you use Imgur:
       // {
