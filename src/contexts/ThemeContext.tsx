@@ -3,6 +3,7 @@
 
 import type { ReactNode } from "react";
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import { siteConfig } from '@/config/site'; // Import siteConfig
 
 type Theme = 'light' | 'dark';
 
@@ -18,13 +19,12 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
-const THEME_STORAGE_KEY = 'anjuman_hub_theme';
+const THEME_STORAGE_KEY = `${siteConfig.name.toLowerCase().replace(/\s+/g, '_')}_theme`; // Dynamic key
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>('light'); // Default to light, will be updated by useEffect
+  const [theme, setThemeState] = useState<Theme>('light'); 
 
   useEffect(() => {
-    // This effect runs only on the client
     const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     
@@ -57,16 +57,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   }, [theme, setTheme]);
 
-  // To prevent flash of unstyled content or incorrect theme on initial load,
-  // we render children only after the theme has been determined.
-  // Alternatively, a more complex setup with a script in _document.js (for Pages Router)
-  // or careful handling of `suppressHydrationWarning` on `<html>` would be needed.
-  // For App Router and client-side theme determination, delaying child rendering until theme is set is safer.
   if (typeof window === 'undefined' && !theme) {
-    // Still on the server or theme not yet determined on client
     return null; 
   }
-
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>

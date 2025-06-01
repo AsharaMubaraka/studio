@@ -17,11 +17,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { LogOut } from "lucide-react";
 import Image from "next/image";
 import { BottomNav } from "./BottomNav";
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
 import { UserProfileMenu } from "./UserProfileMenu";
 import { cn } from "@/lib/utils";
 import { useAdminMode } from "@/contexts/AdminModeContext";
@@ -40,6 +37,7 @@ function SidebarLogo() {
         width={isMobile ? 24 : 28}
         height={isMobile ? 24 : 28}
         className=""
+        data-ai-hint="logo"
       />
       <span className={cn(
         "text-xl font-bold text-sidebar-foreground",
@@ -76,7 +74,6 @@ function MainNav({ currentNavItems }: { currentNavItems: NavItemConfig[] }) {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const { logout } = useAuth();
   const { isAdminMode } = useAdminMode(); 
 
   const currentNavItems = isAdminMode ? adminNavItems : userNavItems;
@@ -110,18 +107,8 @@ export function AppShell({ children }: AppShellProps) {
             <h1 className="text-xl font-bold text-nav-foreground truncate">{currentTitle}</h1>
           </div>
           <div className="flex items-center gap-2">
-            {/* UserProfileMenu now includes the Bell icon link and dot logic */}
             <UserProfileMenu />
-            {pathname !== '/dashboard' && ( // Show logout button only if not on dashboard where UserProfileMenu is primary
-              <Button 
-                variant="ghost" 
-                onClick={logout} 
-                className="text-nav-foreground hover:bg-nav-foreground/10 px-2 sm:px-3"
-              >
-                <LogOut className="h-5 w-5 sm:mr-2" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
-            )}
+            {/* Removed standalone Logout button as UserProfileMenu contains logout option */}
           </div>
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>

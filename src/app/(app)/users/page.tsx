@@ -15,11 +15,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Users, AlertCircle, Loader2, ShieldOff, ShieldCheck, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { updateUserDisplayNameAction } from "@/actions/userActions"; // New action
+import { updateUserDisplayNameAction } from "@/actions/userActions";
+import { siteConfig } from "@/config/site";
 
 interface User {
   id: string;
@@ -75,7 +76,7 @@ export default function UserListPage() {
   }, [toast]);
 
   useEffect(() => {
-    document.title = "User List | Anjuman Hub";
+    document.title = `User List | ${siteConfig.name}`;
     fetchUsers();
   }, [fetchUsers]);
 

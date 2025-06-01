@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
 import { formatWhatsAppTextToHtml } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
 
 const notificationFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
@@ -128,7 +129,7 @@ export default function SendNotificationPage() {
   }, []);
 
   useEffect(() => {
-    document.title = "Send Notification | Anjuman Hub";
+    document.title = `Send Notification | ${siteConfig.name}`;
     if (adminUser?.isAdmin) {
       fetchPostedNotifications();
     }
@@ -241,7 +242,7 @@ export default function SendNotificationPage() {
     content: watchedContent || "Sample content for the notification. Supports basic HTML.",
     date: new Date(),
     author: adminUser?.name || "Admin",
-    status: 'new', // Preview status
+    status: 'new', 
     imageUrl: watchedImageUrl || undefined,
     imageHint: watchedTitle ? watchedTitle.split(" ").slice(0,2).join(" ") : "preview image"
   };

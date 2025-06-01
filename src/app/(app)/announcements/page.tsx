@@ -7,15 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card } from "@/components/ui/card"; // CardContent, CardHeader removed as not directly used here
+import { Card } from "@/components/ui/card";
 import { Bell } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import { markNotificationAsReadAction } from "@/actions/notificationActions";
 import { useToast } from "@/hooks/use-toast";
+import { siteConfig } from "@/config/site";
 
-const READ_NOTIFICATIONS_STORAGE_KEY_PREFIX = "anjuman_hub_read_notifications_";
+const READ_NOTIFICATIONS_STORAGE_KEY_PREFIX = "ashara_mubaraka_read_notifications_"; // Updated prefix
 
 async function fetchFirestoreAnnouncements(): Promise<Omit<Announcement, 'status'>[]> {
   const notificationsCollectionRef = collection(db, "notifications");
@@ -52,13 +53,12 @@ export default function AnnouncementsPage() {
   const [sortOrder, setSortOrder] = useState<"status" | "newest" | "oldest">("status");
   const [fetchError, setFetchError] = useState<string | null>(null);
   
-  // For client-side immediate visual feedback using localStorage
   const [localStorageReadIds, setLocalStorageReadIds] = useState<Set<string>>(new Set());
   const READ_NOTIFICATIONS_STORAGE_KEY = authUser ? `${READ_NOTIFICATIONS_STORAGE_KEY_PREFIX}${authUser.username}` : '';
 
 
   useEffect(() => {
-    document.title = "Notifications | Anjuman Hub";
+    document.title = `Notifications | ${siteConfig.name}`;
     if (READ_NOTIFICATIONS_STORAGE_KEY) {
       try {
         const storedReadIds = localStorage.getItem(READ_NOTIFICATIONS_STORAGE_KEY);
@@ -78,7 +78,6 @@ export default function AnnouncementsPage() {
     if (localStorageReadIds.has(ann.id)) {
         return 'read';
     }
-    // Could add a 'new' status based on date if desired, e.g., if ann.date is within last 24 hours
     return 'unread';
   }, [authUser, localStorageReadIds]);
 
@@ -107,7 +106,6 @@ export default function AnnouncementsPage() {
   const handleMarkAsRead = async (id: string) => {
     if (!authUser?.username) return;
 
-    // Optimistic UI update (localStorage and local state)
     setLocalStorageReadIds(prevIds => {
       const newIds = new Set(prevIds);
       newIds.add(id);
@@ -124,7 +122,6 @@ export default function AnnouncementsPage() {
       prevAnns.map(ann => ann.id === id ? { ...ann, status: 'read', readByUserIds: [...(ann.readByUserIds || []), authUser.username] } : ann)
     );
 
-    // Call server action to update Firestore
     const result = await markNotificationAsReadAction(id, authUser.username);
     if (!result.success) {
       toast({
@@ -132,7 +129,6 @@ export default function AnnouncementsPage() {
         title: "Error",
         description: "Failed to mark notification as read on server. Your local view is updated.",
       });
-      // Optionally revert UI changes or handle error more gracefully
     }
   };
 
@@ -144,7 +140,7 @@ export default function AnnouncementsPage() {
       } else if (sortOrder === "oldest") {
         return a.date.getTime() - b.date.getTime();
       } else { 
-        const statusOrder = { new: 0, unread: 1, read: 2 }; // 'new' could be added if logic exists
+        const statusOrder = { new: 0, unread: 1, read: 2 };
         if (a.status !== b.status) {
              return statusOrder[a.status] - statusOrder[b.status];
         }
@@ -218,5 +214,3 @@ export default function AnnouncementsPage() {
     </div>
   );
 }
-
-    

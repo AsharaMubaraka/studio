@@ -12,6 +12,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatWhatsAppTextToHtml } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
 
 interface DateInfo {
   monthYear: string;
@@ -69,7 +70,7 @@ export default function DashboardPage() {
   const [hijriJsonError, setHijriJsonError] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Dashboard | Anjuman Hub";
+    document.title = `Dashboard | ${siteConfig.name}`;
 
     async function fetchDashboardData() {
       setIsDateLoading(true);

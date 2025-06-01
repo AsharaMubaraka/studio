@@ -1,25 +1,19 @@
 
-"use client"; // Add "use client" for hooks like useAuth and useRouter
+"use client"; 
 
 import { LoginForm } from "@/components/auth/LoginForm";
-import type { Metadata } from "next";
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from "lucide-react";
-
-// export const metadata: Metadata = { // Metadata needs to be static or generated in generateMetadata
-//   title: "Login",
-// };
-// For client components, set title dynamically if needed
-// useEffect(() => { document.title = "Login | Anjuman Hub"; }, []);
+import { siteConfig } from "@/config/site";
 
 export default function LoginPage() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    document.title = "Login | Anjuman Hub";
+    document.title = `Login | ${siteConfig.name}`;
     if (!isLoading && isAuthenticated) {
       router.replace('/dashboard');
     }
@@ -33,8 +27,6 @@ export default function LoginPage() {
     );
   }
 
-  // If already authenticated and not loading, this part might not be reached due to useEffect redirect.
-  // But it's a good guard if the redirect is somehow delayed.
   if (isAuthenticated) {
      return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -56,5 +48,3 @@ export default function LoginPage() {
     </>
   );
 }
-
-    

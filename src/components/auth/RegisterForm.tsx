@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -18,16 +18,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox"; // Added Checkbox import
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
+import { siteConfig } from "@/config/site";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
-  username: z.string().min(3, "Username must be at least 3 characters."),
+  username: z.string().min(3, "Username must be at least 3 characters.").regex(/^[a-zA-Z0-9]+$/, "Username can only contain letters and numbers."),
   password: z.string().min(6, "Password must be at least 6 characters."),
-  isAdmin: z.boolean().optional().default(false), // Added isAdmin field
 });
 
 const RegisterForm = () => {
@@ -43,9 +43,26 @@ const RegisterForm = () => {
       name: "",
       username: "",
       password: "",
-      isAdmin: false,
     },
   });
+
+  const generateAndSetUsername = useCallback(() => {
+    const nameValue = form.getValues("name");
+    if (nameValue) {
+      const firstName = nameValue.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/gi, ''); // Sanitize
+      const randomNumber = Math.floor(Math.random() * 10000); // Increased range for more uniqueness
+      form.setValue("username", `${firstName}${randomNumber}`, { shouldValidate: true });
+    } else {
+      form.setValue("username", "", { shouldValidate: true });
+    }
+  }, [form]);
+  
+  useEffect(() => {
+    if (autoGenerateUsername) {
+      generateAndSetUsername();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.watch("name"), autoGenerateUsername, generateAndSetUsername]);
 
   useEffect(() => {
     const getIpAddress = async () => {
@@ -56,7 +73,6 @@ const RegisterForm = () => {
         console.error('Error fetching IP address:', error);
       }
     };
-
     getIpAddress();
   }, []);
 
@@ -66,6 +82,7 @@ const RegisterForm = () => {
       const response = await axios.post('/api/register', {
         ...values,
         ipAddress,
+        isAdmin: false, // Explicitly set isAdmin to false as the option is removed
       });
 
       if (response.status === 201) {
@@ -93,39 +110,18 @@ const RegisterForm = () => {
     }
   };
 
-  const generateUsername = () => {
-    const name = form.getValues("name");
-    if (!name) {
-        form.setValue("username", ""); // Clear username if name is empty
-        return;
-    }
-    const firstName = name.split(' ')[0].toLowerCase();
-    const randomNumber = Math.floor(Math.random() * 1000); // Increased range for uniqueness
-    const generatedUsername = `${firstName}${randomNumber}`; // Removed underscore
-    form.setValue("username", generatedUsername);
-    setAutoGenerateUsername(false); // User has interacted, disable auto-generation unless they check the box again
-  };
-  
-  // Effect to generate username when name changes and auto-generate is checked
-  useEffect(() => {
-    if (autoGenerateUsername && form.getValues("name")) {
-      generateUsername();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.watch("name"), autoGenerateUsername]);
-
-
   return (
     <Card className="w-full max-w-md shadow-xl animate-fadeIn">
       <CardHeader className="items-center text-center">
         <Image 
           src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png" 
-          alt="Anjuman Hub Logo" 
+          alt={siteConfig.name + " Logo"}
           width={80} 
           height={80} 
           className="mb-4 rounded-full" 
+          data-ai-hint="calligraphy logo"
         />
-        <CardTitle className="text-3xl font-bold">Anjuman Hub</CardTitle>
+        <CardTitle className="text-3xl font-bold">{siteConfig.name}</CardTitle>
         <CardDescription>Create an account to get started</CardDescription>
       </CardHeader>
       <CardContent>
@@ -136,9 +132,9 @@ const RegisterForm = () => {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Your Name" {...field} />
+                    <Input placeholder="Enter your full name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -151,7 +147,7 @@ const RegisterForm = () => {
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="username123" {...field} disabled={autoGenerateUsername} />
+                    <Input placeholder="Enter a username or let us generate one" {...field} disabled={autoGenerateUsername} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -164,10 +160,10 @@ const RegisterForm = () => {
                 onCheckedChange={(checked) => {
                   const isChecked = Boolean(checked);
                   setAutoGenerateUsername(isChecked);
-                  if (isChecked && form.getValues("name")) {
-                    generateUsername();
-                  } else if (!isChecked) {
-                    form.setValue("username", ""); // Clear username if unchecked
+                  if (isChecked) {
+                    generateAndSetUsername();
+                  } else {
+                     form.setValue("username", "", { shouldValidate: true }); // Clear for manual input
                   }
                 }}
               />
@@ -175,16 +171,9 @@ const RegisterForm = () => {
                 htmlFor="auto-generate-username"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Auto Generate Username
+                Auto Generate Username (from Name)
               </label>
             </div>
-             {!autoGenerateUsername && !form.getValues("username") && (
-                 <Button type="button" onClick={generateUsername} variant="outline" size="sm" className="w-full">
-                    Generate Username Manually
-                </Button>
-            )}
-
-
             <FormField
               control={form.control}
               name="password"
@@ -192,35 +181,12 @@ const RegisterForm = () => {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input type="password" placeholder="Create a strong password" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            {/* Temporary Admin Toggle */}
-            <FormField
-              control={form.control}
-              name="isAdmin"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Register as Administrator (Temporary)
-                    </FormLabel>
-                    <FormMessage />
-                  </div>
-                </FormItem>
-              )}
-            />
-
             <input type="hidden" name="ipAddress" value={ipAddress} />
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -234,4 +200,3 @@ const RegisterForm = () => {
 };
 
 export default RegisterForm;
-

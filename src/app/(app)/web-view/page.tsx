@@ -5,21 +5,21 @@ import { useState, useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
 
 export default function WebViewPage() {
   const hardcodedUrl = "https://www.asharamubaraka.net";
   const [iframeError, setIframeError] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Web View | Anjuman Hub";
+    document.title = `Web View | ${siteConfig.name}`;
   }, []);
 
-  // Apply negative margins only when iframe is shown, to counteract AppShell padding
   const pageContainerClasses = cn(
     "animate-fadeIn h-full",
     iframeError
-      ? "flex flex-col items-center justify-center p-4" // If error, maintain some padding for the alert
-      : "flex flex-col -mx-4 md:-mx-6 lg:-mx-8" // If no error, expand to fill horizontal padding space
+      ? "flex flex-col items-center justify-center p-4"
+      : "flex flex-col -mx-4 md:-mx-6 lg:-mx-8" 
   );
 
   return (
@@ -48,4 +48,3 @@ export default function WebViewPage() {
     </div>
   );
 }
-

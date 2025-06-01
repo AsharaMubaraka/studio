@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format, parseISO, isWithinInterval, compareAsc, isPast } from "date-fns";
-import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2, Users, Pencil, XCircle } from "lucide-react"; // Added Pencil, XCircle
+import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2, Users, Pencil, XCircle } from "lucide-react";
 import { saveRelayAction, deleteRelayAction, fetchRelays, type LiveRelay, type RelayFormValues } from "@/actions/relayActions";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -25,6 +25,7 @@ import { useAdminMode } from "@/contexts/AdminModeContext";
 import PlyrPlayer from '@/components/live-relay/PlyrPlayer';
 import { db } from "@/lib/firebase";
 import { doc, setDoc, deleteDoc, collection, onSnapshot, serverTimestamp, Unsubscribe } from "firebase/firestore";
+import { siteConfig } from "@/config/site";
 
 const formSchema = z.object({
   name: z.string().min(2, "Miqaat name must be at least 2 characters.").max(100),
@@ -33,7 +34,7 @@ const formSchema = z.object({
   sourceType: z.enum(["youtube", "iframe"], { required_error: "Source type is required."}),
   youtubeId: z.string().optional(),
   iframeCode: z.string().optional(),
-  adminUsername: z.string().min(1) // Keep this for form, though it's set by server action from auth user
+  adminUsername: z.string().min(1)
 }).superRefine((data, ctx) => {
   if (data.sourceType === "youtube" && (!data.youtubeId || data.youtubeId.trim() === "")) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["youtubeId"], message: "YouTube Video ID is required for YouTube source type." });
@@ -124,7 +125,7 @@ function AdminLiveRelayManager() {
       sourceType: relay.sourceType,
       youtubeId: relay.youtubeId || "",
       iframeCode: relay.iframeCode || "",
-      adminUsername: user?.username || relay.adminUsername, // Current admin takes over or keeps original
+      adminUsername: user?.username || relay.adminUsername,
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -140,13 +141,12 @@ function AdminLiveRelayManager() {
       return;
     }
     setIsSubmitting(true);
-    // Ensure adminUsername is current authenticated admin
     const submissionValues = { ...values, adminUsername: user.username };
     const result = await saveRelayAction(submissionValues, editingRelayId || undefined);
 
     if (result.success) {
       toast({ title: "Success", description: result.message });
-      handleCancelEdit(); // Resets form and editingRelayId
+      handleCancelEdit(); 
       loadRelays();
     } else {
       toast({ variant: "destructive", title: "Error", description: result.message || "Failed to save relay." });
@@ -277,7 +277,7 @@ function UserLiveRelayViewer() {
       setDoc(userViewerRef, { joinedAt: serverTimestamp(), name: authUser.name || authUser.username })
         .catch(err => console.error("Error marking user active:", err));
       unsubPresence = () => {
-        if (currentRelay?.id && authUser?.username) { // Check again due to closure
+        if (currentRelay?.id && authUser?.username) { 
             deleteDoc(doc(db, "live_relays", currentRelay.id, "active_viewers", authUser.username))
                 .catch(err => console.error("Error removing user active status:", err));
         }
@@ -332,7 +332,7 @@ function UserLiveRelayViewer() {
 export default function LiveRelayPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { isAdminMode } = useAdminMode();
-  useEffect(() => { document.title = "Live Relay | Anjuman Hub"; }, []);
+  useEffect(() => { document.title = `Live Relay | ${siteConfig.name}`; }, []);
   if (authLoading) return <div className="flex flex-1 items-center justify-center p-4"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   return user?.isAdmin && isAdminMode ? <AdminLiveRelayManager /> : <UserLiveRelayViewer />;
 }

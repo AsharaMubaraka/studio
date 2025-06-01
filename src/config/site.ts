@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Bell, Globe, Youtube, Users, MessageSquarePlus } from 'lucide-react'; // Added MessageSquarePlus
+import { LayoutDashboard, Bell, Globe, Youtube, Users, MessageSquarePlus } from 'lucide-react';
 
 export type NavItemConfig = {
   title: string;
@@ -38,10 +38,8 @@ export const adminNavItems: NavItemConfig[] = [
     href: '/dashboard',
     icon: LayoutDashboard,
   },
-  // Replaced 'Notifications' (/announcements) with 'Send Notification' for main admin nav
-  // Admins can still access /announcements via the Bell icon in the AppShell header
   {
-    title: 'Send Notification', 
+    title: 'Send Notification',
     href: '/send-notification',
     icon: MessageSquarePlus,
   },
@@ -58,8 +56,6 @@ export const adminNavItems: NavItemConfig[] = [
 ];
 
 export const siteConfig = {
-  name: "Anjuman Hub",
-  description: "Community Hub for Anjuman Members.",
+  name: "Ashara Mubaraka",
+  description: "Community Hub for Ashara Mubaraka.",
 };
-
-    

@@ -13,13 +13,16 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, username, password, ipAddress, isAdmin } = requestBody;
+    const { name, username, password, ipAddress } = requestBody; // Removed isAdmin
 
     if (!name || !username || !password) {
       return NextResponse.json({ error: "Name, username, and password are required" }, { status: 400 });
     }
     if (username.length < 3) {
       return NextResponse.json({ error: "Username must be at least 3 characters" }, { status: 400 });
+    }
+    if (!/^[a-zA-Z0-9]+$/.test(username)) {
+      return NextResponse.json({ error: "Username can only contain letters and numbers" }, { status: 400 });
     }
     if (password.length < 6) {
       return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
@@ -37,8 +40,8 @@ export async function POST(request: Request) {
       username,
       password, // Storing password in plaintext is highly insecure. This should be hashed.
       ipAddress: ipAddress || null,
-      isAdmin: isAdmin || false,
-      isRestricted: false, // Default restriction status to false
+      isAdmin: false, // Default new users to not be admin
+      isRestricted: false,
       createdAt: new Date().toISOString(),
     });
 

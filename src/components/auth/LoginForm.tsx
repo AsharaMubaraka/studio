@@ -19,11 +19,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore"; // Added doc, getDoc
+import { doc, getDoc } from "firebase/firestore";
 import Link from "next/link";
+import { siteConfig } from "@/config/site";
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters."),
@@ -35,6 +36,7 @@ export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -47,7 +49,6 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      // Fetch user from Firestore using username as document ID
       const userDocRef = doc(db, "users", values.username);
       const userDocSnap = await getDoc(userDocRef);
 
@@ -63,7 +64,6 @@ export function LoginForm() {
 
       const user = userDocSnap.data();
 
-      // Validate password
       if (user.password !== values.password) {
         toast({
           variant: "destructive",
@@ -74,7 +74,6 @@ export function LoginForm() {
         return;
       }
 
-      // Check if user is restricted
       if (user.isRestricted) {
         toast({
           variant: "destructive",
@@ -85,7 +84,6 @@ export function LoginForm() {
         return;
       }
 
-      // Login successful
       const success = await login(values.username, values.password);
       setIsLoading(false);
       if (success) {
@@ -95,8 +93,6 @@ export function LoginForm() {
         });
         router.push(`/dashboard?name=${user.name}&username=${user.username}`);
       } else {
-        // This else might be redundant if login function itself handles Firestore fetch errors well
-        // but good as a fallback. AuthContext's login mostly handles localStorage now.
         toast({
           variant: "destructive",
           title: "Login Failed",
@@ -119,13 +115,13 @@ export function LoginForm() {
       <CardHeader className="items-center text-center">
         <Image
           src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png"
-          alt="Anjuman Hub Logo"
+          alt={siteConfig.name + " Logo"}
           width={80}
           height={80}
           className="mb-4 rounded-full"
           data-ai-hint="calligraphy logo"
         />
-        <CardTitle className="text-3xl font-bold">Anjuman Hub</CardTitle>
+        <CardTitle className="text-3xl font-bold">{siteConfig.name}</CardTitle>
         <CardDescription>Sign in to access your account</CardDescription>
       </CardHeader>
       <CardContent>
@@ -138,7 +134,7 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="your_username" {...field} />
+                    <Input placeholder="Enter your username" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -150,9 +146,26 @@ export function LoginForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
+                  <div className="relative">
+                    <FormControl>
+                      <Input 
+                        type={showPassword ? "text" : "password"} 
+                        placeholder="Enter your password" 
+                        {...field} 
+                        className="pr-10" // Add padding for the icon
+                      />
+                    </FormControl>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground" 
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
+                    </Button>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
