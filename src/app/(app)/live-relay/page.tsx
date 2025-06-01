@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format, parseISO, isWithinInterval, compareAsc, isPast } from "date-fns";
-import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2, HelpCircle, Users } from "lucide-react"; // Added Users icon
+import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2, HelpCircle, Users } from "lucide-react";
 import { saveRelayAction, deleteRelayAction, fetchRelays, type LiveRelay, type RelayFormValues } from "@/actions/relayActions";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import PlyrPlayer from '@/components/live-relay/PlyrPlayer';
+import { db } from "@/lib/firebase";
+import { doc, setDoc, deleteDoc, collection, onSnapshot, serverTimestamp, query as firestoreQuery, where, getDocs } from "firebase/firestore";
 
 const formSchema = z.object({
   name: z.string().min(2, "Miqaat name must be at least 2 characters.").max(100),
@@ -259,10 +261,14 @@ function AdminLiveRelayManager() {
 }
 
 function UserLiveRelayViewer() {
+  const { user: authUser } = useAuth();
   const [currentRelay, setCurrentRelay] = useState<LiveRelay | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewerCount, setViewerCount] = useState<number | string | null>(null);
+  const [inAppViewerCount, setInAppViewerCount] = useState<number | null>(null);
+
+  const now = new Date(); 
+  const isEventActive = currentRelay ? isWithinInterval(now, { start: currentRelay.startDate, end: new Date(currentRelay.endDate.getTime() + (24*60*60*1000 -1)) }) : false;
 
   useEffect(() => {
     async function loadAndSetRelay() {
@@ -276,11 +282,10 @@ function UserLiveRelayViewer() {
           return;
         }
 
-        const today = new Date();
-        const todayStartOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const todayStartOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
         const activeRelays = fetchedRelays.filter(relay =>
-          isWithinInterval(new Date(), { start: relay.startDate, end: new Date(relay.endDate.getTime() + (24*60*60*1000 -1)) })
+          isWithinInterval(now, { start: relay.startDate, end: new Date(relay.endDate.getTime() + (24*60*60*1000 -1)) })
         );
 
         let relayToDisplay: LiveRelay | null = null;
@@ -306,23 +311,50 @@ function UserLiveRelayViewer() {
       }
     }
     loadAndSetRelay();
-  }, []);
+  }, []); // Removed `now` from dependencies to avoid re-fetching relays constantly. `now` is now defined outside.
 
-  const now = new Date(); // Defined once per render
-  const isEventActive = currentRelay ? isWithinInterval(now, { start: currentRelay.startDate, end: new Date(currentRelay.endDate.getTime() + (24*60*60*1000 -1)) }) : false;
-  
+  // Effect for managing user presence in active_viewers
   useEffect(() => {
-    if (currentRelay && currentRelay.sourceType === 'youtube' && isEventActive) {
-        setViewerCount("Loading..."); 
-        const timer = setTimeout(() => {
-            setViewerCount("N/A (Backend required)");
-            console.warn("Live viewer count requires a backend API to securely call the YouTube Data API and avoid exposing API keys. This is a placeholder.");
-        }, 1500); // Simulate a short delay
-        return () => clearTimeout(timer);
-    } else {
-        setViewerCount(null); // Reset if not active or not YouTube
+    if (currentRelay && isEventActive && authUser?.username) {
+      const userViewerRef = doc(db, "live_relays", currentRelay.id, "active_viewers", authUser.username);
+      setDoc(userViewerRef, { 
+        joinedAt: serverTimestamp(), 
+        name: authUser.name || authUser.username 
+      })
+        .then(() => console.log(`User ${authUser.username} marked as active for relay ${currentRelay.id}`))
+        .catch(err => console.error("Error marking user active:", err));
+
+      return () => {
+        // Check currentRelay.id on cleanup because currentRelay might have changed or become null
+        // This explicit check ensures we are deleting from the correct path.
+        if (currentRelay?.id && authUser?.username) {
+            const relayIdForCleanup = currentRelay.id; // Capture id before potential change
+            const usernameForCleanup = authUser.username;
+            deleteDoc(doc(db, "live_relays", relayIdForCleanup, "active_viewers", usernameForCleanup))
+                .then(() => console.log(`User ${usernameForCleanup} removed as active from relay ${relayIdForCleanup}`))
+                .catch(err => console.error("Error removing user active status:", err));
+        }
+      };
     }
-  }, [currentRelay, isEventActive]);
+  }, [currentRelay, isEventActive, authUser]);
+
+  // Effect for listening to viewer count
+  useEffect(() => {
+    if (currentRelay) {
+      setInAppViewerCount(null); // Indicate loading
+      const viewersColRef = collection(db, "live_relays", currentRelay.id, "active_viewers");
+      const unsubscribe = onSnapshot(viewersColRef, (snapshot) => {
+        setInAppViewerCount(snapshot.size);
+      }, (err) => {
+        console.error("Error fetching viewer count:", err);
+        setInAppViewerCount(0); // Default to 0 on error
+      });
+
+      return () => unsubscribe();
+    } else {
+      setInAppViewerCount(0);
+    }
+  }, [currentRelay]);
 
 
   if (isLoading) {
@@ -356,7 +388,6 @@ function UserLiveRelayViewer() {
     );
   }
 
-  // Recalculate these based on currentRelay, as 'now' is stable within this render scope
   const isEventUpcoming = !isEventActive && compareAsc(currentRelay.startDate, now) > 0;
   const eventHasEnded = !isEventActive && !isEventUpcoming && isPast(currentRelay.endDate);
 
@@ -367,7 +398,7 @@ function UserLiveRelayViewer() {
           <CardTitle className="text-2xl md:text-3xl font-bold tracking-tight flex items-center">
             <PlayCircle className="mr-3 h-7 w-7 md:h-8 md:w-8 text-primary" /> {currentRelay.name}
           </CardTitle>
-          <CardDescription className="space-y-1.5 text-sm"> {/* Use space-y for stacking */}
+          <CardDescription className="space-y-1.5 text-sm">
             <div className="flex items-center gap-2 flex-wrap">
                 <CalendarDays className="h-4 w-4 text-muted-foreground"/>
                 <span className="text-muted-foreground">
@@ -377,10 +408,12 @@ function UserLiveRelayViewer() {
                 {isEventActive && <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">Live Now</span>}
                 {eventHasEnded && <span className="px-2 py-0.5 text-xs bg-muted text-muted-foreground rounded-full">Ended</span>}
             </div>
-            {isEventActive && currentRelay.sourceType === 'youtube' && viewerCount !== null && (
+            {isEventActive && (
                 <div className="flex items-center text-muted-foreground">
                     <Users className="mr-1.5 h-4 w-4" />
-                    <span>Live Viewers: {typeof viewerCount === 'number' ? viewerCount.toLocaleString() : viewerCount}</span>
+                    <span>
+                        App Viewers: {inAppViewerCount === null ? <Loader2 className="h-3 w-3 animate-spin inline-block ml-1" /> : (inAppViewerCount ?? 0).toLocaleString()}
+                    </span>
                 </div>
             )}
           </CardDescription>
