@@ -25,18 +25,18 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
-  manifest: '/manifest.json',
+  manifest: '/manifest.json', // Link to the manifest file
   icons: {
-    icon: '/favicon.ico', // Standard favicon at public/favicon.ico
-    apple: '/apple-touch-icon.png', // Standard apple touch icon at public/apple-touch-icon.png
-    // You can add more specific icon links here if needed, e.g.:
-    // { rel: 'icon', url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-    // { rel: 'icon', url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    icon: '/favicon.ico', // Standard favicon
+    apple: '/apple-touch-icon.png', // Standard apple touch icon
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'default', // Or 'black-translucent' or 'black'
     title: siteConfig.name,
+    // startupImage: [ // Optional: Define startup images for different devices
+    //   { url: '/splash/iphone5_splash.png', media: '(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)' },
+    // ]
   },
 };
 
@@ -58,6 +58,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* PWA specific meta tags added via metadata object now */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`} suppressHydrationWarning>
         <AuthProvider>
@@ -72,5 +73,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
