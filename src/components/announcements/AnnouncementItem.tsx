@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import Image from "next/image";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { formatWhatsAppTextToHtml } from "@/lib/utils"; // Added import
 
 export interface Announcement {
   id: string;
@@ -150,7 +151,7 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
       <CardContent className="pt-0 flex-grow" style={{cursor: onCardClick ? 'pointer' : 'default'}}>
         <div 
           className="text-sm leading-relaxed text-card-foreground/90"
-          dangerouslySetInnerHTML={{ __html: announcement.content.replace(/\n/g, '<br />') }} 
+          dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(announcement.content) }} 
         />
       </CardContent>
       {announcement.imageUrl && (

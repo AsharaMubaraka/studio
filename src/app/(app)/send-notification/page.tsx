@@ -40,6 +40,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
+import { formatWhatsAppTextToHtml } from "@/lib/utils"; // Added import
 
 const notificationFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
@@ -240,7 +241,7 @@ export default function SendNotificationPage() {
     content: watchedContent || "Sample content for the notification. Supports basic HTML.",
     date: new Date(),
     author: adminUser?.name || "Admin",
-    status: 'new',
+    status: 'new', // Preview status
     imageUrl: watchedImageUrl || undefined,
     imageHint: watchedTitle ? watchedTitle.split(" ").slice(0,2).join(" ") : "preview image"
   };
@@ -271,7 +272,7 @@ export default function SendNotificationPage() {
                 <FormItem>
                   <FormLabel>Notification Content</FormLabel>
                   <FormControl><Textarea placeholder="Enter notification content here..." className="min-h-[150px]" {...field} /></FormControl>
-                  <FormDescription>You can use basic HTML tags for formatting (e.g., &lt;b&gt;bold&lt;/b&gt;, &lt;br&gt;).</FormDescription>
+                  <FormDescription>Supports WhatsApp-style formatting (*bold*, _italic_, ~strikethrough~).</FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -328,7 +329,7 @@ export default function SendNotificationPage() {
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-grow">
                       <h3 className="font-semibold text-lg mb-1">{notification.title}</h3>
-                      <div className="text-sm text-muted-foreground whitespace-pre-line mb-2" dangerouslySetInnerHTML={{ __html: notification.content.replace(/\n/g, '<br />') }} />
+                      <div className="text-sm text-muted-foreground whitespace-pre-line mb-2" dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(notification.content) }} />
                       {notification.imageUrl && (<a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">View Image</a>)}
                     </div>
                     <div className="flex flex-col sm:flex-row gap-1 items-end sm:items-center shrink-0">
