@@ -16,12 +16,14 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // This effect ensures that when videoId changes, we reset loading/error states
-  // and prepare for a new player instance (if keying is used) or source update.
   useEffect(() => {
-    console.log(`PlyrPlayer: videoId prop updated or component mounted. New videoId: ${videoId}`);
+    console.log(`PlyrPlayer: Component instance for videoId "${videoId}" mounted or videoId changed.`);
     setIsLoading(true);
     setError(null);
+
+    return () => {
+      console.log(`PlyrPlayer: Component instance for videoId "${videoId}" unmounting.`);
+    };
   }, [videoId]);
 
   const plyrSource: PlyrProps['source'] | null = videoId ? {
@@ -35,10 +37,9 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
   } : null;
 
   const plyrOptions: PlyrProps['options'] = {
-    // autoplay: true, // Removing autoplay to see if it resolves initialization conflicts
+    // autoplay: false, // Keep autoplay off
     debug: process.env.NODE_ENV === 'development',
     events: ['ready', 'playing', 'error', 'enterfullscreen', 'exitfullscreen', 'canplay', 'loadstart'],
-    // Ensure controls are available if autoplay is off
     controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
   };
 
@@ -53,7 +54,6 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
     const player = plyrRef.current?.plyr;
     if (player) {
       console.log("PlyrPlayer: Player instance onReady:", player);
-      // If not autoplaying, user will need to click play.
     } else {
       console.warn("PlyrPlayer: Plyr instance not available onReady in ref.");
     }
@@ -143,7 +143,7 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
           onEnterFullscreen={handleEnterFullScreen}
           onExitFullscreen={handleExitFullScreen}
           onCanPlay={handleCanPlay}
-          onLoadStart={handleLoadStart} // Added loadstart
+          onLoadStart={handleLoadStart}
         />
       </div>
     </div>
@@ -151,5 +151,3 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
 };
 
 export default CustomPlyrPlayer;
-
-    
