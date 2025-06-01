@@ -25,12 +25,18 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
-  manifest: '/manifest.json', // Link to the web app manifest
-  appleWebApp: { // For iOS "Add to Home Screen"
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/favicon.ico', // Standard favicon at public/favicon.ico
+    apple: '/apple-touch-icon.png', // Standard apple touch icon at public/apple-touch-icon.png
+    // You can add more specific icon links here if needed, e.g.:
+    // { rel: 'icon', url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+    // { rel: 'icon', url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+  },
+  appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: siteConfig.name,
-    // startupImage: [...] // You can add startup images for iOS here
   },
 };
 
@@ -38,7 +44,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: [ // Theme color for browser UI
+  themeColor: [ 
     { media: '(prefers-color-scheme: light)', color: '#9f8a3e' },
     { media: '(prefers-color-scheme: dark)', color: '#bfa95e' },
   ],
@@ -66,3 +72,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

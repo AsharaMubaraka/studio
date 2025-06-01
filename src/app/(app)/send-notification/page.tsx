@@ -266,7 +266,6 @@ export default function SendNotificationPage() {
                 <FormItem>
                   <FormLabel>Notification Title</FormLabel>
                   <FormControl><Input placeholder="Enter notification title" {...field} /></FormControl>
-                  <FormDescription>Supports WhatsApp-style formatting (*bold*, _italic_, ~strikethrough~).</FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -274,7 +273,6 @@ export default function SendNotificationPage() {
                 <FormItem>
                   <FormLabel>Notification Content</FormLabel>
                   <FormControl><Textarea placeholder="Enter notification content here..." className="min-h-[150px]" {...field} /></FormControl>
-                  <FormDescription>Supports WhatsApp-style formatting (*bold*, _italic_, ~strikethrough~).</FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -282,7 +280,6 @@ export default function SendNotificationPage() {
                 <FormItem>
                   <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4" /> Image URL (Optional)</FormLabel>
                   <FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl>
-                  <FormDescription>Paste a direct link to an image. Ensure the host is allowed in `next.config.js`.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -368,3 +365,5 @@ export default function SendNotificationPage() {
     </div>
   );
 }
+
+    
