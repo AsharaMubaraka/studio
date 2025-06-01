@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatWhatsAppTextToHtml } from "@/lib/utils";
 
 interface DateInfo {
   monthYear: string;
@@ -274,7 +275,10 @@ export default function DashboardPage() {
             </div>
           ) : latestNotification ? (
             <>
-              <p className="font-semibold text-lg">{latestNotification.title}</p>
+              <p 
+                className="font-semibold text-lg" 
+                dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(latestNotification.title) }} 
+              />
               {latestNotification.imageUrl && (
                 <div className="my-3 aspect-video w-full max-w-md mx-auto relative overflow-hidden rounded-md border">
                   <Image
@@ -289,7 +293,7 @@ export default function DashboardPage() {
               )}
               <div 
                 className="whitespace-pre-line"
-                dangerouslySetInnerHTML={{ __html: latestNotification.content.replace(/\n/g, '<br />') }} 
+                dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(latestNotification.content) }} 
               />
               <div className="flex items-center text-xs text-muted-foreground pt-2">
                 <CalendarDays className="mr-2 h-4 w-4" />
@@ -307,6 +311,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-    
-
-    

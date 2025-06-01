@@ -40,7 +40,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
-import { formatWhatsAppTextToHtml } from "@/lib/utils"; // Added import
+import { formatWhatsAppTextToHtml } from "@/lib/utils";
 
 const notificationFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
@@ -265,6 +265,7 @@ export default function SendNotificationPage() {
                 <FormItem>
                   <FormLabel>Notification Title</FormLabel>
                   <FormControl><Input placeholder="Enter notification title" {...field} /></FormControl>
+                  <FormDescription>Supports WhatsApp-style formatting (*bold*, _italic_, ~strikethrough~).</FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -328,7 +329,10 @@ export default function SendNotificationPage() {
                 <div key={notification.id} className="p-4 border rounded-lg shadow-sm bg-card">
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-grow">
-                      <h3 className="font-semibold text-lg mb-1">{notification.title}</h3>
+                      <h3 
+                        className="font-semibold text-lg mb-1" 
+                        dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(notification.title) }} 
+                      />
                       <div className="text-sm text-muted-foreground whitespace-pre-line mb-2" dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(notification.content) }} />
                       {notification.imageUrl && (<a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">View Image</a>)}
                     </div>

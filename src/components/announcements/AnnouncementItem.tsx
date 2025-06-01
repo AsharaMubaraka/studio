@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import Image from "next/image";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { formatWhatsAppTextToHtml } from "@/lib/utils"; // Added import
+import { formatWhatsAppTextToHtml } from "@/lib/utils";
 
 export interface Announcement {
   id: string;
@@ -140,7 +140,11 @@ export function AnnouncementItem({ announcement, onCardClick }: AnnouncementItem
       )}
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-xl font-semibold" style={{cursor: onCardClick ? 'pointer' : 'default'}}>{announcement.title}</CardTitle>
+          <CardTitle 
+            className="text-xl font-semibold" 
+            style={{cursor: onCardClick ? 'pointer' : 'default'}}
+            dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(announcement.title) }}
+          />
           <StatusIndicator status={announcement.status} />
         </div>
         <CardDescription className="flex items-center text-xs text-muted-foreground pt-1">
