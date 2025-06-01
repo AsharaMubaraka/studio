@@ -62,6 +62,6 @@ export const adminNavItems: NavItemConfig[] = [
 
 export const siteConfig = {
   name: "Ashara Mubaraka",
-  description: "Community Hub for Ashara Mubaraka.",
+  description: "Ashara Mubaraka Official application for communication and better view",
   defaultLogoUrl: "https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png",
 };
