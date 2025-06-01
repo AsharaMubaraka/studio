@@ -15,7 +15,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   useSidebar,
-  SidebarTrigger, // Added SidebarTrigger here
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
@@ -110,11 +110,13 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   const isWebViewPage = pathname === '/web-view';
-  const mainContentClasses = cn(
-    "flex-1 overflow-y-auto",
+
+  // This div wraps the children.
+  const contentWrapperClasses = cn(
+    "flex-1 overflow-y-auto", // Grow and allow its own content to scroll
     {
       "p-4 md:p-6 lg:p-8 pb-24 md:pb-8": !isWebViewPage, // Standard padding for other pages
-      // No padding for web-view page, it will fill its container
+      // For web-view, no padding from this wrapper. The web-view page itself will be h-full.
     }
   );
 
@@ -130,7 +132,7 @@ export function AppShell({ children }: AppShellProps) {
           </ScrollArea>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset className="flex flex-col min-h-screen">
+      <SidebarInset className="flex flex-col min-h-screen"> {/* Parent flex column */}
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" /> {/* Trigger for mobile */}
@@ -140,18 +142,18 @@ export function AppShell({ children }: AppShellProps) {
             <UserProfileMenu />
           </div>
         </header>
-        <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
+        <div className="decorative-border-repeat decorative-border-repeat-h20"></div> {/* Top border */}
 
-        <main className="flex flex-col flex-1 bg-transparent text-foreground relative">
-          <div className={mainContentClasses}>
+        {/* Main content area + mobile bottom border */}
+        <main className="flex flex-col flex-1 bg-transparent text-foreground"> {/* flex-1 to grow, flex-col for content + border */}
+          <div className={contentWrapperClasses}> {/* This is where children (web-view) go. It's flex-1 */}
             {children}
           </div>
-          {!isWebViewPage && ( /* Only show bottom decorative border if not webview and on mobile */
-            <div className="absolute bottom-16 left-0 right-0 md:hidden decorative-border-repeat decorative-border-repeat-h20"></div>
-          )}
+          {/* Bottom decorative border for mobile, always shown if mobile */}
+          <div className="md:hidden decorative-border-repeat decorative-border-repeat-h20"></div>
         </main>
 
-        <BottomNav />
+        <BottomNav /> {/* Fixed position, overlays if not accounted for */}
       </SidebarInset>
     </SidebarProvider>
   );
