@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon } from "lucide-react";
+import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon, Pencil, XCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { saveNotificationAction, deleteNotificationAction } from "@/actions/notificationActions";
 import type { NotificationFormValues } from "@/actions/notificationActions";
@@ -53,6 +53,7 @@ interface PostedNotification {
   content: string;
   createdAt: Date;
   authorName?: string;
+  authorId?: string;
   imageUrl?: string;
   readByUserIds?: string[];
 }
@@ -61,6 +62,7 @@ export default function SendNotificationPage() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user: adminUser, isAuthenticated } = useAuth();
+  const [editingNotificationId, setEditingNotificationId] = useState<string | null>(null);
 
   const [postedNotifications, setPostedNotifications] = useState<PostedNotification[]>([]);
   const [isLoadingLog, setIsLoadingLog] = useState(true);
@@ -85,7 +87,7 @@ export default function SendNotificationPage() {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (isDirty) {
         event.preventDefault();
-        event.returnValue = ''; // Required for Chrome
+        event.returnValue = ''; 
       }
     };
 
@@ -110,6 +112,7 @@ export default function SendNotificationPage() {
           content: data.content || "No Content",
           createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
           authorName: data.authorName,
+          authorId: data.authorId,
           imageUrl: data.imageUrl,
           readByUserIds: (data.readByUserIds as string[] | undefined) || [],
         };
@@ -130,12 +133,27 @@ export default function SendNotificationPage() {
     }
   }, [adminUser, fetchPostedNotifications]);
 
+  const handleEditNotification = (notification: PostedNotification) => {
+    setEditingNotificationId(notification.id);
+    form.reset({
+      title: notification.title,
+      content: notification.content,
+      imageUrl: notification.imageUrl || "",
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNotificationId(null);
+    form.reset({ title: "", content: "", imageUrl: "" });
+  };
+
   async function onSubmit(values: NotificationFormValues) {
     if (!adminUser?.username || !adminUser?.isAdmin) {
         toast({
             variant: "destructive",
             title: "Unauthorized",
-            description: "You are not authorized to send notifications.",
+            description: "You are not authorized to perform this action.",
         });
         return;
     }
@@ -144,14 +162,16 @@ export default function SendNotificationPage() {
     try {
       const result = await saveNotificationAction(
         { title: values.title, content: values.content, imageUrl: values.imageUrl || undefined },
-        {id: adminUser.username, name: adminUser.name}
+        {id: adminUser.username, name: adminUser.name},
+        editingNotificationId || undefined
       );
       if (result.success) {
           toast({
               title: "Success",
               description: result.message,
           });
-          form.reset(); // Reset form, which also sets isDirty to false
+          form.reset({ title: "", content: "", imageUrl: "" });
+          setEditingNotificationId(null);
           fetchPostedNotifications(); 
       } else {
           toast({
@@ -165,7 +185,7 @@ export default function SendNotificationPage() {
       toast({
         variant: "destructive",
         title: "Submission Error",
-        description: error.message || "An unexpected error occurred while sending the notification.",
+        description: error.message || "An unexpected error occurred.",
       });
     } finally {
       setIsSubmitting(false);
@@ -217,89 +237,64 @@ export default function SendNotificationPage() {
   const previewAnnouncement: Announcement = {
     id: 'preview',
     title: watchedTitle || "Sample Title",
-    content: watchedContent || "Sample content for the notification. Supports basic HTML like <b>bold</b>.",
+    content: watchedContent || "Sample content for the notification. Supports basic HTML.",
     date: new Date(),
     author: adminUser?.name || "Admin",
-    status: 'new', // Preview status
+    status: 'new',
     imageUrl: watchedImageUrl || undefined,
     imageHint: watchedTitle ? watchedTitle.split(" ").slice(0,2).join(" ") : "preview image"
   };
-
 
   return (
     <div className="space-y-8 animate-fadeIn">
       <Card className="shadow-lg w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="text-2xl font-bold tracking-tight flex items-center">
-            <MessageSquarePlus className="mr-3 h-8 w-8 text-primary" /> Send Notification
+            <MessageSquarePlus className="mr-3 h-8 w-8 text-primary" /> 
+            {editingNotificationId ? "Edit Notification" : "Send Notification"}
           </CardTitle>
           <CardDescription>
-            Compose and send a new notification. You can include an image by providing its URL.
+            {editingNotificationId ? "Modify the details of the existing notification." : "Compose and send a new notification. You can include an image by providing its URL."}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notification Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter notification title" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="content"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notification Content</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Enter notification content here..."
-                        className="min-h-[150px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      You can use basic HTML tags for formatting (e.g., &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;, &lt;u&gt;underline&lt;/u&gt;, &lt;br&gt; for line breaks).
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="imageUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center">
-                      <ImageIcon className="mr-2 h-4 w-4" /> Image URL (Optional)
-                    </FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://example.com/image.png" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Paste a direct link to an image. Ensure the image is publicly accessible and the hostname is allowed in `next.config.js`.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="title" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notification Title</FormLabel>
+                  <FormControl><Input placeholder="Enter notification title" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="content" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notification Content</FormLabel>
+                  <FormControl><Textarea placeholder="Enter notification content here..." className="min-h-[150px]" {...field} /></FormControl>
+                  <FormDescription>You can use basic HTML tags for formatting (e.g., &lt;b&gt;bold&lt;/b&gt;, &lt;br&gt;).</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="imageUrl" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4" /> Image URL (Optional)</FormLabel>
+                  <FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl>
+                  <FormDescription>Paste a direct link to an image. Ensure the host is allowed in `next.config.js`.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )} />
               
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <MessageSquarePlus className="mr-2 h-4 w-4" />
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-grow" disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingNotificationId ? <Pencil className="mr-2 h-4 w-4" /> : <MessageSquarePlus className="mr-2 h-4 w-4" />)}
+                  {isSubmitting ? (editingNotificationId ? "Updating..." : "Sending...") : (editingNotificationId ? "Update Notification" : "Send Notification")}
+                </Button>
+                {editingNotificationId && (
+                  <Button type="button" variant="outline" onClick={handleCancelEdit} disabled={isSubmitting}>
+                    <XCircle className="mr-2 h-4 w-4" /> Cancel Edit
+                  </Button>
                 )}
-                {isSubmitting ? "Sending..." : "Send Notification"}
-              </Button>
+              </div>
             </form>
           </Form>
         </CardContent>
@@ -307,9 +302,7 @@ export default function SendNotificationPage() {
 
       <Card className="shadow-lg w-full max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-xl font-semibold tracking-tight flex items-center">
-            <Eye className="mr-3 h-6 w-6 text-primary" /> Live Preview
-          </CardTitle>
+          <CardTitle className="text-xl font-semibold tracking-tight flex items-center"><Eye className="mr-3 h-6 w-6 text-primary" /> Live Preview</CardTitle>
         </CardHeader>
         <CardContent>
           <AnnouncementItem announcement={previewAnnouncement} onCardClick={() => {}} />
@@ -318,80 +311,46 @@ export default function SendNotificationPage() {
 
       <Card className="shadow-lg w-full max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-xl font-semibold tracking-tight flex items-center">
-            <ListChecks className="mr-3 h-7 w-7 text-primary" /> Posted Notifications Log
-          </CardTitle>
-          <CardDescription>
-            List of all active notifications. Newest first.
-          </CardDescription>
+          <CardTitle className="text-xl font-semibold tracking-tight flex items-center"><ListChecks className="mr-3 h-7 w-7 text-primary" /> Posted Notifications Log</CardTitle>
+          <CardDescription>List of all active notifications. Newest first.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoadingLog ? (
-            <div className="space-y-4">
-              {[1,2,3].map(i => (
-                <div key={i} className="p-4 border rounded-md space-y-2 bg-muted/50">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-5/6" />
-                  <Skeleton className="h-3 w-1/2 mt-1" />
-                </div>
-              ))}
-            </div>
+            <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-28 w-full" />)}</div>
           ) : logError ? (
-            <div className="p-4 border rounded-md bg-destructive/10 text-destructive">
-              <h4 className="font-semibold mb-1">Error Loading Log</h4>
-              <p className="text-sm">{logError}</p>
-            </div>
+            <div className="p-4 border rounded-md bg-destructive/10 text-destructive"><h4 className="font-semibold mb-1">Error Loading Log</h4><p className="text-sm">{logError}</p></div>
           ) : postedNotifications.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">No notifications have been posted yet.</p>
           ) : (
             <div className="space-y-6">
               {postedNotifications.map((notification) => (
                 <div key={notification.id} className="p-4 border rounded-lg shadow-sm bg-card">
-                  <div className="flex justify-between items-start">
-                    <div>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-grow">
                       <h3 className="font-semibold text-lg mb-1">{notification.title}</h3>
-                      <div 
-                        className="text-sm text-muted-foreground whitespace-pre-line mb-2"
-                        dangerouslySetInnerHTML={{ __html: notification.content.replace(/\n/g, '<br />') }} 
-                      />
-                      {notification.imageUrl && (
-                        <a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
-                          View/Download Image
-                        </a>
-                      )}
+                      <div className="text-sm text-muted-foreground whitespace-pre-line mb-2" dangerouslySetInnerHTML={{ __html: notification.content.replace(/\n/g, '<br />') }} />
+                      {notification.imageUrl && (<a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">View Image</a>)}
                     </div>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={isDeleting === notification.id}>
-                          {isDeleting === notification.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the notification titled "{notification.title}".
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteNotification(notification.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <div className="flex flex-col sm:flex-row gap-1 items-end sm:items-center shrink-0">
+                       <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10" onClick={() => handleEditNotification(notification)} disabled={isSubmitting || isDeleting === notification.id}>
+                         <Pencil className="h-4 w-4" />
+                       </Button>
+                       <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={isDeleting === notification.id || isSubmitting}>
+                            {isDeleting === notification.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{notification.title}".</AlertDialogDescription></AlertDialogHeader>
+                          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteNotification(notification.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                   <Separator className="my-2"/>
                   <div className="flex justify-between items-center text-xs text-muted-foreground">
-                    <div className="flex items-center">
-                      <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
-                       Posted: {format(notification.createdAt, "MMM d, yyyy, h:mm a")} by {notification.authorName || 'Admin'}
-                    </div>
+                    <div className="flex items-center"><CalendarClock className="mr-1.5 h-3.5 w-3.5" /> Posted: {format(notification.createdAt, "MMM d, yyyy, h:mm a")} by {notification.authorName || 'Admin'}</div>
                     <span className="italic">Read by: {notification.readByUserIds?.length || 0} user(s)</span>
                   </div>
                 </div>
@@ -403,6 +362,3 @@ export default function SendNotificationPage() {
     </div>
   );
 }
-    
-
-    
