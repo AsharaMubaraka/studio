@@ -13,7 +13,7 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function WebViewPage() {
-  const [configuredUrl, setConfiguredUrl] = useState<string | null | undefined>(undefined); // undefined means initial loading state
+  const [configuredUrl, setConfiguredUrl] = useState<string | null | undefined>(undefined);
   const [iframeError, setIframeError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
@@ -21,7 +21,7 @@ export default function WebViewPage() {
   const loadUrl = useCallback(async () => {
     setIsLoading(true);
     setIframeError(null);
-    setConfiguredUrl(undefined); // Reset before fetching
+    setConfiguredUrl(undefined);
     try {
       const settings = await fetchAppSettings();
       const urlToLoad = settings?.webViewUrl || null;
@@ -29,7 +29,7 @@ export default function WebViewPage() {
     } catch (error: any) {
       console.error("Error fetching app settings for web-view:", error);
       setIframeError(`Failed to load app settings: ${error.message}`);
-      setConfiguredUrl(null); // Ensure it's null on error
+      setConfiguredUrl(null);
     } finally {
       setIsLoading(false);
     }
@@ -49,12 +49,11 @@ export default function WebViewPage() {
 
   const pageContainerClasses = cn(
     "animate-fadeIn h-full",
-    (iframeError || (configuredUrl === null && !isLoading)) // Show centered message if error or configuredUrl is explicitly null (not undefined)
+    (iframeError || (configuredUrl === null && !isLoading))
       ? "flex flex-col items-center justify-center p-4"
       : "flex flex-col -mx-4 md:-mx-6 lg:-mx-8"
   );
 
-  // Diagnostic Info Display
   const DiagnosticInfo = () => (
     <Card className="fixed bottom-4 right-4 bg-background/80 backdrop-blur-sm p-3 text-xs shadow-xl z-50 max-w-sm w-full border border-destructive">
       <CardHeader className="p-2 pb-1">
@@ -72,7 +71,7 @@ export default function WebViewPage() {
     <>
       <DiagnosticInfo />
       <div className={pageContainerClasses}>
-        {isLoading && configuredUrl === undefined ? ( // Initial loading state
+        {isLoading && configuredUrl === undefined ? (
           <div className="flex flex-1 items-center justify-center p-4">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
           </div>
@@ -82,24 +81,23 @@ export default function WebViewPage() {
             <AlertTitle>Error Loading Page</AlertTitle>
             <AlertDescription>{iframeError}</AlertDescription>
           </Alert>
-        ) : configuredUrl && configuredUrl.trim() !== "" ? ( // URL is configured and not just whitespace
-          <div className="flex-grow w-full relative">
+        ) : configuredUrl && configuredUrl.trim() !== "" ? (
+          <div className="flex-grow w-full relative bg-red-200"> {/* DEBUG: Added red background */}
             <iframe
-              key={configuredUrl} // Re-mounts iframe if URL changes
+              key={configuredUrl} 
               src={configuredUrl}
               title="Embedded Web View"
-              className="absolute top-0 left-0 h-full w-full border-0"
+              className="absolute top-0 left-0 h-full w-full border-8 border-green-500" // DEBUG: Added thick green border
               onError={handleIframeError}
               onLoad={() => {
-                // Consider if clearing error here is always correct.
-                // If the loaded page is an error page from the server, onLoad still fires.
-                // For now, let's keep it to clear network-level errors caught by `onError`.
-                // setIframeError(null); // Potentially problematic, let's keep error if it was set by onError
+                // Cleared to avoid showing stale error if a subsequent load is successful.
+                // However, if the loaded page is itself an error page from the server,
+                // this might hide the fact. For now, keep it.
+                // setIframeError(null); 
               }}
-              // sandbox attribute removed for diagnostics
             />
           </div>
-        ) : ( // No URL configured or an error occurred fetching settings
+        ) : (
           <Card className="shadow-lg w-full max-w-lg text-center">
             <CardHeader>
               <CardTitle className="flex items-center justify-center text-xl">
