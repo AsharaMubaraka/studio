@@ -15,6 +15,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   useSidebar,
+  SidebarTrigger, // Added SidebarTrigger here
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
@@ -24,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import { useEffect, useState } from "react";
 import { fetchAppSettings } from "@/actions/settingsActions";
-import type { AppSettings } from "@/lib/schemas/settingsSchemas"; // Updated import
+import type { AppSettings } from "@/lib/schemas/settingsSchemas";
 
 interface AppShellProps {
   children: ReactNode;
@@ -108,6 +109,14 @@ export function AppShell({ children }: AppShellProps) {
       if (homeItem) currentTitle = homeItem.title;
   }
 
+  const isWebViewPage = pathname === '/web-view';
+  const mainContentClasses = cn(
+    "flex-1 overflow-y-auto",
+    {
+      "p-4 md:p-6 lg:p-8 pb-24 md:pb-8": !isWebViewPage, // Standard padding for other pages
+      // No padding for web-view page, it will fill its container
+    }
+  );
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -124,6 +133,7 @@ export function AppShell({ children }: AppShellProps) {
       <SidebarInset className="flex flex-col min-h-screen">
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
+            <SidebarTrigger className="md:hidden" /> {/* Trigger for mobile */}
             <h1 className="text-xl font-bold text-nav-foreground truncate">{currentTitle}</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -133,10 +143,12 @@ export function AppShell({ children }: AppShellProps) {
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
 
         <main className="flex flex-col flex-1 bg-transparent text-foreground relative">
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-8">
+          <div className={mainContentClasses}>
             {children}
           </div>
-          <div className="absolute bottom-16 left-0 right-0 md:hidden decorative-border-repeat decorative-border-repeat-h20"></div>
+          {!isWebViewPage && ( /* Only show bottom decorative border if not webview and on mobile */
+            <div className="absolute bottom-16 left-0 right-0 md:hidden decorative-border-repeat decorative-border-repeat-h20"></div>
+          )}
         </main>
 
         <BottomNav />

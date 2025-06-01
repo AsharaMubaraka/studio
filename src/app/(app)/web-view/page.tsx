@@ -26,8 +26,7 @@ export default function WebViewPage() {
       const settings = await fetchAppSettings();
       const urlToLoad = settings?.webViewUrl || null;
       setConfiguredUrl(urlToLoad);
-    } catch (error: any) {
-      console.error("Error fetching app settings for web-view:", error);
+    } catch (error: any)      console.error("Error fetching app settings for web-view:", error);
       setIframeError(`Failed to load app settings: ${error.message}`);
       setConfiguredUrl(null);
     } finally {
@@ -43,14 +42,14 @@ export default function WebViewPage() {
   const handleIframeError = (event: React.SyntheticEvent<HTMLIFrameElement, Event>) => {
     console.error("Iframe native onError event triggered:", event);
     setIframeError(
-      `The browser encountered an error trying to load the content from ${configuredUrl}. This could be a network issue, or the website might be down or blocking requests. Please check the URL and try again.`
+      `The browser encountered an error trying to load the content from ${configuredUrl}. This could be due to network issues, the website might be down, or it might be blocking embedding (e.g., via X-Frame-Options header). Please check the URL and try again, or ensure the target site permits embedding.`
     );
   };
 
   const DiagnosticInfo = () => (
-    <Card className="fixed bottom-4 right-4 bg-background/80 backdrop-blur-sm p-3 text-xs shadow-xl z-50 max-w-sm w-full border border-destructive">
+    <Card className="fixed bottom-4 right-4 bg-background/80 backdrop-blur-sm p-3 text-xs shadow-xl z-50 max-w-sm w-full border border-input">
       <CardHeader className="p-2 pb-1">
-        <CardTitle className="text-sm font-semibold text-destructive flex items-center"><Info className="mr-2 h-4 w-4"/>Diagnostic Info</CardTitle>
+        <CardTitle className="text-sm font-semibold text-foreground flex items-center"><Info className="mr-2 h-4 w-4"/>Diagnostic Info</CardTitle>
       </CardHeader>
       <CardContent className="p-2 text-xs space-y-1">
         <p><strong>Is Loading:</strong> {isLoading ? "Yes" : "No"}</p>
@@ -62,61 +61,69 @@ export default function WebViewPage() {
 
   return (
     <>
-      <DiagnosticInfo />
       <div
         id="page-container"
-        className="flex flex-col flex-1 bg-blue-400"
+        className="h-full w-full flex flex-col" // Fill available space, enable flex column
       >
-        <div
-          id="iframe-wrapper"
-          className="flex-1 bg-red-500"
-        >
-          {configuredUrl && configuredUrl.trim() !== "" && !iframeError ? (
+        {isLoading && configuredUrl === undefined && (
+          <div className="flex flex-1 items-center justify-center">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+          </div>
+        )}
+
+        {!isLoading && iframeError && (
+          <div className="flex flex-1 items-center justify-center p-4">
+            <Alert variant="destructive" className="shadow-md w-full max-w-lg">
+              <AlertCircle className="h-5 w-5" />
+              <AlertTitle>Error Loading Page</AlertTitle>
+              <AlertDescription>{iframeError}</AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {!isLoading && !iframeError && !configuredUrl && (
+           <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="shadow-lg w-full max-w-lg text-center">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-center text-xl">
+                  <Globe className="mr-2 h-6 w-6 text-primary" /> Web View Not Configured
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground">
+                  The URL for the web view has not been set up.
+                </p>
+                {user?.isAdmin && (
+                  <Button asChild>
+                    <Link href="/settings">
+                      <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
+                    </Link>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        
+        {/* Iframe container takes remaining space if URL is configured and no errors */}
+        {!isLoading && configuredUrl && !iframeError && (
+          <div id="iframe-wrapper" className="flex-1"> {/* flex-1 makes this div take available space */}
             <iframe
-              key={configuredUrl}
+              key={configuredUrl} 
               src={configuredUrl}
               title="Embedded Web View"
-              className="h-full w-full border-8 border-green-500"
+              className="h-full w-full border-0" // Fill wrapper, no border
               onError={handleIframeError}
               onLoad={() => {
                 console.log("Iframe onLoad triggered for:", configuredUrl);
+                // Clear error if a previous load failed but this one succeeded
+                if(iframeError) setIframeError(null);
               }}
             />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-              {isLoading && configuredUrl === undefined ? (
-                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
-              ) : iframeError ? (
-                <Alert variant="destructive" className="shadow-md w-full max-w-lg m-auto">
-                  <AlertCircle className="h-5 w-5" />
-                  <AlertTitle>Error Loading Page</AlertTitle>
-                  <AlertDescription>{iframeError}</AlertDescription>
-                </Alert>
-              ) : (
-                <Card className="shadow-lg w-full max-w-lg text-center m-auto">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-center text-xl">
-                      <Globe className="mr-2 h-6 w-6 text-primary" /> Web View Not Configured
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-muted-foreground">
-                      The URL for the web view has not been set up, or there was an issue loading the settings.
-                    </p>
-                    {user?.isAdmin && (
-                      <Button asChild>
-                        <Link href="/settings">
-                          <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
-                        </Link>
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+      <DiagnosticInfo />
     </>
   );
 }
