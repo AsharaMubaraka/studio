@@ -1,21 +1,21 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Globe, Link as LinkIcon, Loader2, AlertCircle } from "lucide-react";
-import { siteConfig } from "@/config/site";
+import { useState, useEffect, useRef } from "react";
+import { useAppSettings } from "@/hooks/useAppSettings"; // Ensure this path is correct
+import { Loader2, AlertCircle, Globe, Link as LinkIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { useAppSettings } from "@/hooks/useAppSettings"; // Changed
+import { siteConfig } from "@/config/site";
 
 export default function WebViewPage() {
-  const { settings: appSettings, isLoading: isLoadingSettings } = useAppSettings();
+  const { settings, isLoading: isLoadingSettings } = useAppSettings();
   const [configuredUrl, setConfiguredUrl] = useState<string | null | undefined>(undefined);
   const [iframeError, setIframeError] = useState<string | null>(null);
   const { user } = useAuth();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     document.title = `Web View | ${siteConfig.name}`;
@@ -23,46 +23,72 @@ export default function WebViewPage() {
 
   useEffect(() => {
     if (!isLoadingSettings) {
-        const urlToLoad = appSettings?.webViewUrl || null;
-        setConfiguredUrl(urlToLoad);
-        if (urlToLoad) setIframeError(null); // Reset error if new URL is loaded
+      const urlToLoad = settings?.webViewUrl || null;
+      setConfiguredUrl(urlToLoad);
+      if (urlToLoad) {
+        setIframeError(null); // Reset error if a new URL is loaded
+      }
     }
-  }, [appSettings, isLoadingSettings]);
+  }, [settings, isLoadingSettings]);
 
+  const handleIframeLoad = () => {
+    // console.log("Iframe loaded:", configuredUrl);
+    setIframeError(null); // Clear any previous error on successful load
+  };
 
-  const handleIframeError = (event: React.SyntheticEvent<HTMLIFrameElement, Event>) => {
-    console.error("Iframe native onError event triggered:", event);
+  const handleIframeErrorEvent = (e: React.SyntheticEvent<HTMLIFrameElement, Event>) => {
+    console.error("Iframe native onError event triggered:", e);
     setIframeError(
-      `The browser encountered an error trying to load content from ${configuredUrl}. This could be due to network issues, the website might be down, or it might be blocking embedding (e.g., via X-Frame-Options header). Please check the URL and try again, or ensure the target site permits embedding.`
+      `The browser reported an error loading content from ${configuredUrl}. This could be due to network issues, the website might be down, or it might be blocking embedding (e.g., via X-Frame-Options or CSP).`
     );
   };
-  
-  // Derived loading state for the page content
+
   const pageIsLoading = isLoadingSettings || configuredUrl === undefined;
 
   return (
+    // Changed h-full to flex-1 to make this container grow as a flex item
     <div
       id="page-container"
-      className="h-full w-full flex flex-col bg-transparent"
+      className="flex flex-col flex-1 w-full bg-transparent" 
     >
-      {pageIsLoading && (
+      {pageIsLoading && !configuredUrl && (
         <div className="flex flex-1 items-center justify-center">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
         </div>
       )}
 
-      {!pageIsLoading && iframeError && configuredUrl && ( // Show error only if a URL was attempted
+      {!pageIsLoading && iframeError && configuredUrl && (
         <div className="flex flex-1 items-center justify-center p-4">
-          <Alert variant="destructive" className="shadow-md w-full max-w-lg">
-            <AlertCircle className="h-5 w-5" />
-            <AlertTitle>Error Loading Page</AlertTitle>
-            <AlertDescription>{iframeError}</AlertDescription>
-          </Alert>
+          <Card className="shadow-md w-full max-w-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-center text-xl">
+                <AlertCircle className="mr-2 h-6 w-6 text-destructive" /> Error Loading Content
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-muted-foreground">
+                Could not load the page from:
+                <br />
+                <code className="text-sm bg-muted p-1 rounded">{configuredUrl}</code>
+              </p>
+              <p className="text-sm text-destructive">{iframeError}</p>
+              <p className="text-xs text-muted-foreground pt-2">
+                Please ensure the URL is correct and the external website allows embedding. Some websites (like Google, Facebook) explicitly block being embedded in iframes.
+              </p>
+              {user?.isAdmin && (
+                <Button asChild variant="outline" className="mt-4">
+                  <Link href="/settings">
+                    <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
+                  </Link>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      {!pageIsLoading && !configuredUrl && !iframeError && ( // No URL configured, and no previous error
-         <div className="flex flex-1 items-center justify-center p-4">
+      {!pageIsLoading && !configuredUrl && !iframeError && (
+        <div className="flex flex-1 items-center justify-center p-4">
           <Card className="shadow-lg w-full max-w-lg text-center">
             <CardHeader>
               <CardTitle className="flex items-center justify-center text-xl">
@@ -85,19 +111,18 @@ export default function WebViewPage() {
         </div>
       )}
       
-      {!pageIsLoading && configuredUrl && !iframeError && (
-        <div id="iframe-wrapper" className="flex-1 h-full w-full">
+      {/* Iframe container - uses flex-1 to take available space from its flex-col parent */}
+      {configuredUrl && !iframeError && (
+        <div id="iframe-wrapper" className="flex-1">
           <iframe
-            key={configuredUrl} 
+            ref={iframeRef}
+            key={configuredUrl} // Re-renders iframe if URL changes
             src={configuredUrl}
             title="Embedded Web View"
-            className="h-full w-full border-0"
-            onError={handleIframeError}
-            onLoad={() => {
-              if (iframeError) setIframeError(null); 
-            }}
-            // sandbox attribute removed for broader compatibility as per earlier steps,
-            // but consider re-adding with specific permissions if security is a concern for known embeddable sites.
+            className="h-full w-full border-0" // Fills its parent
+            onLoad={handleIframeLoad}
+            onError={handleIframeErrorEvent}
+            // sandbox attribute removed for broader compatibility, was:
             // sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-presentation"
           />
         </div>
