@@ -21,7 +21,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Loader2, Settings, Link as LinkIcon, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { updateAppSettingsAction, fetchAppSettings } from "@/actions/settingsActions";
-import { appSettingsSchema, type AppSettingsFormValues } from "@/lib/schemas/settingsSchemas"; // Updated import
+import { appSettingsSchema, type AppSettingsFormValues } from "@/lib/schemas/settingsSchemas";
 import { siteConfig } from "@/config/site";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -33,7 +33,7 @@ export default function AppSettingsPage() {
   const { user, isAuthenticated } = useAuth();
 
   const form = useForm<AppSettingsFormValues>({
-    resolver: zodResolver(appSettingsSchema), // Use schema from new location
+    resolver: zodResolver(appSettingsSchema),
     defaultValues: {
       webViewUrl: "",
       logoUrl: "",
@@ -57,9 +57,9 @@ export default function AppSettingsPage() {
         updateLogoOnProfileAvatar: settings.logoUrl ? !!settings.updateLogoOnProfileAvatar : false,
       });
     } else {
-      form.reset({ 
-        webViewUrl: "", 
-        logoUrl: "", 
+      form.reset({
+        webViewUrl: "",
+        logoUrl: "",
         updateLogoOnLogin: false,
         updateLogoOnSidebar: false,
         updateLogoOnProfileAvatar: false,
@@ -84,7 +84,7 @@ export default function AppSettingsPage() {
     const result = await updateAppSettingsAction(values);
     if (result.success) {
       toast({ title: "Success", description: result.message });
-      loadSettings(); 
+      loadSettings();
     } else {
       toast({ variant: "destructive", title: "Error", description: result.message || "Failed to update settings." });
       if (result.errors) {
@@ -132,7 +132,7 @@ export default function AppSettingsPage() {
                 <FormField control={form.control} name="webViewUrl" render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center text-base"><LinkIcon className="mr-2 h-5 w-5" /> Web View URL</FormLabel>
-                    <FormControl><Input placeholder="https://example.com" {...field} /></FormControl>
+                    <FormControl><Input placeholder="https://example.com" {...field} value={field.value || ""} /></FormControl>
                     <FormDescription>The URL to display in the 'Website' tab. Leave empty to show no page.</FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -144,37 +144,35 @@ export default function AppSettingsPage() {
                   <FormField control={form.control} name="logoUrl" render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center text-base"><ImageIcon className="mr-2 h-5 w-5" /> Application Logo URL</FormLabel>
-                      <FormControl><Input placeholder="https://example.com/logo.png" {...field} /></FormControl>
+                      <FormControl><Input placeholder="https://example.com/logo.png" {...field} value={field.value || ""} /></FormControl>
                       <FormDescription>
-                        URL for the custom application logo. If empty, a default logo (<code>{siteConfig.defaultLogoUrl}</code>) will be used everywhere (unless overridden by the checkboxes below).
+                        URL for the custom application logo. If empty, a default logo (<code>{siteConfig.defaultLogoUrl}</code>) will be used where selected.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )} />
 
-                  {watchedLogoUrl && (
-                    <div className="mt-6 space-y-4 pl-4 border-l-2 border-primary/20">
-                      <FormDescription className="mb-2 text-sm font-medium text-foreground">Apply custom logo to:</FormDescription>
-                      <FormField control={form.control} name="updateLogoOnLogin" render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                          <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!watchedLogoUrl} /></FormControl>
-                          <FormLabel className="font-normal text-sm">Login & Register Pages</FormLabel>
-                        </FormItem>
-                      )} />
-                      <FormField control={form.control} name="updateLogoOnSidebar" render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                          <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!watchedLogoUrl} /></FormControl>
-                          <FormLabel className="font-normal text-sm">Sidebar</FormLabel>
-                        </FormItem>
-                      )} />
-                      <FormField control={form.control} name="updateLogoOnProfileAvatar" render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                          <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!watchedLogoUrl} /></FormControl>
-                          <FormLabel className="font-normal text-sm">User Profile Avatar (Header)</FormLabel>
-                        </FormItem>
-                      )} />
-                    </div>
-                  )}
+                  <div className="mt-6 space-y-4 pl-4 border-l-2 border-primary/20">
+                    <FormDescription className="mb-2 text-sm font-medium text-foreground">Apply custom logo to:</FormDescription>
+                    <FormField control={form.control} name="updateLogoOnLogin" render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!watchedLogoUrl} /></FormControl>
+                        <FormLabel className="font-normal text-sm">Login & Register Pages</FormLabel>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="updateLogoOnSidebar" render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!watchedLogoUrl} /></FormControl>
+                        <FormLabel className="font-normal text-sm">Sidebar</FormLabel>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="updateLogoOnProfileAvatar" render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!watchedLogoUrl} /></FormControl>
+                        <FormLabel className="font-normal text-sm">User Profile Avatar (Header)</FormLabel>
+                      </FormItem>
+                    )} />
+                  </div>
                 </div>
                 
                 <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting || isLoadingSettings}>
@@ -189,3 +187,5 @@ export default function AppSettingsPage() {
     </div>
   );
 }
+
+    
