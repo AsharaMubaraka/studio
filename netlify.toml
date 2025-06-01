@@ -1,0 +1,25 @@
+
+# netlify.toml
+
+[build]
+  command = "next build"
+  publish = ".next" # Default publish directory for Next.js apps
+
+# Optional: If you are using Next.js Internationalized Routing or need specific redirects/rewrites,
+# you might configure them here. For a standard SPA-like behavior after login, this might be enough.
+
+# This plugin is essential for Next.js sites on Netlify to correctly handle
+# features like SSR, ISR, Image Optimization, API routes, etc.
+# It should be automatically installed if your Netlify site is linked to a GitHub repo
+# containing a Next.js project and Netlify detects it.
+# If you have build issues, ensure this plugin is active in your Netlify build logs.
+# [[plugins]]
+#  package = "@netlify/plugin-nextjs"
+#  # No inputs usually needed for basic setup
+
+# Example redirect for single-page app behavior (if needed, often handled by the plugin)
+# [[redirects]]
+#  from = "/*"
+#  to = "/index.html" # Or Next.js might handle this with its own routing logic
+#  status = 200
+#  force = false # Do not force if a file already exists at the path
