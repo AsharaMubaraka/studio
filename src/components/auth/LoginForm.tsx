@@ -25,7 +25,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
-import { fetchAppSettings } from "@/actions/settingsActions";
+import { fetchAppSettings, type AppSettings } from "@/actions/settingsActions";
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters."),
@@ -38,15 +38,17 @@ export function LoginForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [logoUrl, setLogoUrl] = useState(siteConfig.defaultLogoUrl);
+  const [displayLogoUrl, setDisplayLogoUrl] = useState(siteConfig.defaultLogoUrl);
 
   useEffect(() => {
     fetchAppSettings().then(settings => {
-      if (settings?.logoUrl) {
-        setLogoUrl(settings.logoUrl);
+      if (settings?.logoUrl && settings.updateLogoOnLogin) {
+        setDisplayLogoUrl(settings.logoUrl);
+      } else {
+        setDisplayLogoUrl(siteConfig.defaultLogoUrl);
       }
     }).catch(() => {
-        // Keep default on error
+        setDisplayLogoUrl(siteConfig.defaultLogoUrl);
     });
   }, []);
 
@@ -126,14 +128,14 @@ export function LoginForm() {
     <Card className="w-full max-w-md shadow-xl animate-fadeIn">
       <CardHeader className="items-center text-center">
         <Image
-          src={logoUrl}
+          src={displayLogoUrl}
           alt={siteConfig.name + " Logo"}
           width={80}
           height={80}
           className="mb-4 rounded-full"
           data-ai-hint="calligraphy logo"
-          unoptimized={!!logoUrl.includes('?') || !!logoUrl.includes('&')}
-          onError={() => setLogoUrl(siteConfig.defaultLogoUrl)}
+          unoptimized={!!displayLogoUrl.includes('?') || !!displayLogoUrl.includes('&')}
+          onError={() => setDisplayLogoUrl(siteConfig.defaultLogoUrl)}
         />
         <CardTitle className="text-3xl font-bold">{siteConfig.name}</CardTitle>
         <CardDescription>Sign in to access your account</CardDescription>

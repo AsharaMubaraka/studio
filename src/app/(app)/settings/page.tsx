@@ -14,6 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
@@ -22,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { updateAppSettingsAction, fetchAppSettings, appSettingsSchema, type AppSettingsFormValues } from "@/actions/settingsActions";
 import { siteConfig } from "@/config/site";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 
 export default function AppSettingsPage() {
   const { toast } = useToast();
@@ -34,8 +36,13 @@ export default function AppSettingsPage() {
     defaultValues: {
       webViewUrl: "",
       logoUrl: "",
+      updateLogoOnLogin: false,
+      updateLogoOnSidebar: false,
+      updateLogoOnProfileAvatar: false,
     },
   });
+
+  const watchedLogoUrl = form.watch("logoUrl");
 
   const loadSettings = useCallback(async () => {
     setIsLoadingSettings(true);
@@ -44,9 +51,18 @@ export default function AppSettingsPage() {
       form.reset({
         webViewUrl: settings.webViewUrl || "",
         logoUrl: settings.logoUrl || "",
+        updateLogoOnLogin: settings.logoUrl ? !!settings.updateLogoOnLogin : false,
+        updateLogoOnSidebar: settings.logoUrl ? !!settings.updateLogoOnSidebar : false,
+        updateLogoOnProfileAvatar: settings.logoUrl ? !!settings.updateLogoOnProfileAvatar : false,
       });
     } else {
-      form.reset({ webViewUrl: "", logoUrl: "" }); // Reset to empty if no settings found
+      form.reset({ 
+        webViewUrl: "", 
+        logoUrl: "", 
+        updateLogoOnLogin: false,
+        updateLogoOnSidebar: false,
+        updateLogoOnProfileAvatar: false,
+      });
     }
     setIsLoadingSettings(false);
   }, [form]);
@@ -67,6 +83,7 @@ export default function AppSettingsPage() {
     const result = await updateAppSettingsAction(values);
     if (result.success) {
       toast({ title: "Success", description: result.message });
+      loadSettings(); // Reload settings to reflect changes, especially if server defaults some values
     } else {
       toast({ variant: "destructive", title: "Error", description: result.message || "Failed to update settings." });
       if (result.errors) {
@@ -99,18 +116,13 @@ export default function AppSettingsPage() {
             Application Settings
           </CardTitle>
           <CardDescription>
-            Manage global settings for the application, like the Web View URL and main logo.
+            Manage global settings for the application.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoadingSettings ? (
             <div className="space-y-6">
-              <Skeleton className="h-10 w-1/3" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-6 w-2/3" />
-              <Skeleton className="h-10 w-1/3 mt-4" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-6 w-2/3" />
+              {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full mb-2" />)}
               <Skeleton className="h-10 w-1/4 mt-6" />
             </div>
           ) : (
@@ -118,27 +130,52 @@ export default function AppSettingsPage() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 <FormField control={form.control} name="webViewUrl" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center text-base">
-                      <LinkIcon className="mr-2 h-5 w-5" /> Web View URL
-                    </FormLabel>
+                    <FormLabel className="flex items-center text-base"><LinkIcon className="mr-2 h-5 w-5" /> Web View URL</FormLabel>
                     <FormControl><Input placeholder="https://example.com" {...field} /></FormControl>
                     <FormDescription>The URL to display in the 'Website' tab. Leave empty to show no page.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="logoUrl" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center text-base">
-                      <ImageIcon className="mr-2 h-5 w-5" /> Application Logo URL
-                    </FormLabel>
-                    <FormControl><Input placeholder="https://example.com/logo.png" {...field} /></FormControl>
-                    <FormDescription>
-                      URL for the main application logo. Upload your logo to a service like Firebase Storage and paste the public URL here.
-                      If empty, a default logo (currently: <code>{siteConfig.defaultLogoUrl}</code>) will be used.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                
+                <Separator />
+
+                <div>
+                  <FormField control={form.control} name="logoUrl" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center text-base"><ImageIcon className="mr-2 h-5 w-5" /> Application Logo URL</FormLabel>
+                      <FormControl><Input placeholder="https://example.com/logo.png" {...field} /></FormControl>
+                      <FormDescription>
+                        URL for the custom application logo. If empty, a default logo (<code>{siteConfig.defaultLogoUrl}</code>) will be used everywhere.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  {watchedLogoUrl && (
+                    <div className="mt-6 space-y-4 pl-4 border-l-2 border-primary/20">
+                      <FormDescription className="mb-2 text-sm font-medium text-foreground">Apply custom logo to:</FormDescription>
+                      <FormField control={form.control} name="updateLogoOnLogin" render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                          <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!watchedLogoUrl} /></FormControl>
+                          <FormLabel className="font-normal text-sm">Login & Register Pages</FormLabel>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="updateLogoOnSidebar" render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                          <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!watchedLogoUrl} /></FormControl>
+                          <FormLabel className="font-normal text-sm">Sidebar</FormLabel>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="updateLogoOnProfileAvatar" render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                          <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!watchedLogoUrl} /></FormControl>
+                          <FormLabel className="font-normal text-sm">User Profile Avatar (Header)</FormLabel>
+                        </FormItem>
+                      )} />
+                    </div>
+                  )}
+                </div>
+                
                 <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting || isLoadingSettings}>
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Settings

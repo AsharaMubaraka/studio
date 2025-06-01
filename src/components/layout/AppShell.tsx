@@ -23,7 +23,7 @@ import { UserProfileMenu } from "./UserProfileMenu";
 import { cn } from "@/lib/utils";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import { useEffect, useState } from "react";
-import { fetchAppSettings } from "@/actions/settingsActions";
+import { fetchAppSettings, type AppSettings } from "@/actions/settingsActions";
 
 interface AppShellProps {
   children: ReactNode;
@@ -35,7 +35,7 @@ function SidebarLogo() {
 
   useEffect(() => {
     fetchAppSettings().then(settings => {
-      if (settings?.logoUrl) {
+      if (settings?.logoUrl && settings.updateLogoOnSidebar) {
         setCurrentLogoUrl(settings.logoUrl);
       } else {
         setCurrentLogoUrl(siteConfig.defaultLogoUrl);
@@ -54,8 +54,8 @@ function SidebarLogo() {
         height={isMobile ? 24 : 28}
         className=""
         data-ai-hint="logo"
-        unoptimized={!!currentLogoUrl.includes('?') || !!currentLogoUrl.includes('&')} // Add unoptimized if URL has query params, common for dynamic URLs
-        onError={() => setCurrentLogoUrl(siteConfig.defaultLogoUrl)} // Basic fallback, next/image onError is tricky
+        unoptimized={!!currentLogoUrl.includes('?') || !!currentLogoUrl.includes('&')}
+        onError={() => setCurrentLogoUrl(siteConfig.defaultLogoUrl)}
       />
       <span className={cn(
         "text-xl font-bold text-sidebar-foreground",

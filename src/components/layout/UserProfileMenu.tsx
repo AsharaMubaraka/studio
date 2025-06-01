@@ -23,7 +23,7 @@ import { useEffect, useState } from "react";
 import { collection, query, getDocs, DocumentData, Timestamp } from "firebase/firestore";
 import Link from "next/link"; 
 import { siteConfig } from "@/config/site";
-import { fetchAppSettings } from "@/actions/settingsActions";
+import { fetchAppSettings, type AppSettings } from "@/actions/settingsActions";
 
 
 interface AppNotificationDoc {
@@ -36,7 +36,7 @@ export function UserProfileMenu() {
   const { isAdminMode, setIsAdminMode } = useAdminMode();
   const { toast } = useToast();
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(siteConfig.defaultLogoUrl);
+  const [displayAvatarUrl, setDisplayAvatarUrl] = useState(siteConfig.defaultLogoUrl);
 
 
   useEffect(() => {
@@ -72,13 +72,13 @@ export function UserProfileMenu() {
 
   useEffect(() => {
     fetchAppSettings().then(settings => {
-      if (settings?.logoUrl) {
-        setAvatarUrl(settings.logoUrl);
+      if (settings?.logoUrl && settings.updateLogoOnProfileAvatar) {
+        setDisplayAvatarUrl(settings.logoUrl);
       } else {
-        setAvatarUrl(siteConfig.defaultLogoUrl);
+        setDisplayAvatarUrl(siteConfig.defaultLogoUrl);
       }
     }).catch(() => {
-      setAvatarUrl(siteConfig.defaultLogoUrl);
+      setDisplayAvatarUrl(siteConfig.defaultLogoUrl);
     });
   }, []);
 
@@ -136,7 +136,7 @@ export function UserProfileMenu() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 gap-2 px-2">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={avatarUrl} alt={user.username} onError={() => setAvatarUrl(siteConfig.defaultLogoUrl)} />
+              <AvatarImage src={displayAvatarUrl} alt={user.username} onError={() => setDisplayAvatarUrl(siteConfig.defaultLogoUrl)} />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="hidden sm:block">

@@ -11,6 +11,9 @@ const GLOBAL_CONFIG_DOC_ID = "global_config";
 export const appSettingsSchema = z.object({
   webViewUrl: z.string().url("Please enter a valid URL for the web view.").or(z.literal('')).optional(),
   logoUrl: z.string().url("Please enter a valid URL for the logo.").or(z.literal('')).optional(),
+  updateLogoOnLogin: z.boolean().optional().default(false),
+  updateLogoOnSidebar: z.boolean().optional().default(false),
+  updateLogoOnProfileAvatar: z.boolean().optional().default(false),
 });
 
 export type AppSettingsFormValues = z.infer<typeof appSettingsSchema>;
@@ -23,6 +26,9 @@ export async function updateAppSettingsAction(data: AppSettingsFormValues) {
     await setDoc(settingsRef, {
       webViewUrl: validatedData.webViewUrl || null,
       logoUrl: validatedData.logoUrl || null,
+      updateLogoOnLogin: validatedData.logoUrl ? validatedData.updateLogoOnLogin : false,
+      updateLogoOnSidebar: validatedData.logoUrl ? validatedData.updateLogoOnSidebar : false,
+      updateLogoOnProfileAvatar: validatedData.logoUrl ? validatedData.updateLogoOnProfileAvatar : false,
     }, { merge: true });
 
     return { success: true, message: "App settings updated successfully." };
@@ -38,6 +44,9 @@ export async function updateAppSettingsAction(data: AppSettingsFormValues) {
 export interface AppSettings {
   webViewUrl?: string | null;
   logoUrl?: string | null;
+  updateLogoOnLogin?: boolean;
+  updateLogoOnSidebar?: boolean;
+  updateLogoOnProfileAvatar?: boolean;
 }
 
 export async function fetchAppSettings(): Promise<AppSettings | null> {
@@ -50,12 +59,15 @@ export async function fetchAppSettings(): Promise<AppSettings | null> {
       return {
         webViewUrl: data.webViewUrl || null,
         logoUrl: data.logoUrl || null,
+        updateLogoOnLogin: data.logoUrl ? !!data.updateLogoOnLogin : false,
+        updateLogoOnSidebar: data.logoUrl ? !!data.updateLogoOnSidebar : false,
+        updateLogoOnProfileAvatar: data.logoUrl ? !!data.updateLogoOnProfileAvatar : false,
       };
     }
     return null; // No settings configured yet
   } catch (error) {
     console.error("Error fetching app settings:", error);
-    // Return null or throw error, depending on how you want to handle this in the UI
     return null; 
   }
 }
+
