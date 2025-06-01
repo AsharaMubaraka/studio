@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format, parseISO, isWithinInterval, compareAsc, isPast } from "date-fns";
-import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2, HelpCircle } from "lucide-react";
+import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2, HelpCircle, Users } from "lucide-react"; // Added Users icon
 import { saveRelayAction, deleteRelayAction, fetchRelays, type LiveRelay, type RelayFormValues } from "@/actions/relayActions";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -30,7 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAdminMode } from "@/contexts/AdminModeContext";
-import PlyrPlayer from '@/components/live-relay/PlyrPlayer'; // Changed import
+import PlyrPlayer from '@/components/live-relay/PlyrPlayer';
 
 const formSchema = z.object({
   name: z.string().min(2, "Miqaat name must be at least 2 characters.").max(100),
@@ -262,6 +262,7 @@ function UserLiveRelayViewer() {
   const [currentRelay, setCurrentRelay] = useState<LiveRelay | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewerCount, setViewerCount] = useState<number | string | null>(null);
 
   useEffect(() => {
     async function loadAndSetRelay() {
@@ -307,6 +308,23 @@ function UserLiveRelayViewer() {
     loadAndSetRelay();
   }, []);
 
+  const now = new Date(); // Defined once per render
+  const isEventActive = currentRelay ? isWithinInterval(now, { start: currentRelay.startDate, end: new Date(currentRelay.endDate.getTime() + (24*60*60*1000 -1)) }) : false;
+  
+  useEffect(() => {
+    if (currentRelay && currentRelay.sourceType === 'youtube' && isEventActive) {
+        setViewerCount("Loading..."); 
+        const timer = setTimeout(() => {
+            setViewerCount("N/A (Backend required)");
+            console.warn("Live viewer count requires a backend API to securely call the YouTube Data API and avoid exposing API keys. This is a placeholder.");
+        }, 1500); // Simulate a short delay
+        return () => clearTimeout(timer);
+    } else {
+        setViewerCount(null); // Reset if not active or not YouTube
+    }
+  }, [currentRelay, isEventActive]);
+
+
   if (isLoading) {
     return (
       <div className="space-y-6 animate-fadeIn">
@@ -338,8 +356,7 @@ function UserLiveRelayViewer() {
     );
   }
 
-  const now = new Date();
-  const isEventActive = isWithinInterval(now, { start: currentRelay.startDate, end: new Date(currentRelay.endDate.getTime() + (24*60*60*1000 -1)) });
+  // Recalculate these based on currentRelay, as 'now' is stable within this render scope
   const isEventUpcoming = !isEventActive && compareAsc(currentRelay.startDate, now) > 0;
   const eventHasEnded = !isEventActive && !isEventUpcoming && isPast(currentRelay.endDate);
 
@@ -350,14 +367,22 @@ function UserLiveRelayViewer() {
           <CardTitle className="text-2xl md:text-3xl font-bold tracking-tight flex items-center">
             <PlayCircle className="mr-3 h-7 w-7 md:h-8 md:w-8 text-primary" /> {currentRelay.name}
           </CardTitle>
-          <CardDescription className="flex items-center gap-2 flex-wrap">
-            <CalendarDays className="h-4 w-4"/>
-            <span>
-              {format(currentRelay.startDate, "EEE, MMM d, yyyy")} to {format(currentRelay.endDate, "EEE, MMM d, yyyy")}
-            </span>
-             {isEventUpcoming && <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">Upcoming</span>}
-             {isEventActive && <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">Live Now</span>}
-             {eventHasEnded && <span className="px-2 py-0.5 text-xs bg-muted text-muted-foreground rounded-full">Ended</span>}
+          <CardDescription className="space-y-1.5 text-sm"> {/* Use space-y for stacking */}
+            <div className="flex items-center gap-2 flex-wrap">
+                <CalendarDays className="h-4 w-4 text-muted-foreground"/>
+                <span className="text-muted-foreground">
+                {format(currentRelay.startDate, "EEE, MMM d, yyyy")} to {format(currentRelay.endDate, "EEE, MMM d, yyyy")}
+                </span>
+                {isEventUpcoming && <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">Upcoming</span>}
+                {isEventActive && <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">Live Now</span>}
+                {eventHasEnded && <span className="px-2 py-0.5 text-xs bg-muted text-muted-foreground rounded-full">Ended</span>}
+            </div>
+            {isEventActive && currentRelay.sourceType === 'youtube' && viewerCount !== null && (
+                <div className="flex items-center text-muted-foreground">
+                    <Users className="mr-1.5 h-4 w-4" />
+                    <span>Live Viewers: {typeof viewerCount === 'number' ? viewerCount.toLocaleString() : viewerCount}</span>
+                </div>
+            )}
           </CardDescription>
         </CardHeader>
         {isEventUpcoming && (
@@ -416,3 +441,4 @@ export default function LiveRelayPage() {
 
   return user?.isAdmin && isAdminMode ? <AdminLiveRelayManager /> : <UserLiveRelayViewer />;
 }
+
