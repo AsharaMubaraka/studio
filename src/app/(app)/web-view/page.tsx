@@ -48,10 +48,10 @@ export default function WebViewPage() {
   };
 
   const pageContainerClasses = cn(
-    "animate-fadeIn h-full",
+    "animate-fadeIn",
     (iframeError || (configuredUrl === null && !isLoading))
-      ? "flex flex-col items-center justify-center p-4"
-      : "flex flex-col -mx-4 md:-mx-6 lg:-mx-8"
+      ? "flex flex-col items-center justify-center p-4 h-full bg-yellow-300" // For error/not-configured state
+      : "flex flex-col h-full w-full bg-blue-400" // For iframe display state - BLUE background
   );
 
   const DiagnosticInfo = () => (
@@ -76,29 +76,26 @@ export default function WebViewPage() {
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
           </div>
         ) : iframeError ? (
-          <Alert variant="destructive" className="shadow-md w-full max-w-lg">
+          <Alert variant="destructive" className="shadow-md w-full max-w-lg m-auto">
             <AlertCircle className="h-5 w-5" />
             <AlertTitle>Error Loading Page</AlertTitle>
             <AlertDescription>{iframeError}</AlertDescription>
           </Alert>
         ) : configuredUrl && configuredUrl.trim() !== "" ? (
-          <div className="flex-grow w-full relative bg-red-200"> {/* DEBUG: Added red background */}
+          <div className="h-full w-full relative bg-red-500"> {/* IFRAME WRAPPER - RED background */}
             <iframe
               key={configuredUrl} 
               src={configuredUrl}
               title="Embedded Web View"
-              className="absolute top-0 left-0 h-full w-full border-8 border-green-500" // DEBUG: Added thick green border
+              className="absolute top-0 left-0 h-full w-full border-8 border-green-500" // IFRAME - GREEN border
               onError={handleIframeError}
               onLoad={() => {
-                // Cleared to avoid showing stale error if a subsequent load is successful.
-                // However, if the loaded page is itself an error page from the server,
-                // this might hide the fact. For now, keep it.
-                // setIframeError(null); 
+                // console.log("Iframe onLoad triggered for:", configuredUrl);
               }}
             />
           </div>
         ) : (
-          <Card className="shadow-lg w-full max-w-lg text-center">
+          <Card className="shadow-lg w-full max-w-lg text-center m-auto">
             <CardHeader>
               <CardTitle className="flex items-center justify-center text-xl">
                 <Globe className="mr-2 h-6 w-6 text-primary" /> Web View Not Configured
