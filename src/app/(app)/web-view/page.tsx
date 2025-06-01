@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Globe, Link as LinkIcon, Loader2, AlertCircle, Info } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 import { fetchAppSettings } from "@/actions/settingsActions";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -26,7 +25,8 @@ export default function WebViewPage() {
       const settings = await fetchAppSettings();
       const urlToLoad = settings?.webViewUrl || null;
       setConfiguredUrl(urlToLoad);
-    } catch (error: any)      console.error("Error fetching app settings for web-view:", error);
+    } catch (error: any) { // Fixed: Added curly braces for the catch block
+      console.error("Error fetching app settings for web-view:", error);
       setIframeError(`Failed to load app settings: ${error.message}`);
       setConfiguredUrl(null);
     } finally {
@@ -63,7 +63,7 @@ export default function WebViewPage() {
     <>
       <div
         id="page-container"
-        className="h-full w-full flex flex-col" // Fill available space, enable flex column
+        className="h-full w-full flex flex-col flex-1"
       >
         {isLoading && configuredUrl === undefined && (
           <div className="flex flex-1 items-center justify-center">
@@ -105,18 +105,16 @@ export default function WebViewPage() {
           </div>
         )}
         
-        {/* Iframe container takes remaining space if URL is configured and no errors */}
         {!isLoading && configuredUrl && !iframeError && (
-          <div id="iframe-wrapper" className="flex-1"> {/* flex-1 makes this div take available space */}
+          <div id="iframe-wrapper" className="flex-1">
             <iframe
               key={configuredUrl} 
               src={configuredUrl}
               title="Embedded Web View"
-              className="h-full w-full border-0" // Fill wrapper, no border
+              className="h-full w-full border-0"
               onError={handleIframeError}
               onLoad={() => {
                 console.log("Iframe onLoad triggered for:", configuredUrl);
-                // Clear error if a previous load failed but this one succeeded
                 if(iframeError) setIframeError(null);
               }}
             />
