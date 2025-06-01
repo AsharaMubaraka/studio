@@ -24,7 +24,7 @@ import { UserProfileMenu } from "./UserProfileMenu";
 import { cn } from "@/lib/utils";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import { useEffect, useState } from "react";
-import { useAppSettings } from "@/hooks/useAppSettings"; // Changed from fetchAppSettings
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 interface AppShellProps {
   children: ReactNode;
@@ -111,9 +111,7 @@ export function AppShell({ children }: AppShellProps) {
 
   const contentWrapperClasses = cn(
     "flex-1 overflow-y-auto", // Grow and allow its own content to scroll
-    isWebViewPage ? "p-0" : "p-4 md:p-6 lg:p-8" // For webview, no padding. Other pages get standard padding.
-                                                 // Bottom padding for BottomNav is handled by SidebarInset.
-                                                 // Bottom padding for decorative border is handled by main's flex structure.
+    isWebViewPage ? "p-0" : "p-4 md:p-6 lg:p-8" 
   );
 
   return (
@@ -128,7 +126,7 @@ export function AppShell({ children }: AppShellProps) {
           </ScrollArea>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset className="flex flex-col min-h-screen pb-16 md:pb-0"> {/* pb-16 for BottomNav on mobile */}
+      <SidebarInset className="flex flex-col min-h-screen pb-16 md:pb-0">
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" />
@@ -140,15 +138,17 @@ export function AppShell({ children }: AppShellProps) {
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
 
-        <main className="flex flex-col flex-1 bg-transparent text-foreground overflow-hidden"> {/* main is flex-1, contains content and mobile border */}
-          <div className={contentWrapperClasses}> {/* content div is flex-1, takes space above mobile border */}
+        {/* Main content area and mobile bottom border */}
+        {/* Removed overflow-hidden from main to allow flex child (contentWrapper) to correctly calculate height with overflow-y-auto */}
+        <main className="flex flex-col flex-1 bg-transparent text-foreground">
+          <div className={contentWrapperClasses}>
             {children}
           </div>
           {/* Bottom decorative border for mobile, always shown if mobile */}
           <div className="block md:hidden decorative-border-repeat decorative-border-repeat-h20" />
         </main>
 
-        <BottomNav /> {/* Fixed position, SidebarInset's pb-16 accounts for this */}
+        <BottomNav />
       </SidebarInset>
     </SidebarProvider>
   );
