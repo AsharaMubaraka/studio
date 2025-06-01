@@ -22,6 +22,8 @@ import { BottomNav } from "./BottomNav";
 import { UserProfileMenu } from "./UserProfileMenu";
 import { cn } from "@/lib/utils";
 import { useAdminMode } from "@/contexts/AdminModeContext";
+import { useEffect, useState } from "react";
+import { fetchAppSettings } from "@/actions/settingsActions";
 
 interface AppShellProps {
   children: ReactNode;
@@ -29,15 +31,31 @@ interface AppShellProps {
 
 function SidebarLogo() {
   const { isMobile } = useSidebar();
+  const [currentLogoUrl, setCurrentLogoUrl] = useState(siteConfig.defaultLogoUrl);
+
+  useEffect(() => {
+    fetchAppSettings().then(settings => {
+      if (settings?.logoUrl) {
+        setCurrentLogoUrl(settings.logoUrl);
+      } else {
+        setCurrentLogoUrl(siteConfig.defaultLogoUrl);
+      }
+    }).catch(() => {
+      setCurrentLogoUrl(siteConfig.defaultLogoUrl); // Fallback on error
+    });
+  }, []);
+
   return (
     <Link href="/dashboard" className="flex items-center gap-2 px-2">
-      <Image 
-        src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png" 
-        alt={siteConfig.name + " Logo"} 
+      <Image
+        src={currentLogoUrl}
+        alt={siteConfig.name + " Logo"}
         width={isMobile ? 24 : 28}
         height={isMobile ? 24 : 28}
         className=""
         data-ai-hint="logo"
+        unoptimized={!!currentLogoUrl.includes('?') || !!currentLogoUrl.includes('&')} // Add unoptimized if URL has query params, common for dynamic URLs
+        onError={() => setCurrentLogoUrl(siteConfig.defaultLogoUrl)} // Basic fallback, next/image onError is tricky
       />
       <span className={cn(
         "text-xl font-bold text-sidebar-foreground",
@@ -89,6 +107,7 @@ export function AppShell({ children }: AppShellProps) {
       if (homeItem) currentTitle = homeItem.title;
   }
 
+
   return (
     <SidebarProvider defaultOpen={true}>
       <Sidebar> 
@@ -108,7 +127,6 @@ export function AppShell({ children }: AppShellProps) {
           </div>
           <div className="flex items-center gap-2">
             <UserProfileMenu />
-            {/* Removed standalone Logout button as UserProfileMenu contains logout option */}
           </div>
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>

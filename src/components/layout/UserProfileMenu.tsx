@@ -21,12 +21,14 @@ import { requestNotificationPermission, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import { collection, query, getDocs, DocumentData, Timestamp } from "firebase/firestore";
-import Link from "next/link"; // Import Link for the bell icon
+import Link from "next/link"; 
+import { siteConfig } from "@/config/site";
+import { fetchAppSettings } from "@/actions/settingsActions";
+
 
 interface AppNotificationDoc {
   id: string;
   readByUserIds?: string[];
-  // other fields are not needed for this specific check
 }
 
 export function UserProfileMenu() {
@@ -34,6 +36,8 @@ export function UserProfileMenu() {
   const { isAdminMode, setIsAdminMode } = useAdminMode();
   const { toast } = useToast();
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(siteConfig.defaultLogoUrl);
+
 
   useEffect(() => {
     if (!user?.username) {
@@ -44,8 +48,6 @@ export function UserProfileMenu() {
     const fetchNotificationsAndCheckUnread = async () => {
       try {
         const notificationsRef = collection(db, "notifications");
-        // Potentially add ordering and limits if performance becomes an issue
-        // For now, fetching all to check read status for current user.
         const q = query(notificationsRef);
         const querySnapshot = await getDocs(q);
         
@@ -61,13 +63,24 @@ export function UserProfileMenu() {
         setHasUnreadNotifications(unreadFound);
       } catch (error) {
         console.error("Error fetching notifications for unread check:", error);
-        setHasUnreadNotifications(false); // Default to no dot on error
+        setHasUnreadNotifications(false); 
       }
     };
 
     fetchNotificationsAndCheckUnread();
-    // Re-check when user changes, or potentially on an event indicating new notification
   }, [user]);
+
+  useEffect(() => {
+    fetchAppSettings().then(settings => {
+      if (settings?.logoUrl) {
+        setAvatarUrl(settings.logoUrl);
+      } else {
+        setAvatarUrl(siteConfig.defaultLogoUrl);
+      }
+    }).catch(() => {
+      setAvatarUrl(siteConfig.defaultLogoUrl);
+    });
+  }, []);
 
 
   if (!user) return null;
@@ -123,7 +136,7 @@ export function UserProfileMenu() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 gap-2 px-2">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png" alt={user.username} />
+              <AvatarImage src={avatarUrl} alt={user.username} onError={() => setAvatarUrl(siteConfig.defaultLogoUrl)} />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="hidden sm:block">
@@ -143,10 +156,8 @@ export function UserProfileMenu() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <UserCircle className="mr-2 h-4 w-4" />
-            <span>Profile</span>
-          </DropdownMenuItem>
+          {/* Removed Profile link as it wasn't implemented and user asked for one or the other */}
+          {/* <DropdownMenuItem asChild><Link href="/profile"><UserCircle className="mr-2 h-4 w-4" /><span>Profile</span></Link></DropdownMenuItem> */}
           <ThemeToggleMenuItem />
           <DropdownMenuItem onClick={handleEnableNotifications}>
             <BellRingIconLucide className="mr-2 h-4 w-4" />

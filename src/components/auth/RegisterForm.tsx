@@ -23,6 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { siteConfig } from "@/config/site";
+import { fetchAppSettings } from "@/actions/settingsActions";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
@@ -36,6 +37,17 @@ const RegisterForm = () => {
   const [ipAddress, setIpAddress] = useState('');
   const [autoGenerateUsername, setAutoGenerateUsername] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(siteConfig.defaultLogoUrl);
+
+  useEffect(() => {
+    fetchAppSettings().then(settings => {
+      if (settings?.logoUrl) {
+        setLogoUrl(settings.logoUrl);
+      }
+    }).catch(() => {
+        // Keep default on error
+    });
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,8 +61,8 @@ const RegisterForm = () => {
   const generateAndSetUsername = useCallback(() => {
     const nameValue = form.getValues("name");
     if (nameValue) {
-      const firstName = nameValue.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/gi, ''); // Sanitize
-      const randomNumber = Math.floor(Math.random() * 10000); // Increased range for more uniqueness
+      const firstName = nameValue.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/gi, ''); 
+      const randomNumber = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
       form.setValue("username", `${firstName}${randomNumber}`, { shouldValidate: true });
     } else {
       form.setValue("username", "", { shouldValidate: true });
@@ -82,7 +94,7 @@ const RegisterForm = () => {
       const response = await axios.post('/api/register', {
         ...values,
         ipAddress,
-        isAdmin: false, // Explicitly set isAdmin to false as the option is removed
+        isAdmin: false, 
       });
 
       if (response.status === 201) {
@@ -114,12 +126,14 @@ const RegisterForm = () => {
     <Card className="w-full max-w-md shadow-xl animate-fadeIn">
       <CardHeader className="items-center text-center">
         <Image 
-          src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png" 
+          src={logoUrl}
           alt={siteConfig.name + " Logo"}
           width={80} 
           height={80} 
           className="mb-4 rounded-full" 
           data-ai-hint="calligraphy logo"
+          unoptimized={!!logoUrl.includes('?') || !!logoUrl.includes('&')}
+          onError={() => setLogoUrl(siteConfig.defaultLogoUrl)}
         />
         <CardTitle className="text-3xl font-bold">{siteConfig.name}</CardTitle>
         <CardDescription>Create an account to get started</CardDescription>
@@ -159,11 +173,11 @@ const RegisterForm = () => {
                 checked={autoGenerateUsername}
                 onCheckedChange={(checked) => {
                   const isChecked = Boolean(checked);
-                  setAutoGenerateUsername(isChecked);
+                   setAutoGenerateUsername(isChecked);
                   if (isChecked) {
                     generateAndSetUsername();
                   } else {
-                     form.setValue("username", "", { shouldValidate: true }); // Clear for manual input
+                     form.setValue("username", "", { shouldValidate: true }); 
                   }
                 }}
               />

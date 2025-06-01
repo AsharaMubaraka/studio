@@ -18,13 +18,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
+import { fetchAppSettings } from "@/actions/settingsActions";
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters."),
@@ -37,6 +38,17 @@ export function LoginForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(siteConfig.defaultLogoUrl);
+
+  useEffect(() => {
+    fetchAppSettings().then(settings => {
+      if (settings?.logoUrl) {
+        setLogoUrl(settings.logoUrl);
+      }
+    }).catch(() => {
+        // Keep default on error
+    });
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -114,12 +126,14 @@ export function LoginForm() {
     <Card className="w-full max-w-md shadow-xl animate-fadeIn">
       <CardHeader className="items-center text-center">
         <Image
-          src="https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png"
+          src={logoUrl}
           alt={siteConfig.name + " Logo"}
           width={80}
           height={80}
           className="mb-4 rounded-full"
           data-ai-hint="calligraphy logo"
+          unoptimized={!!logoUrl.includes('?') || !!logoUrl.includes('&')}
+          onError={() => setLogoUrl(siteConfig.defaultLogoUrl)}
         />
         <CardTitle className="text-3xl font-bold">{siteConfig.name}</CardTitle>
         <CardDescription>Sign in to access your account</CardDescription>
@@ -152,7 +166,7 @@ export function LoginForm() {
                         type={showPassword ? "text" : "password"} 
                         placeholder="Enter your password" 
                         {...field} 
-                        className="pr-10" // Add padding for the icon
+                        className="pr-10"
                       />
                     </FormControl>
                     <Button 

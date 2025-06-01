@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Bell, Globe, Youtube, Users, MessageSquarePlus } from 'lucide-react';
+import { LayoutDashboard, Bell, Globe, Youtube, Users, MessageSquarePlus, Settings } from 'lucide-react'; // Added Settings
 
 export type NavItemConfig = {
   title: string;
@@ -53,9 +53,15 @@ export const adminNavItems: NavItemConfig[] = [
     href: '/live-relay',
     icon: Youtube,
   },
+  {
+    title: 'App Settings', // New settings page
+    href: '/settings',
+    icon: Settings,
+  },
 ];
 
 export const siteConfig = {
   name: "Ashara Mubaraka",
   description: "Community Hub for Ashara Mubaraka.",
+  defaultLogoUrl: "https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png",
 };
