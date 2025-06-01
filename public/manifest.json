@@ -1,38 +1,23 @@
-
 {
   "name": "Ashara Mubaraka",
   "short_name": "AsharaApp",
   "description": "Ashara Mubaraka Official application for communication and better view",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F5F5F5",
-  "theme_color": "#3F51B5",
+  "background_color": "#ffffff",
+  "theme_color": "#9f8a3e",
   "icons": [
     {
-      "src": "/icons/icon-192x192-any.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-192x192-maskable.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icons/icon-512x512-any.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-512x512-maskable.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
-  ],
-  "orientation": "portrait-primary",
-  "prefer_related_applications": false
+  ]
 }
