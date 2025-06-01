@@ -60,41 +60,30 @@ export default function WebViewPage() {
     </Card>
   );
 
-  // Removed outer conditional rendering for simplicity during debug
-  // Rely on DiagnosticInfo for state feedback
-
   return (
     <>
       <DiagnosticInfo />
-      {/* Main page container - BLUE background */}
-      <div 
-        id="page-container" 
-        className="flex flex-col h-full w-full bg-blue-400 relative" 
-        style={{ zIndex: 1 }}
+      <div
+        id="page-container"
+        className="flex flex-col flex-1 bg-blue-400"
       >
-        <span className="absolute top-0 left-0 p-2 text-white bg-black/50 text-xs">BLUE CONTAINER HERE</span>
-        {/* Iframe wrapper - RED background */}
-        <div 
-          id="iframe-wrapper" 
-          className="flex-grow bg-red-500 relative"
-          style={{ zIndex: 2 }}
+        <div
+          id="iframe-wrapper"
+          className="flex-1 bg-red-500"
         >
-          <span className="absolute top-10 left-0 p-2 text-white bg-black/50 text-xs">RED WRAPPER HERE</span>
           {configuredUrl && configuredUrl.trim() !== "" && !iframeError ? (
             <iframe
               key={configuredUrl}
               src={configuredUrl}
               title="Embedded Web View"
               className="h-full w-full border-8 border-green-500"
-              style={{ zIndex: 3 }} // Ensure iframe is on top of its direct parent if overlapping
               onError={handleIframeError}
               onLoad={() => {
                 console.log("Iframe onLoad triggered for:", configuredUrl);
               }}
-              // Sandbox removed for diagnostics
             />
           ) : (
-            <div className="flex flex-col items-center justify-center h-full p-4 text-center" style={{ zIndex: 3 }}>
+            <div className="flex flex-col items-center justify-center h-full p-4 text-center">
               {isLoading && configuredUrl === undefined ? (
                  <Loader2 className="h-16 w-16 animate-spin text-primary" />
               ) : iframeError ? (

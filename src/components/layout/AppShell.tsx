@@ -42,7 +42,7 @@ function SidebarLogo() {
         setCurrentLogoUrl(siteConfig.defaultLogoUrl);
       }
     }).catch(() => {
-      setCurrentLogoUrl(siteConfig.defaultLogoUrl); 
+      setCurrentLogoUrl(siteConfig.defaultLogoUrl);
     });
   }, []);
 
@@ -93,11 +93,11 @@ function MainNav({ currentNavItems }: { currentNavItems: NavItemConfig[] }) {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const { isAdminMode } = useAdminMode(); 
+  const { isAdminMode } = useAdminMode();
 
   const currentNavItems = isAdminMode ? adminNavItems : userNavItems;
 
-  let currentTitle = siteConfig.name; 
+  let currentTitle = siteConfig.name;
   const sortedNavItems = [...currentNavItems].sort((a, b) => b.href.length - a.href.length);
   const activeNavItem = sortedNavItems.find(item => pathname === item.href || (item.href !== "/" && item.href !== "/dashboard" && pathname.startsWith(item.href)));
 
@@ -111,8 +111,8 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <Sidebar> 
-        <SidebarHeader> 
+      <Sidebar>
+        <SidebarHeader>
           <SidebarLogo />
         </SidebarHeader>
         <SidebarContent asChild>
@@ -131,14 +131,14 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
-        
+
         <main className="flex flex-col flex-1 bg-transparent text-foreground relative">
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-8 h-full">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-8">
             {children}
           </div>
           <div className="absolute bottom-16 left-0 right-0 md:hidden decorative-border-repeat decorative-border-repeat-h20"></div>
         </main>
-        
+
         <BottomNav />
       </SidebarInset>
     </SidebarProvider>
