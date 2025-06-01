@@ -32,7 +32,7 @@ import {
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import PlyrPlayer from '@/components/live-relay/PlyrPlayer';
 import { db } from "@/lib/firebase";
-import { doc, setDoc, deleteDoc, collection, onSnapshot, serverTimestamp, query as firestoreQuery, where, getDocs } from "firebase/firestore";
+import { doc, setDoc, deleteDoc, collection, onSnapshot, serverTimestamp, Unsubscribe } from "firebase/firestore";
 
 const formSchema = z.object({
   name: z.string().min(2, "Miqaat name must be at least 2 characters.").max(100),
@@ -60,6 +60,7 @@ function AdminLiveRelayManager() {
   const [isLoadingRelays, setIsLoadingRelays] = useState(true);
   const [relays, setRelays] = useState<LiveRelay[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [viewerCounts, setViewerCounts] = useState<{ [key: string]: number | null }>({});
 
   const form = useForm<RelayFormValues>({
     resolver: zodResolver(formSchema),
@@ -92,6 +93,40 @@ function AdminLiveRelayManager() {
     loadRelays();
   }, [loadRelays]);
 
+  useEffect(() => {
+    if (!relays.length) return;
+
+    const unsubscribers: Unsubscribe[] = [];
+    setViewerCounts(prev => { // Initialize counts for new relays
+        const newCounts = {...prev};
+        relays.forEach(r => {
+            if (newCounts[r.id] === undefined) newCounts[r.id] = null; // null indicates loading
+        });
+        return newCounts;
+    });
+
+    relays.forEach(relay => {
+      const viewersColRef = collection(db, "live_relays", relay.id, "active_viewers");
+      const unsubscribe = onSnapshot(viewersColRef, (snapshot) => {
+        setViewerCounts(prevCounts => ({
+          ...prevCounts,
+          [relay.id]: snapshot.size,
+        }));
+      }, (error) => {
+        console.error(`Error fetching viewer count for relay ${relay.id}:`, error);
+        setViewerCounts(prevCounts => ({
+          ...prevCounts,
+          [relay.id]: 0, // Show 0 on error
+        }));
+      });
+      unsubscribers.push(unsubscribe);
+    });
+
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [relays]);
+
   async function onSubmit(values: RelayFormValues) {
     if (!user?.username) {
       toast({ variant: "destructive", title: "Error", description: "User not authenticated." });
@@ -123,6 +158,11 @@ function AdminLiveRelayManager() {
     if (result.success) {
       toast({ title: "Success", description: result.message });
       setRelays(prev => prev.filter(r => r.id !== relayId));
+      setViewerCounts(prevCounts => {
+        const newCounts = {...prevCounts};
+        delete newCounts[relayId];
+        return newCounts;
+      });
     } else {
       toast({ variant: "destructive", title: "Error", description: result.message || "Failed to delete relay." });
     }
@@ -216,24 +256,28 @@ function AdminLiveRelayManager() {
         <CardContent>
           {isLoadingRelays ? (
             <div className="space-y-4">
-              {[1,2].map(i => <Skeleton key={i} className="h-20 w-full" />)}
+              {[1,2].map(i => <Skeleton key={i} className="h-24 w-full" />)}
             </div>
           ) : relays.length === 0 ? (
             <p className="text-muted-foreground">No Miqaats have been added yet.</p>
           ) : (
             <ul className="space-y-4">
               {relays.map(relay => (
-                <li key={relay.id} className="p-4 border rounded-md flex justify-between items-center shadow-sm">
-                  <div>
+                <li key={relay.id} className="p-4 border rounded-md flex justify-between items-start shadow-sm gap-2">
+                  <div className="flex-grow space-y-1">
                     <p className="font-semibold">{relay.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {format(relay.startDate, "MMM d, yyyy")} - {format(relay.endDate, "MMM d, yyyy")}
                     </p>
                     <p className="text-xs text-muted-foreground">Type: {relay.sourceType}</p>
+                    <p className="text-xs text-muted-foreground flex items-center">
+                      <Users className="mr-1 h-3 w-3" />
+                      Live Viewers: {viewerCounts[relay.id] === null ? <Loader2 className="h-3 w-3 animate-spin inline-block ml-1" /> : (viewerCounts[relay.id] ?? 0).toLocaleString()}
+                    </p>
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={deletingId === relay.id}>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 shrink-0" disabled={deletingId === relay.id}>
                          {deletingId === relay.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </Button>
                     </AlertDialogTrigger>
@@ -311,9 +355,8 @@ function UserLiveRelayViewer() {
       }
     }
     loadAndSetRelay();
-  }, []); // Removed `now` from dependencies to avoid re-fetching relays constantly. `now` is now defined outside.
+  }, []); 
 
-  // Effect for managing user presence in active_viewers
   useEffect(() => {
     if (currentRelay && isEventActive && authUser?.username) {
       const userViewerRef = doc(db, "live_relays", currentRelay.id, "active_viewers", authUser.username);
@@ -325,10 +368,8 @@ function UserLiveRelayViewer() {
         .catch(err => console.error("Error marking user active:", err));
 
       return () => {
-        // Check currentRelay.id on cleanup because currentRelay might have changed or become null
-        // This explicit check ensures we are deleting from the correct path.
         if (currentRelay?.id && authUser?.username) {
-            const relayIdForCleanup = currentRelay.id; // Capture id before potential change
+            const relayIdForCleanup = currentRelay.id; 
             const usernameForCleanup = authUser.username;
             deleteDoc(doc(db, "live_relays", relayIdForCleanup, "active_viewers", usernameForCleanup))
                 .then(() => console.log(`User ${usernameForCleanup} removed as active from relay ${relayIdForCleanup}`))
@@ -338,16 +379,15 @@ function UserLiveRelayViewer() {
     }
   }, [currentRelay, isEventActive, authUser]);
 
-  // Effect for listening to viewer count
   useEffect(() => {
     if (currentRelay) {
-      setInAppViewerCount(null); // Indicate loading
+      setInAppViewerCount(null); 
       const viewersColRef = collection(db, "live_relays", currentRelay.id, "active_viewers");
       const unsubscribe = onSnapshot(viewersColRef, (snapshot) => {
         setInAppViewerCount(snapshot.size);
       }, (err) => {
         console.error("Error fetching viewer count:", err);
-        setInAppViewerCount(0); // Default to 0 on error
+        setInAppViewerCount(0); 
       });
 
       return () => unsubscribe();
@@ -412,7 +452,7 @@ function UserLiveRelayViewer() {
                 <div className="flex items-center text-muted-foreground">
                     <Users className="mr-1.5 h-4 w-4" />
                     <span>
-                        App Viewers: {inAppViewerCount === null ? <Loader2 className="h-3 w-3 animate-spin inline-block ml-1" /> : (inAppViewerCount ?? 0).toLocaleString()}
+                        Live Viewers: {inAppViewerCount === null ? <Loader2 className="h-3 w-3 animate-spin inline-block ml-1" /> : (inAppViewerCount ?? 0).toLocaleString()}
                     </span>
                 </div>
             )}
