@@ -23,7 +23,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { siteConfig } from "@/config/site";
-import { fetchAppSettings, type AppSettings } from "@/actions/settingsActions";
+import { fetchAppSettings } from "@/actions/settingsActions";
+import type { AppSettings } from "@/lib/schemas/settingsSchemas"; // Updated import
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),

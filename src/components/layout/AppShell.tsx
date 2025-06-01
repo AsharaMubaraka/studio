@@ -23,7 +23,8 @@ import { UserProfileMenu } from "./UserProfileMenu";
 import { cn } from "@/lib/utils";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import { useEffect, useState } from "react";
-import { fetchAppSettings, type AppSettings } from "@/actions/settingsActions";
+import { fetchAppSettings } from "@/actions/settingsActions";
+import type { AppSettings } from "@/lib/schemas/settingsSchemas"; // Updated import
 
 interface AppShellProps {
   children: ReactNode;
@@ -41,7 +42,7 @@ function SidebarLogo() {
         setCurrentLogoUrl(siteConfig.defaultLogoUrl);
       }
     }).catch(() => {
-      setCurrentLogoUrl(siteConfig.defaultLogoUrl); // Fallback on error
+      setCurrentLogoUrl(siteConfig.defaultLogoUrl); 
     });
   }, []);
 

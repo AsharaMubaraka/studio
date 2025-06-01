@@ -23,7 +23,8 @@ import { useEffect, useState } from "react";
 import { collection, query, getDocs, DocumentData, Timestamp } from "firebase/firestore";
 import Link from "next/link"; 
 import { siteConfig } from "@/config/site";
-import { fetchAppSettings, type AppSettings } from "@/actions/settingsActions";
+import { fetchAppSettings } from "@/actions/settingsActions";
+import type { AppSettings } from "@/lib/schemas/settingsSchemas"; // Updated import
 
 
 interface AppNotificationDoc {
@@ -156,8 +157,7 @@ export function UserProfileMenu() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {/* Removed Profile link as it wasn't implemented and user asked for one or the other */}
-          {/* <DropdownMenuItem asChild><Link href="/profile"><UserCircle className="mr-2 h-4 w-4" /><span>Profile</span></Link></DropdownMenuItem> */}
+          
           <ThemeToggleMenuItem />
           <DropdownMenuItem onClick={handleEnableNotifications}>
             <BellRingIconLucide className="mr-2 h-4 w-4" />

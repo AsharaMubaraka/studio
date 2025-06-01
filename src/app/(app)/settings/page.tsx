@@ -20,7 +20,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
 import { Loader2, Settings, Link as LinkIcon, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { updateAppSettingsAction, fetchAppSettings, appSettingsSchema, type AppSettingsFormValues } from "@/actions/settingsActions";
+import { updateAppSettingsAction, fetchAppSettings } from "@/actions/settingsActions";
+import { appSettingsSchema, type AppSettingsFormValues } from "@/lib/schemas/settingsSchemas"; // Updated import
 import { siteConfig } from "@/config/site";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -32,7 +33,7 @@ export default function AppSettingsPage() {
   const { user, isAuthenticated } = useAuth();
 
   const form = useForm<AppSettingsFormValues>({
-    resolver: zodResolver(appSettingsSchema),
+    resolver: zodResolver(appSettingsSchema), // Use schema from new location
     defaultValues: {
       webViewUrl: "",
       logoUrl: "",
@@ -83,7 +84,7 @@ export default function AppSettingsPage() {
     const result = await updateAppSettingsAction(values);
     if (result.success) {
       toast({ title: "Success", description: result.message });
-      loadSettings(); // Reload settings to reflect changes, especially if server defaults some values
+      loadSettings(); 
     } else {
       toast({ variant: "destructive", title: "Error", description: result.message || "Failed to update settings." });
       if (result.errors) {
@@ -145,7 +146,7 @@ export default function AppSettingsPage() {
                       <FormLabel className="flex items-center text-base"><ImageIcon className="mr-2 h-5 w-5" /> Application Logo URL</FormLabel>
                       <FormControl><Input placeholder="https://example.com/logo.png" {...field} /></FormControl>
                       <FormDescription>
-                        URL for the custom application logo. If empty, a default logo (<code>{siteConfig.defaultLogoUrl}</code>) will be used everywhere.
+                        URL for the custom application logo. If empty, a default logo (<code>{siteConfig.defaultLogoUrl}</code>) will be used everywhere (unless overridden by the checkboxes below).
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

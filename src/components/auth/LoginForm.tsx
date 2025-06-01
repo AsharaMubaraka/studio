@@ -25,7 +25,8 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
-import { fetchAppSettings, type AppSettings } from "@/actions/settingsActions";
+import { fetchAppSettings } from "@/actions/settingsActions";
+import type { AppSettings } from "@/lib/schemas/settingsSchemas"; // Updated import
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters."),

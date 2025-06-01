@@ -4,23 +4,15 @@
 import { z } from "zod";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
+import type { AppSettingsFormValues, AppSettings } from "@/lib/schemas/settingsSchemas"; // Import from new location
+import { appSettingsSchema } from "@/lib/schemas/settingsSchemas"; // Import schema for internal use
 
 const SETTINGS_COLLECTION = "app_settings";
 const GLOBAL_CONFIG_DOC_ID = "global_config";
 
-export const appSettingsSchema = z.object({
-  webViewUrl: z.string().url("Please enter a valid URL for the web view.").or(z.literal('')).optional(),
-  logoUrl: z.string().url("Please enter a valid URL for the logo.").or(z.literal('')).optional(),
-  updateLogoOnLogin: z.boolean().optional().default(false),
-  updateLogoOnSidebar: z.boolean().optional().default(false),
-  updateLogoOnProfileAvatar: z.boolean().optional().default(false),
-});
-
-export type AppSettingsFormValues = z.infer<typeof appSettingsSchema>;
-
 export async function updateAppSettingsAction(data: AppSettingsFormValues) {
   try {
-    const validatedData = appSettingsSchema.parse(data);
+    const validatedData = appSettingsSchema.parse(data); // Use imported schema
     const settingsRef = doc(db, SETTINGS_COLLECTION, GLOBAL_CONFIG_DOC_ID);
 
     await setDoc(settingsRef, {
@@ -41,14 +33,6 @@ export async function updateAppSettingsAction(data: AppSettingsFormValues) {
   }
 }
 
-export interface AppSettings {
-  webViewUrl?: string | null;
-  logoUrl?: string | null;
-  updateLogoOnLogin?: boolean;
-  updateLogoOnSidebar?: boolean;
-  updateLogoOnProfileAvatar?: boolean;
-}
-
 export async function fetchAppSettings(): Promise<AppSettings | null> {
   try {
     const settingsRef = doc(db, SETTINGS_COLLECTION, GLOBAL_CONFIG_DOC_ID);
@@ -56,13 +40,15 @@ export async function fetchAppSettings(): Promise<AppSettings | null> {
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      return {
+      // Cast to AppSettings to ensure type conformity
+      const settings: AppSettings = {
         webViewUrl: data.webViewUrl || null,
         logoUrl: data.logoUrl || null,
         updateLogoOnLogin: data.logoUrl ? !!data.updateLogoOnLogin : false,
         updateLogoOnSidebar: data.logoUrl ? !!data.updateLogoOnSidebar : false,
         updateLogoOnProfileAvatar: data.logoUrl ? !!data.updateLogoOnProfileAvatar : false,
       };
+      return settings;
     }
     return null; // No settings configured yet
   } catch (error) {
@@ -70,4 +56,3 @@ export async function fetchAppSettings(): Promise<AppSettings | null> {
     return null; 
   }
 }
-
