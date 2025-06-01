@@ -1,54 +1,107 @@
 
-# The _headers file is used by Netlify to apply HTTP headers.
-# Documentation: https://docs.netlify.com/routing/headers/
+# Security Headers
+#
+# Content-Security-Policy:
+#   default-src 'self';
+#   script-src
+#     'self'
+#     'unsafe-eval'
+#     'unsafe-inline'
+#     https://netlify-cdp-loader.netlify.app
+#     https://misbah.info https://*.misbah.info; # Allow scripts from misbah.info
+#   style-src
+#     'self'
+#     'unsafe-inline'
+#     https://fonts.googleapis.com
+#     https://misbah.info https://*.misbah.info; # Allow styles from misbah.info
+#   img-src
+#     'self'
+#     data:
+#     https://placehold.co
+#     https://live.lunawadajamaat.org
+#     https://pbs.twimg.com
+#     https://firebasestorage.googleapis.com
+#     https://misbah.info https://*.misbah.info; # Allow images from misbah.info
+#   font-src
+#     'self'
+#     data:
+#     https://fonts.gstatic.com;
+#   connect-src
+#     'self'
+#     https://firestore.googleapis.com
+#     https://*.firebaseio.com
+#     https://www.googleapis.com
+#     https://api.ipify.org
+#     https://misbah.info https://*.misbah.info; # Allow connections to misbah.info
+#   media-src
+#     'self'
+#     https://misbah.info; # Allow media from misbah.info
+#   frame-src
+#     'self'
+#     https:; # Allow embedding from any HTTPS source (TEMP for diagnostics)
+#     # https://www.youtube.com # For YouTube embeds
+#     # https://misbah.info https://*.misbah.info; # Allow misbah.info to be framed
+#   frame-ancestors 'self'; # Only allow your own site to frame itself
+#   form-action 'self';
+#   object-src 'none';
+#   base-uri 'self';
+#   upgrade-insecure-requests;
+
+# X-Frame-Options: DENY # Temporarily commented out for diagnostics
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: microphone=(), camera=(), geolocation=(), payment=(), usb=()
 
 /*
-  # Basic security headers
+  The above Content-Security-Policy is currently commented out for diagnostics.
+  It was previously:
+  Content-Security-Policy:
+    default-src 'self';
+    script-src
+      'self'
+      'unsafe-eval'
+      'unsafe-inline' # Allow inline scripts (common in Next.js, especially with CSS-in-JS or utility CSS)
+      https://netlify-cdp-loader.netlify.app; # Netlify Dev Platform
+    style-src
+      'self'
+      'unsafe-inline' # Allow inline styles
+      https://fonts.googleapis.com;
+    img-src
+      'self'
+      data: # Allow data URIs for images (e.g., base64 encoded)
+      https://placehold.co
+      https://live.lunawadajamaat.org
+      https://pbs.twimg.com
+      https://firebasestorage.googleapis.com;
+    font-src
+      'self'
+      data:
+      https://fonts.gstatic.com; # For Google Fonts
+    connect-src
+      'self'
+      https://firestore.googleapis.com # Firebase Firestore
+      https://*.firebaseio.com # Firebase Realtime Database (if used)
+      https://www.googleapis.com # Firebase Auth
+      https://api.ipify.org; # For IP address fetching
+    media-src
+      'self'
+      https://misbah.info; # For the video background
+    frame-src
+      'self'
+      https:; # Allow embedding from any HTTPS source - Made more permissive
+      # https://www.youtube.com # Example for YouTube embeds if needed
+    frame-ancestors 'self'; # Only allow your own site to frame itself
+    form-action 'self';
+    object-src 'none';
+    base-uri 'self';
+    upgrade-insecure-requests;
+
+*/
+
+# Fallback for all paths
+/*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: accelerometer=(), camera=(), microphone=(), geolocation=(), payment=()
-
-  # Content Security Policy (CSP)
-  # default-src: Defines the default policy for fetching resources.
-  # script-src: Defines valid sources for JavaScript.
-  #   'self': Allows scripts from the same origin.
-  #   'unsafe-inline': Allows inline <script> elements and inline event handlers.
-  #   'unsafe-eval': Allows use of eval() and similar methods. Next.js might need this.
-  #   https://netlify-cdp-loader.netlify.app: For Netlify's Collaborative Deploy Previews.
-  # style-src: Defines valid sources for stylesheets.
-  #   'unsafe-inline': Allows inline <style> elements and style attributes.
-  # img-src: Defines valid sources for images.
-  #   data:: Allows data URIs for images.
-  # font-src: Defines valid sources for fonts.
-  # connect-src: Defines valid sources for fetch, XMLHttpRequest, WebSocket, and EventSource connections.
-  # media-src: Defines valid sources for <audio> and <video>.
-  # frame-src: Defines valid sources for iframes.
-  #   https: Allows loading from any HTTPS source. This is broad for testing.
-  # frame-ancestors: Specifies valid parents that may embed a page using <frame>, <iframe>, <object>, <embed>, or <applet>.
-  #   'self': Allows the site to embed its own pages.
-  # report-uri / csp-report-endpoint: (Optional) Where to send CSP violation reports.
-
-  Content-Security-Policy: \
-    default-src 'self' https://*.firebaseio.com https://*.firebaseapp.com; \
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://netlify-cdp-loader.netlify.app https://misbah.info https://*.misbah.info; \
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://misbah.info https://*.misbah.info; \
-    img-src 'self' https: data:; \
-    font-src 'self' https://fonts.gstatic.com data:; \
-    connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://api.ipify.org https://misbah.info https://*.misbah.info; \
-    media-src 'self' https:; \
-    frame-src 'self' https:; \
-    frame-ancestors 'self'; \
-    form-action 'self'; \
-    object-src 'none'; \
-    base-uri 'self';
-
-# For a stricter CSP, especially in production, avoid 'unsafe-inline' and 'unsafe-eval' if possible.
-# This often requires refactoring code to load scripts externally and use event listeners instead of inline handlers.
-# Hashes or nonces can also be used for inline resources.
-
-# Example of a report-only CSP if you want to test without enforcing:
-# Content-Security-Policy-Report-Only: \
-#   default-src 'self'; \
-#   script-src 'self' https://netlify-cdp-loader.netlify.app; \
-#   report-uri https://your-csp-report-endpoint.com/report;
+  Permissions-Policy: microphone=(), camera=(), geolocation=(), payment=(), usb=()
+*/
