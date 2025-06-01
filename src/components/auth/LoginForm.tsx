@@ -25,8 +25,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
-import { fetchAppSettings } from "@/actions/settingsActions";
-import type { AppSettings } from "@/lib/schemas/settingsSchemas"; // Updated import
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters."),
@@ -37,21 +36,21 @@ export function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Renamed isLoading to isSubmitting for clarity
   const [showPassword, setShowPassword] = useState(false);
+  
+  const { settings: appSettings, isLoading: isLoadingSettings } = useAppSettings();
   const [displayLogoUrl, setDisplayLogoUrl] = useState(siteConfig.defaultLogoUrl);
 
   useEffect(() => {
-    fetchAppSettings().then(settings => {
-      if (settings?.logoUrl && settings.updateLogoOnLogin) {
-        setDisplayLogoUrl(settings.logoUrl);
+    if (!isLoadingSettings) {
+      if (appSettings?.logoUrl && appSettings.updateLogoOnLogin) {
+        setDisplayLogoUrl(appSettings.logoUrl);
       } else {
         setDisplayLogoUrl(siteConfig.defaultLogoUrl);
       }
-    }).catch(() => {
-        setDisplayLogoUrl(siteConfig.defaultLogoUrl);
-    });
-  }, []);
+    }
+  }, [appSettings, isLoadingSettings]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -62,7 +61,7 @@ export function LoginForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
       const userDocRef = doc(db, "users", values.username);
       const userDocSnap = await getDoc(userDocRef);
@@ -73,7 +72,7 @@ export function LoginForm() {
           title: "Login Failed",
           description: "Invalid username or password.",
         });
-        setIsLoading(false);
+        setIsSubmitting(false);
         return;
       }
 
@@ -85,7 +84,7 @@ export function LoginForm() {
           title: "Login Failed",
           description: "Invalid username or password.",
         });
-        setIsLoading(false);
+        setIsSubmitting(false);
         return;
       }
 
@@ -95,12 +94,12 @@ export function LoginForm() {
           title: "Login Restricted",
           description: "Your account is currently restricted. Please contact support.",
         });
-        setIsLoading(false);
+        setIsSubmitting(false);
         return;
       }
 
       const success = await login(values.username, values.password);
-      setIsLoading(false);
+      setIsSubmitting(false);
       if (success) {
          toast({
             title: "Login Successful",
@@ -108,10 +107,12 @@ export function LoginForm() {
         });
         router.push(`/dashboard?name=${user.name}&username=${user.username}`);
       } else {
+        // Specific error for failed login (e.g. restricted) already handled by login function or above checks
+        // If login() itself returns false for other reasons (should be rare if checks pass):
         toast({
           variant: "destructive",
           title: "Login Failed",
-          description: "An unexpected error occurred during login.",
+          description: "An unexpected error occurred during login. Please check credentials or contact support if restriction persists.",
         });
       }
     } catch (error) {
@@ -121,23 +122,28 @@ export function LoginForm() {
         title: "Login Failed",
         description: "Something went wrong. Please try again.",
       });
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   }
 
   return (
     <Card className="w-full max-w-md shadow-xl animate-fadeIn">
       <CardHeader className="items-center text-center">
-        <Image
-          src={displayLogoUrl}
-          alt={siteConfig.name + " Logo"}
-          width={80}
-          height={80}
-          className="mb-4 rounded-full"
-          data-ai-hint="calligraphy logo"
-          unoptimized={!!displayLogoUrl.includes('?') || !!displayLogoUrl.includes('&')}
-          onError={() => setDisplayLogoUrl(siteConfig.defaultLogoUrl)}
-        />
+        {isLoadingSettings && !displayLogoUrl ? (
+            <Loader2 className="h-20 w-20 animate-spin text-primary mb-4" />
+        ) : (
+            <Image
+                src={displayLogoUrl}
+                alt={siteConfig.name + " Logo"}
+                width={80}
+                height={80}
+                className="mb-4 rounded-full"
+                data-ai-hint="calligraphy logo"
+                unoptimized={!!displayLogoUrl?.includes('?') || !!displayLogoUrl?.includes('&')}
+                onError={() => setDisplayLogoUrl(siteConfig.defaultLogoUrl)}
+                priority // Preload logo on login page
+            />
+        )}
         <CardTitle className="text-3xl font-bold">{siteConfig.name}</CardTitle>
         <CardDescription>Sign in to access your account</CardDescription>
       </CardHeader>
@@ -187,8 +193,8 @@ export function LoginForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" className="w-full" disabled={isSubmitting || isLoadingSettings}>
+              {(isSubmitting || (isLoadingSettings && !appSettings)) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
           </form>

@@ -24,8 +24,7 @@ import { UserProfileMenu } from "./UserProfileMenu";
 import { cn } from "@/lib/utils";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import { useEffect, useState } from "react";
-import { fetchAppSettings } from "@/actions/settingsActions";
-import type { AppSettings } from "@/lib/schemas/settingsSchemas";
+import { useAppSettings } from "@/hooks/useAppSettings"; // Changed from fetchAppSettings
 
 interface AppShellProps {
   children: ReactNode;
@@ -33,19 +32,18 @@ interface AppShellProps {
 
 function SidebarLogo() {
   const { isMobile } = useSidebar();
+  const { settings: appSettings, isLoading: isLoadingSettings } = useAppSettings();
   const [currentLogoUrl, setCurrentLogoUrl] = useState(siteConfig.defaultLogoUrl);
 
   useEffect(() => {
-    fetchAppSettings().then(settings => {
-      if (settings?.logoUrl && settings.updateLogoOnSidebar) {
-        setCurrentLogoUrl(settings.logoUrl);
+    if (!isLoadingSettings) {
+      if (appSettings?.logoUrl && appSettings.updateLogoOnSidebar) {
+        setCurrentLogoUrl(appSettings.logoUrl);
       } else {
         setCurrentLogoUrl(siteConfig.defaultLogoUrl);
       }
-    }).catch(() => {
-      setCurrentLogoUrl(siteConfig.defaultLogoUrl);
-    });
-  }, []);
+    }
+  }, [appSettings, isLoadingSettings]);
 
   return (
     <Link href="/dashboard" className="flex items-center gap-2 px-2">
@@ -111,13 +109,11 @@ export function AppShell({ children }: AppShellProps) {
 
   const isWebViewPage = pathname === '/web-view';
 
-  // This div wraps the children.
   const contentWrapperClasses = cn(
     "flex-1 overflow-y-auto", // Grow and allow its own content to scroll
-    {
-      "p-4 md:p-6 lg:p-8 pb-24 md:pb-8": !isWebViewPage, // Standard padding for other pages
-      // For web-view, no padding from this wrapper. The web-view page itself will be h-full.
-    }
+    isWebViewPage ? "p-0" : "p-4 md:p-6 lg:p-8" // For webview, no padding. Other pages get standard padding.
+                                                 // Bottom padding for BottomNav is handled by SidebarInset.
+                                                 // Bottom padding for decorative border is handled by main's flex structure.
   );
 
   return (
@@ -132,28 +128,27 @@ export function AppShell({ children }: AppShellProps) {
           </ScrollArea>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset className="flex flex-col min-h-screen"> {/* Parent flex column */}
+      <SidebarInset className="flex flex-col min-h-screen pb-16 md:pb-0"> {/* pb-16 for BottomNav on mobile */}
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
-            <SidebarTrigger className="md:hidden" /> {/* Trigger for mobile */}
+            <SidebarTrigger className="md:hidden" />
             <h1 className="text-xl font-bold text-nav-foreground truncate">{currentTitle}</h1>
           </div>
           <div className="flex items-center gap-2">
             <UserProfileMenu />
           </div>
         </header>
-        <div className="decorative-border-repeat decorative-border-repeat-h20"></div> {/* Top border */}
+        <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
 
-        {/* Main content area + mobile bottom border */}
-        <main className="flex flex-col flex-1 bg-transparent text-foreground"> {/* flex-1 to grow, flex-col for content + border */}
-          <div className={contentWrapperClasses}> {/* This is where children (web-view) go. It's flex-1 */}
+        <main className="flex flex-col flex-1 bg-transparent text-foreground overflow-hidden"> {/* main is flex-1, contains content and mobile border */}
+          <div className={contentWrapperClasses}> {/* content div is flex-1, takes space above mobile border */}
             {children}
           </div>
           {/* Bottom decorative border for mobile, always shown if mobile */}
-          <div className="md:hidden decorative-border-repeat decorative-border-repeat-h20"></div>
+          <div className="block md:hidden decorative-border-repeat decorative-border-repeat-h20" />
         </main>
 
-        <BottomNav /> {/* Fixed position, overlays if not accounted for */}
+        <BottomNav /> {/* Fixed position, SidebarInset's pb-16 accounts for this */}
       </SidebarInset>
     </SidebarProvider>
   );

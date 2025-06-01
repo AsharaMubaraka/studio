@@ -23,8 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { siteConfig } from "@/config/site";
-import { fetchAppSettings } from "@/actions/settingsActions";
-import type { AppSettings } from "@/lib/schemas/settingsSchemas"; // Updated import
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
@@ -37,20 +36,20 @@ const RegisterForm = () => {
   const { toast } = useToast();
   const [ipAddress, setIpAddress] = useState('');
   const [autoGenerateUsername, setAutoGenerateUsername] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Renamed isLoading to isSubmitting
+
+  const { settings: appSettings, isLoading: isLoadingSettings } = useAppSettings();
   const [displayLogoUrl, setDisplayLogoUrl] = useState(siteConfig.defaultLogoUrl);
 
   useEffect(() => {
-    fetchAppSettings().then(settings => {
-      if (settings?.logoUrl && settings.updateLogoOnLogin) {
-        setDisplayLogoUrl(settings.logoUrl);
+    if (!isLoadingSettings) {
+      if (appSettings?.logoUrl && appSettings.updateLogoOnLogin) { // Assuming register page uses same logo logic
+        setDisplayLogoUrl(appSettings.logoUrl);
       } else {
         setDisplayLogoUrl(siteConfig.defaultLogoUrl);
       }
-    }).catch(() => {
-        setDisplayLogoUrl(siteConfig.defaultLogoUrl);
-    });
-  }, []);
+    }
+  }, [appSettings, isLoadingSettings]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -92,7 +91,7 @@ const RegisterForm = () => {
   }, []);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
       const response = await axios.post('/api/register', {
         ...values,
@@ -121,23 +120,28 @@ const RegisterForm = () => {
         description: error.response?.data?.error || "Something went wrong. Please try again.",
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
     <Card className="w-full max-w-md shadow-xl animate-fadeIn">
       <CardHeader className="items-center text-center">
-        <Image 
-          src={displayLogoUrl}
-          alt={siteConfig.name + " Logo"}
-          width={80} 
-          height={80} 
-          className="mb-4 rounded-full" 
-          data-ai-hint="calligraphy logo"
-          unoptimized={!!displayLogoUrl.includes('?') || !!displayLogoUrl.includes('&')}
-          onError={() => setDisplayLogoUrl(siteConfig.defaultLogoUrl)}
-        />
+       {isLoadingSettings && !displayLogoUrl ? (
+            <Loader2 className="h-20 w-20 animate-spin text-primary mb-4" />
+        ) : (
+            <Image 
+            src={displayLogoUrl}
+            alt={siteConfig.name + " Logo"}
+            width={80} 
+            height={80} 
+            className="mb-4 rounded-full" 
+            data-ai-hint="calligraphy logo"
+            unoptimized={!!displayLogoUrl?.includes('?') || !!displayLogoUrl?.includes('&')}
+            onError={() => setDisplayLogoUrl(siteConfig.defaultLogoUrl)}
+            priority
+            />
+        )}
         <CardTitle className="text-3xl font-bold">{siteConfig.name}</CardTitle>
         <CardDescription>Create an account to get started</CardDescription>
       </CardHeader>
@@ -205,8 +209,8 @@ const RegisterForm = () => {
               )}
             />
             <input type="hidden" name="ipAddress" value={ipAddress} />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" className="w-full" disabled={isSubmitting || isLoadingSettings}>
+              {(isSubmitting || (isLoadingSettings && !appSettings)) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Register
             </Button>
           </form>

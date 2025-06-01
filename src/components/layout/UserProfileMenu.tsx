@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, UserCircle, ChevronDown, Settings, ShieldCheck, BellRing as BellRingIconLucide } from "lucide-react";
+import { LogOut, UserCircle, ChevronDown, Settings, ShieldCheck, BellRing as BellRingIconLucide, Loader2 } from "lucide-react"; // Added Loader2
 import { ThemeToggleMenuItem } from "./ThemeToggle";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -23,8 +23,7 @@ import { useEffect, useState } from "react";
 import { collection, query, getDocs, DocumentData, Timestamp } from "firebase/firestore";
 import Link from "next/link"; 
 import { siteConfig } from "@/config/site";
-import { fetchAppSettings } from "@/actions/settingsActions";
-import type { AppSettings } from "@/lib/schemas/settingsSchemas"; // Updated import
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 
 interface AppNotificationDoc {
@@ -37,6 +36,8 @@ export function UserProfileMenu() {
   const { isAdminMode, setIsAdminMode } = useAdminMode();
   const { toast } = useToast();
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  
+  const { settings: appSettings, isLoading: isLoadingSettings } = useAppSettings();
   const [displayAvatarUrl, setDisplayAvatarUrl] = useState(siteConfig.defaultLogoUrl);
 
 
@@ -72,16 +73,14 @@ export function UserProfileMenu() {
   }, [user]);
 
   useEffect(() => {
-    fetchAppSettings().then(settings => {
-      if (settings?.logoUrl && settings.updateLogoOnProfileAvatar) {
-        setDisplayAvatarUrl(settings.logoUrl);
+    if (!isLoadingSettings) {
+      if (appSettings?.logoUrl && appSettings.updateLogoOnProfileAvatar) {
+        setDisplayAvatarUrl(appSettings.logoUrl);
       } else {
         setDisplayAvatarUrl(siteConfig.defaultLogoUrl);
       }
-    }).catch(() => {
-      setDisplayAvatarUrl(siteConfig.defaultLogoUrl);
-    });
-  }, []);
+    }
+  }, [appSettings, isLoadingSettings]);
 
 
   if (!user) return null;
@@ -136,10 +135,14 @@ export function UserProfileMenu() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 gap-2 px-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={displayAvatarUrl} alt={user.username} onError={() => setDisplayAvatarUrl(siteConfig.defaultLogoUrl)} />
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
+            {isLoadingSettings ? (
+              <Loader2 className="h-7 w-7 animate-spin" />
+            ) : (
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={displayAvatarUrl} alt={user.username} onError={() => setDisplayAvatarUrl(siteConfig.defaultLogoUrl)} />
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+            )}
             <div className="hidden sm:block">
               <p className="font-medium leading-none">{user.name}</p>
               <p className="text-xs leading-none text-muted-foreground">({user.username})</p>
