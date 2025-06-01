@@ -1,95 +1,54 @@
 
-/*
-  Referrer-Policy: Controls how much referrer information (sent via the Referer header) should be included with requests.
-    'no-referrer': Never send the Referer header.
-    'no-referrer-when-downgrade': Default. Send full URL when navigating from HTTPS to HTTPS, but no referrer from HTTPS to HTTP.
-    'same-origin': Only send referrer for same-origin requests.
-    'strict-origin': Send origin (scheme, host, port) for cross-origin requests from HTTPS to HTTPS. No referrer from HTTPS to HTTP.
-    'strict-origin-when-cross-origin': Send full URL for same-origin, origin for cross-origin (HTTPS->HTTPS), no referrer for downgrade (HTTPS->HTTP). This is a good balance.
-    'unsafe-url': Always send the full URL. (Not recommended)
-
-  Permissions-Policy: Allows you to selectively enable or disable browser features and APIs.
-    Example: geolocation=(self "https://example.com"), microphone=()
-    This means geolocation is allowed for your own origin and example.com, microphone is disabled for all.
-
-  X-Content-Type-Options: Prevents browsers from MIME-sniffing a response away from the declared content-type.
-    'nosniff': The only value.
-
-  X-Frame-Options: Provides clickjacking protection.
-    'DENY': The page cannot be displayed in a frame, regardless of the site attempting to do so.
-    'SAMEORIGIN': The page can only be displayed in a frame on the same origin as the page itself.
-    'ALLOW-FROM uri': The page can only be displayed in a frame on the specified origin. (Obsolete, use CSP frame-ancestors)
-
-  Content-Security-Policy: A powerful tool to control resources the browser is allowed to load for a given page.
-    Helps prevent XSS attacks.
-    Directives include: default-src, script-src, style-src, img-src, font-src, connect-src, media-src, object-src, frame-src, frame-ancestors, etc.
-    Common sources:
-      'self': Allows loading resources from the same origin.
-      'none': Blocks everything for that directive.
-      'unsafe-inline': Allows inline <script> and <style> elements, and inline event handlers.
-      'unsafe-eval': Allows mechanisms like eval().
-      specific hosts: e.g., https://fonts.googleapis.com
-
-  Strict-Transport-Security (HSTS): Tells browsers to only access your site using HTTPS.
-    max-age=<seconds>; includeSubDomains; preload
-    Important: Only enable if you are sure your site is fully HTTPS.
-*/
+# The _headers file is used by Netlify to apply HTTP headers.
+# Documentation: https://docs.netlify.com/routing/headers/
 
 /*
-  Cache-Control: Specifies caching policies in client caches and proxy caches.
-    Netlify handles caching quite well by default for static assets (fingerprinted URLs)
-    and has options for more granular control if needed. For API routes or SSR pages,
-    you might set 'Cache-Control: no-store, max-age=0' or similar if they should not be cached.
-    For general pages, Netlify's defaults are usually fine.
-*/
-
-/* For all paths */
-/*
+  # Basic security headers
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
+  Permissions-Policy: accelerometer=(), camera=(), microphone=(), geolocation=(), payment=()
+
+  # Content Security Policy (CSP)
+  # default-src: Defines the default policy for fetching resources.
+  # script-src: Defines valid sources for JavaScript.
+  #   'self': Allows scripts from the same origin.
+  #   'unsafe-inline': Allows inline <script> elements and inline event handlers.
+  #   'unsafe-eval': Allows use of eval() and similar methods. Next.js might need this.
+  #   https://netlify-cdp-loader.netlify.app: For Netlify's Collaborative Deploy Previews.
+  # style-src: Defines valid sources for stylesheets.
+  #   'unsafe-inline': Allows inline <style> elements and style attributes.
+  # img-src: Defines valid sources for images.
+  #   data:: Allows data URIs for images.
+  # font-src: Defines valid sources for fonts.
+  # connect-src: Defines valid sources for fetch, XMLHttpRequest, WebSocket, and EventSource connections.
+  # media-src: Defines valid sources for <audio> and <video>.
+  # frame-src: Defines valid sources for iframes.
+  #   https: Allows loading from any HTTPS source. This is broad for testing.
+  # frame-ancestors: Specifies valid parents that may embed a page using <frame>, <iframe>, <object>, <embed>, or <applet>.
+  #   'self': Allows the site to embed its own pages.
+  # report-uri / csp-report-endpoint: (Optional) Where to send CSP violation reports.
+
   Content-Security-Policy: \
-    default-src 'self'; \
+    default-src 'self' https://*.firebaseio.com https://*.firebaseapp.com; \
     script-src 'self' 'unsafe-inline' 'unsafe-eval' https://netlify-cdp-loader.netlify.app https://misbah.info https://*.misbah.info; \
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://misbah.info https://*.misbah.info; \
-    img-src 'self' data: https://placehold.co https://live.lunawadajamaat.org https://pbs.twimg.com https://firebasestorage.googleapis.com https://misbah.info https://*.misbah.info; \
-    font-src 'self' https://fonts.gstatic.com; \
-    connect-src 'self' https://firestore.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.ipify.org https://misbah.info https://*.misbah.info; \
-    media-src 'self' https://misbah.info https://*.misbah.info; \
-    object-src 'none'; \
-    frame-src 'self' https://www.youtube.com https://misbah.info https://*.misbah.info; \
+    img-src 'self' https: data:; \
+    font-src 'self' https://fonts.gstatic.com data:; \
+    connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://api.ipify.org https://misbah.info https://*.misbah.info; \
+    media-src 'self' https:; \
+    frame-src 'self' https:; \
     frame-ancestors 'self'; \
-    base-uri 'self'; \
     form-action 'self'; \
-    upgrade-insecure-requests;
-*/
-
-/* More basic headers, CSP is temporarily commented out above for diagnostics */
-/* Re-enabling CSP with adjustments for misbah.info */
-/
-  X-Frame-Options: DENY
-  X-Content-Type-Options: nosniff
-  Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: accelerometer=(), camera=(), geolocation=(self), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
-  Content-Security-Policy: \
-    default-src 'self'; \
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://netlify-cdp-loader.netlify.app https://misbah.info https://*.misbah.info; \
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://misbah.info https://*.misbah.info; \
-    img-src 'self' data: https://placehold.co https://live.lunawadajamaat.org https://pbs.twimg.com https://firebasestorage.googleapis.com https://misbah.info https://*.misbah.info; \
-    font-src 'self' https://fonts.gstatic.com; \
-    connect-src 'self' https://firestore.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.ipify.org https://misbah.info https://*.misbah.info; \
-    media-src 'self' https://misbah.info https://*.misbah.info; \
     object-src 'none'; \
-    frame-src 'self' https://www.youtube.com https://misbah.info https://*.misbah.info; \
-    child-src 'self' https://www.youtube.com https://misbah.info https://*.misbah.info; \
-    frame-ancestors 'self'; \
-    base-uri 'self'; \
-    form-action 'self'; \
-    upgrade-insecure-requests;
+    base-uri 'self';
 
-# If you have specific paths that need different headers, you can add them below.
-# For example:
-# /api/*
-#   Cache-Control: no-cache, no-store, max-age=0, must-revalidate
-#   X-Robots-Tag: noindex
+# For a stricter CSP, especially in production, avoid 'unsafe-inline' and 'unsafe-eval' if possible.
+# This often requires refactoring code to load scripts externally and use event listeners instead of inline handlers.
+# Hashes or nonces can also be used for inline resources.
+
+# Example of a report-only CSP if you want to test without enforcing:
+# Content-Security-Policy-Report-Only: \
+#   default-src 'self'; \
+#   script-src 'self' https://netlify-cdp-loader.netlify.app; \
+#   report-uri https://your-csp-report-endpoint.com/report;

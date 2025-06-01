@@ -14,7 +14,6 @@ import { useAuth } from "@/hooks/useAuth";
 
 export default function WebViewPage() {
   const [configuredUrl, setConfiguredUrl] = useState<string | null | undefined>(undefined); // undefined means loading
-  const [iframeLoadAttempted, setIframeLoadAttempted] = useState(false);
   const [iframeError, setIframeError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
@@ -22,13 +21,9 @@ export default function WebViewPage() {
   const loadUrl = useCallback(async () => {
     setIsLoading(true);
     setIframeError(null);
-    setIframeLoadAttempted(false);
     const settings = await fetchAppSettings();
     const urlToLoad = settings?.webViewUrl || null;
     setConfiguredUrl(urlToLoad);
-    if (urlToLoad) {
-      setIframeLoadAttempted(true); // Mark that we will attempt to load this URL
-    }
     setIsLoading(false);
   }, []);
 
@@ -37,17 +32,22 @@ export default function WebViewPage() {
     loadUrl();
   }, [loadUrl]);
 
-  const handleIframeError = () => {
+  const handleIframeError = (event: React.SyntheticEvent<HTMLIFrameElement, Event>) => {
+    // This basic error handler fires if the iframe element itself has an issue loading its src URL
+    // (e.g. network error, DNS failure for the src domain).
+    // It often doesn't fire for content-related errors like 404s or if the embedded site
+    // sends X-Frame-Options.
+    console.error("Iframe native onError event triggered:", event);
     setIframeError(
-      `Could not load content from ${configuredUrl}. This often happens if the website owner has restricted embedding (e.g., via X-Frame-Options or Content-Security-Policy). Please check your browser's developer console for more specific error messages from the target website.`
+      `The browser encountered an error trying to load the content from ${configuredUrl}. This could be a network issue, or the website might be down or blocking requests. Please check the URL and try again.`
     );
   };
 
   const pageContainerClasses = cn(
     "animate-fadeIn h-full",
-    (iframeError || (!configuredUrl && !isLoading && !iframeLoadAttempted)) 
+    (iframeError || (!configuredUrl && !isLoading))
       ? "flex flex-col items-center justify-center p-4"
-      : "flex flex-col -mx-4 md:-mx-6 lg:-mx-8" 
+      : "flex flex-col -mx-4 md:-mx-6 lg:-mx-8"
   );
 
   if (isLoading) {
@@ -69,21 +69,17 @@ export default function WebViewPage() {
       ) : configuredUrl ? (
         <div className="flex-grow w-full relative">
           <iframe
-            key={configuredUrl} 
+            key={configuredUrl}
             src={configuredUrl}
             title="Embedded Web View"
             className="absolute top-0 left-0 h-full w-full border-0"
-            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-presentation"
             onError={handleIframeError}
             onLoad={() => {
-              // If onLoad fires, it implies the iframe document itself loaded,
-              // though the content might still be an error page from the target site
-              // or a blank page if embedding was blocked silently.
-              // We clear any previous network-related error but keep UI as is
-              // if a content-block error was already set by onError.
-              if (!iframeError?.includes("restricted embedding")) {
-                  setIframeError(null);
-              }
+              // Clearing error on successful load.
+              // Note: "load" can fire even if the content is an error page from the server (e.g. 404)
+              // or if the content is blocked by X-Frame-Options (showing a browser error page inside iframe).
+              // More sophisticated detection of actual content success is complex.
+              setIframeError(null);
             }}
           />
         </div>
