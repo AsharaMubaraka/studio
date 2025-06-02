@@ -269,6 +269,6 @@ export {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
-  SidebarProvider, // Ensure SidebarProvider is exported
-  useSidebar, // Ensure useSidebar is exported
+  // SidebarProvider, // Removed duplicate export
+  useSidebar, 
 };
