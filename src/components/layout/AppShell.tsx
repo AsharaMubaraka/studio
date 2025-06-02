@@ -113,7 +113,7 @@ function AppShellInternal({ children }: AppShellProps) {
 
   const contentWrapperClasses = cn(
     "flex-1", // Common: take available space
-    isWebViewPage ? "flex flex-col p-0" : "p-4 md:p-6 lg:p-8 overflow-y-auto" 
+    isWebViewPage ? "p-0" : "p-4 md:p-6 lg:p-8 overflow-y-auto" // For WebView, container just fills space. WebViewPage itself handles internal flex.
   );
 
   return (
@@ -142,7 +142,7 @@ function AppShellInternal({ children }: AppShellProps) {
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
 
         {/* Main content area */}
-        <main className="flex flex-col flex-1 bg-transparent text-foreground"> {/* Removed overflow-hidden */}
+        <main className="flex flex-col flex-1 bg-transparent text-foreground">
           <div className={contentWrapperClasses}>
             {children}
           </div>
