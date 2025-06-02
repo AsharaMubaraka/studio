@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAppSettings } from "@/hooks/useAppSettings"; // Ensure this path is correct
+import { useAppSettings } from "@/hooks/useAppSettings";
 import { Loader2, AlertCircle, Globe, Link as LinkIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { siteConfig } from "@/config/site";
 
 export default function WebViewPage() {
-  const { settings, isLoading: isLoadingSettings } = useAppSettings();
+  const { settings, isLoading: isLoadingSettings, refreshAppSettings } = useAppSettings();
   const [configuredUrl, setConfiguredUrl] = useState<string | null | undefined>(undefined);
   const [iframeError, setIframeError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -26,14 +26,13 @@ export default function WebViewPage() {
       const urlToLoad = settings?.webViewUrl || null;
       setConfiguredUrl(urlToLoad);
       if (urlToLoad) {
-        setIframeError(null); // Reset error if a new URL is loaded
+        setIframeError(null); 
       }
     }
   }, [settings, isLoadingSettings]);
 
   const handleIframeLoad = () => {
-    // console.log("Iframe loaded:", configuredUrl);
-    setIframeError(null); // Clear any previous error on successful load
+    setIframeError(null); 
   };
 
   const handleIframeErrorEvent = (e: React.SyntheticEvent<HTMLIFrameElement, Event>) => {
@@ -46,10 +45,9 @@ export default function WebViewPage() {
   const pageIsLoading = isLoadingSettings || configuredUrl === undefined;
 
   return (
-    // Changed h-full to flex-1 to make this container grow as a flex item
     <div
       id="page-container"
-      className="flex flex-col flex-1 w-full bg-transparent" 
+      className="h-full w-full flex flex-col bg-transparent"
     >
       {pageIsLoading && !configuredUrl && (
         <div className="flex flex-1 items-center justify-center">
@@ -111,19 +109,16 @@ export default function WebViewPage() {
         </div>
       )}
       
-      {/* Iframe container - uses flex-1 to take available space from its flex-col parent */}
       {configuredUrl && !iframeError && (
         <div id="iframe-wrapper" className="flex-1">
           <iframe
             ref={iframeRef}
-            key={configuredUrl} // Re-renders iframe if URL changes
+            key={configuredUrl} 
             src={configuredUrl}
             title="Embedded Web View"
-            className="h-full w-full border-0" // Fills its parent
+            className="h-full w-full border-0"
             onLoad={handleIframeLoad}
             onError={handleIframeErrorEvent}
-            // sandbox attribute removed for broader compatibility, was:
-            // sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-presentation"
           />
         </div>
       )}

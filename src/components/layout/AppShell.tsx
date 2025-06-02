@@ -110,9 +110,10 @@ export function AppShell({ children }: AppShellProps) {
   const isWebViewPage = pathname === '/web-view';
 
   const contentWrapperClasses = cn(
-    "flex-1 overflow-y-auto", // Grow and allow its own content to scroll
-    isWebViewPage ? "p-0" : "p-4 md:p-6 lg:p-8" 
+    "flex-1", // Grow and allow its own content to scroll
+    isWebViewPage ? "p-0" : "p-4 md:p-6 lg:p-8 overflow-y-auto"
   );
+
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -138,13 +139,10 @@ export function AppShell({ children }: AppShellProps) {
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
 
-        {/* Main content area and mobile bottom border */}
-        {/* Removed overflow-hidden from main to allow flex child (contentWrapper) to correctly calculate height with overflow-y-auto */}
         <main className="flex flex-col flex-1 bg-transparent text-foreground">
           <div className={contentWrapperClasses}>
             {children}
           </div>
-          {/* Bottom decorative border for mobile, always shown if mobile */}
           <div className="block md:hidden decorative-border-repeat decorative-border-repeat-h20" />
         </main>
 
