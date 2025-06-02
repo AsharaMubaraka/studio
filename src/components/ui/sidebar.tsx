@@ -10,8 +10,10 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
-  SheetClose, // Sheet parts are no longer used by Sidebar directly for mobile
-} from "@/components/ui/sheet"; // Sheet component itself might still be used elsewhere
+  Sheet,
+  SheetContent,
+  SheetClose, 
+} from "@/components/ui/sheet"; 
 
 // Context for sidebar state
 interface SidebarContextProps {
@@ -37,15 +39,12 @@ interface SidebarProviderProps {
 
 export function SidebarProvider({
   children,
-  defaultOpen = true, // Keep defaultOpen true for desktop
+  defaultOpen = true, 
 }: SidebarProviderProps) {
   const isMobile = useIsMobile();
-  // isOpen state now primarily controls the desktop sidebar's visibility/translation
   const [isOpen, setIsOpen] = React.useState(isMobile ? false : defaultOpen);
 
   React.useEffect(() => {
-    // On mobile, we want the concept of "isOpen" to effectively be false for layout purposes
-    // as there's no mobile sidebar panel. For desktop, respect defaultOpen.
     if (isMobile) {
       setIsOpen(false); 
     } else {
@@ -64,25 +63,33 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
   ({ className, children, ...props }, ref) => {
-    const { isOpen, isMobile } = useSidebar();
+    const { isOpen, setIsOpen, isMobile } = useSidebar();
 
-    // If mobile, the sidebar does not render anything.
-    // The functionality is effectively removed from mobile.
     if (isMobile) {
-      return null;
+      return (
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetContent side="left" className={cn("w-64 p-0 flex flex-col", className)}>
+            {/*
+              SheetContent renders its own close button by default.
+              The children passed to Sidebar (e.g., <SidebarHeader> and <SidebarContent>)
+              will be rendered here directly.
+            */}
+            {children}
+          </SheetContent>
+        </Sheet>
+      );
     }
 
     // Desktop sidebar rendering logic
     const desktopSidebarClasses = cn(
       "fixed inset-y-0 left-0 z-30 flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 ease-in-out",
-      "w-64", // Fixed width for desktop sidebar
+      "w-64", 
       isOpen ? "translate-x-0" : "-translate-x-full",
       className
     );
 
     return (
       <aside ref={ref} className={desktopSidebarClasses} {...props}>
-        {/* The children (SidebarHeader, SidebarContent) will be rendered here for desktop */}
         {children} 
       </aside>
     );
@@ -92,23 +99,15 @@ Sidebar.displayName = "Sidebar";
 
 const SidebarTrigger = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, children, ...props }, ref) => {
-    const { setIsOpen, isMobile, isOpen } = useSidebar(); // Added isOpen to toggle desktop
+    const { setIsOpen, isMobile, isOpen } = useSidebar(); 
     
-    // On mobile, the trigger (hamburger icon) should not render
-    if (isMobile) {
-      return null;
-    }
-
-    // This trigger logic is now for a potential DESKTOP sidebar toggle,
-    // if you were to place a trigger visible on desktop.
-    // The AppShell's md:hidden trigger will be handled by the `if (isMobile)` above.
     return (
       <Button
         ref={ref}
         variant="ghost"
         size="icon"
-        className={cn("text-nav-foreground hover:bg-nav-foreground/10", className)} // Example styling
-        onClick={() => setIsOpen(!isOpen)} // Toggles desktop sidebar
+        className={cn("text-nav-foreground hover:bg-nav-foreground/10", className)} 
+        onClick={() => setIsOpen(!isOpen)} 
         {...props}
       >
         {children || (isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />)}
@@ -198,9 +197,9 @@ const SidebarMenuButton = React.forwardRef<
   const Comp = asChild ? Slot : Button;
   
   const [showTooltip, setShowTooltip] = React.useState(false);
-  const { isMobile } = useSidebar(); // isMobile is still available from context
+  const { isMobile } = useSidebar(); 
 
-  if (tooltip && !tooltip.hidden && !isMobile) { // Tooltip only for desktop
+  if (tooltip && !tooltip.hidden && !isMobile) { 
      return (
       <div className="relative">
         <Comp
@@ -243,9 +242,8 @@ const SidebarInset = React.forwardRef<
   
   const insetClasses = cn(
     "transition-all duration-300 ease-in-out bg-transparent", 
-    !isMobile && isOpen && "md:pl-64", // Apply padding only if NOT mobile AND sidebar is open
-    !isMobile && !isOpen && "md:pl-0", // Apply no padding if NOT mobile AND sidebar is closed
-    // On mobile, isMobile is true, so neither of the above md:pl-* conditions apply, resulting in pl-0 implicitly.
+    !isMobile && isOpen && "md:pl-64", 
+    !isMobile && !isOpen && "md:pl-0", 
     className
   );
 
@@ -261,6 +259,8 @@ const SidebarInset = React.forwardRef<
 SidebarInset.displayName = "SidebarInset";
 
 export {
+  // SidebarProvider is NOT exported here again
+  useSidebar,
   Sidebar,
   SidebarTrigger,
   SidebarHeader,
@@ -269,6 +269,4 @@ export {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
-  // SidebarProvider, // Removed duplicate export
-  useSidebar, 
 };
