@@ -1,23 +1,46 @@
 {
   "name": "Ashara Mubaraka",
-  "short_name": "AsharaApp",
+  "short_name": "Ashara App",
   "description": "Ashara Mubaraka Official application for communication and better view",
   "start_url": "/",
+  "id": "/?source=pwa_v1",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "background_color": "#FFFFFF",
   "theme_color": "#9f8a3e",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "https://placehold.co/1080x1920.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "App Screenshot 1 - Dashboard View",
+      "data-ai-hint": "app dashboard"
+    },
+    {
+      "src": "https://placehold.co/1080x1920.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "App Screenshot 2 - Notifications Feed",
+      "data-ai-hint": "app notifications"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  }
 }
