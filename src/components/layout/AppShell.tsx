@@ -110,8 +110,8 @@ export function AppShell({ children }: AppShellProps) {
   const isWebViewPage = pathname === '/web-view';
 
   const contentWrapperClasses = cn(
-    "flex-1", // Grow and allow its own content to scroll
-    isWebViewPage ? "p-0" : "p-4 md:p-6 lg:p-8 overflow-y-auto"
+    "flex-1", // Grow
+    isWebViewPage ? "flex flex-col p-0" : "p-4 md:p-6 lg:p-8 overflow-y-auto" // Conditional: webview is flex-col, others have padding & scroll
   );
 
 

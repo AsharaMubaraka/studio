@@ -47,7 +47,7 @@ export default function WebViewPage() {
   return (
     <div
       id="page-container"
-      className="h-full w-full flex flex-col bg-transparent"
+      className="flex-1 w-full flex flex-col bg-transparent"
     >
       {pageIsLoading && !configuredUrl && (
         <div className="flex flex-1 items-center justify-center">
