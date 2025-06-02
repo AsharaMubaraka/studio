@@ -11,7 +11,7 @@ import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  // SheetClose, // No longer explicitly used
+  // SheetClose, // Removed unused import
 } from "@/components/ui/sheet"; 
 
 // Context for sidebar state
@@ -46,9 +46,7 @@ export function SidebarProvider({
     if (typeof isMobile === 'boolean') {
       return isMobile ? false : defaultOpen;
     }
-    // Fallback or initial state before isMobile is determined,
-    // assuming defaultOpen for non-mobile and false for initial mobile.
-    // This will be quickly updated by useEffect.
+    // Fallback or initial state before isMobile is determined.
     return defaultOpen; 
   });
 
@@ -103,7 +101,6 @@ const SidebarTrigger = React.forwardRef<HTMLButtonElement, ButtonProps>(
     
     // The trigger should only be functional if it's not mobile,
     // as AppShell will hide it on mobile.
-    // If it were to be rendered on mobile by mistake, this check prevents issues.
     if (isMobile) {
         return null; 
     }
@@ -266,7 +263,7 @@ const SidebarInset = React.forwardRef<
 SidebarInset.displayName = "SidebarInset";
 
 export {
-  useSidebar,
+  // useSidebar is already exported above at its definition
   Sidebar,
   SidebarTrigger,
   SidebarHeader,
