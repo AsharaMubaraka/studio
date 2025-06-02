@@ -90,7 +90,8 @@ function MainNav({ currentNavItems }: { currentNavItems: NavItemConfig[] }) {
   );
 }
 
-export function AppShell({ children }: AppShellProps) {
+// Internal component to ensure SidebarProvider wraps sidebar-related hooks/components
+function AppShellInternal({ children }: AppShellProps) {
   const pathname = usePathname();
   const { isAdminMode } = useAdminMode();
 
@@ -106,12 +107,12 @@ export function AppShell({ children }: AppShellProps) {
       const homeItem = currentNavItems.find(item => item.href === '/dashboard');
       if (homeItem) currentTitle = homeItem.title;
   }
-
+  
   const isWebViewPage = pathname === '/web-view';
 
   const contentWrapperClasses = cn(
     "flex-1", // Common: take available space
-    isWebViewPage ? "flex flex-col p-0" : "p-4 md:p-6 lg:p-8 overflow-y-auto" // Specific for webview vs other pages
+    isWebViewPage ? "flex flex-col p-0" : "p-4 md:p-6 lg:p-8 overflow-y-auto" 
   );
 
   return (
@@ -126,7 +127,7 @@ export function AppShell({ children }: AppShellProps) {
           </ScrollArea>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset className="flex flex-col min-h-screen pb-16 md:pb-0"> {/* pb-16 for BottomNav space */}
+      <SidebarInset className="flex flex-col min-h-screen pb-16 md:pb-0">
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" />
@@ -138,7 +139,7 @@ export function AppShell({ children }: AppShellProps) {
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
 
-        <main className="flex flex-col flex-1 bg-transparent text-foreground">
+        <main className="flex flex-col flex-1 bg-transparent text-foreground overflow-hidden"> {/* Added overflow-hidden here */}
           <div className={contentWrapperClasses}>
             {children}
           </div>
@@ -150,4 +151,20 @@ export function AppShell({ children }: AppShellProps) {
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+
+export function AppShell({ children }: AppShellProps) {
+  const pathname = usePathname();
+  // This outer component now only decides if we render the full app shell or just the webview
+  // The SidebarProvider is now inside AppShellInternal
+  if (pathname === '/web-view-full') { // hypothetical full screen route
+    return (
+      <div className="h-screen w-screen overflow-hidden">
+        {children}
+      </div>
+    );
+  }
+
+  return <AppShellInternal>{children}</AppShellInternal>;
 }
