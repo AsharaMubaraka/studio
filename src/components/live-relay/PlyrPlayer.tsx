@@ -9,7 +9,7 @@ interface PlyrPlayerProps {
   videoId: string;
 }
 
-const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
+const CustomPlyrPlayerComponent: React.FC<PlyrPlayerProps> = ({ videoId }) => {
   const prevVideoIdRef = useRef<string>();
   const plyrRef = useRef<APITypes>(null);
 
@@ -21,12 +21,11 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
   }, [videoId]);
 
   useEffect(() => {
-    // This effect logs when the component instance itself mounts or when videoId causes it to update.
     console.log(`PlyrPlayer: Component instance for videoId "${videoId}" mounted or updated.`);
     return () => {
       console.log(`PlyrPlayer: Component instance for videoId "${videoId}" unmounting.`);
     };
-  }, [videoId]); // This dependency means the effect re-runs if videoId changes, which is fine.
+  }, [videoId]);
 
   const plyrSource: PlyrProps['source'] | null = videoId ? {
     type: 'video',
@@ -39,9 +38,7 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
   } : null;
 
   const plyrOptions: PlyrProps['options'] = {
-    debug: process.env.NODE_ENV === 'development', // Enable Plyr's own debug logs in development
-    // You can add more specific Plyr options here if needed, e.g., controls
-    // autoplay: false, // It's generally safer to keep autoplay off by default
+    debug: process.env.NODE_ENV === 'development',
   };
   
   if (!videoId || !plyrSource) {
@@ -57,12 +54,8 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
 
   return (
     <div className="aspect-video w-full h-full bg-black">
-      {/* The key={videoId} prop is crucial. 
-          It tells React to create a new instance of the Plyr component (and thus the player) 
-          when the videoId changes. This is usually the cleanest way to handle source changes.
-      */}
       <Plyr
-        key={videoId}
+        key={videoId} // Forces re-mount on videoId change for clean player state
         ref={plyrRef}
         source={plyrSource}
         options={plyrOptions}
@@ -75,7 +68,6 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
         }}
         onError={(event) => {
             console.error("PlyrPlayer: onError event from Plyr for videoId:", videoId, "Error event:", event);
-            // Check if the error might be related to YouTube restrictions
             const plyrInstance = plyrRef.current?.plyr;
             if (plyrInstance && plyrInstance.source && typeof plyrInstance.source === 'string' && plyrInstance.source.includes(videoId)) {
                  console.error(`PlyrPlayer: The error might be related to video ID "${videoId}". Check for embedding restrictions or 403 errors in the Network tab.`);
@@ -84,10 +76,11 @@ const CustomPlyrPlayer: React.FC<PlyrPlayerProps> = ({ videoId }) => {
         onPlaying={() => {
             console.log("PlyrPlayer: onPlaying event from Plyr for videoId:", videoId);
         }}
-        // Add other event handlers if needed, e.g., onPause, onEnded, etc.
       />
     </div>
   );
 };
 
-export default CustomPlyrPlayer;
+// Wrap with React.memo
+const PlyrPlayer = React.memo(CustomPlyrPlayerComponent);
+export default PlyrPlayer;

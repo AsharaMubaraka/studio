@@ -22,10 +22,18 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAdminMode } from "@/contexts/AdminModeContext";
-import PlyrPlayer from '@/components/live-relay/PlyrPlayer';
+// import PlyrPlayer from '@/components/live-relay/PlyrPlayer'; // Standard import removed
+import dynamic from 'next/dynamic'; // Import dynamic
 import { db } from "@/lib/firebase";
 import { doc, setDoc, deleteDoc, collection, onSnapshot, serverTimestamp, Unsubscribe } from "firebase/firestore";
 import { siteConfig } from "@/config/site";
+
+// Dynamically import PlyrPlayer
+const PlyrPlayer = dynamic(() => import('@/components/live-relay/PlyrPlayer'), {
+  loading: () => <Skeleton className="aspect-video w-full h-full bg-muted" />, // Show skeleton while loading
+  ssr: false // Plyr typically needs client-side environment
+});
+
 
 const formSchema = z.object({
   name: z.string().min(2, "Miqaat name must be at least 2 characters.").max(100),
@@ -321,8 +329,18 @@ function UserLiveRelayViewer() {
           </CardDescription>
         </CardHeader>
         {isEventUpcoming && (<CardContent><Alert><Youtube className="h-5 w-5" /><AlertTitle>Miqaat Upcoming</AlertTitle><AlertDescription>"{currentRelay.name}" will start {format(currentRelay.startDate, "MMM d, yyyy 'at' h:mm a")}.</AlertDescription></Alert></CardContent>)}
-        {isEventActive && currentRelay.sourceType === "youtube" && currentRelay.youtubeId && (<CardContent className="p-0 aspect-video bg-black"><PlyrPlayer videoId={currentRelay.youtubeId} /></CardContent>)}
-        {isEventActive && currentRelay.sourceType === "iframe" && currentRelay.iframeCode && (<CardContent className="p-0 aspect-video"><div className="h-full w-full [&>iframe]:w-full [&>iframe]:h-full" dangerouslySetInnerHTML={{ __html: currentRelay.iframeCode }} /></CardContent>)}
+        
+        {isEventActive && currentRelay.sourceType === "youtube" && currentRelay.youtubeId && (
+          <CardContent className="p-0 aspect-video bg-black">
+            <PlyrPlayer videoId={currentRelay.youtubeId} />
+          </CardContent>
+        )}
+
+        {isEventActive && currentRelay.sourceType === "iframe" && currentRelay.iframeCode && (
+          <CardContent className="p-0 aspect-video">
+            <div className="h-full w-full [&>iframe]:w-full [&>iframe]:h-full" dangerouslySetInnerHTML={{ __html: currentRelay.iframeCode }} />
+          </CardContent>
+        )}
         {eventHasEnded && (<CardContent><Alert><Youtube className="h-5 w-5" /><AlertTitle>Miqaat Ended</AlertTitle><AlertDescription>"{currentRelay.name}" has concluded.</AlertDescription></Alert></CardContent>)}
       </Card>
     </div>
