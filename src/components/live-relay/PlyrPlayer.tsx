@@ -20,20 +20,6 @@ const CustomPlyrPlayerComponent: React.FC<PlyrPlayerProps> = ({ videoId }) => {
     }
   }, []); // Runs once after initial render of the container
 
-  const plyrSource: PlyrProps['source'] | null = videoId ? {
-    type: 'video',
-    sources: [
-      {
-        src: videoId,
-        provider: 'youtube',
-      },
-    ],
-  } : null;
-
-  const plyrOptions: PlyrProps['options'] = {
-    // No debug options needed for production
-  };
-  
   if (!videoId) {
     return (
         <div className="aspect-video w-full h-full bg-black flex items-center justify-center text-white">
@@ -43,14 +29,33 @@ const CustomPlyrPlayerComponent: React.FC<PlyrPlayerProps> = ({ videoId }) => {
   }
 
   return (
-    <div ref={containerRef} className="aspect-video w-full h-full bg-black">
-      {isContainerReady && plyrSource ? (
-        <Plyr
-          key={videoId} 
-          ref={plyrRef}
-          source={plyrSource}
-          options={plyrOptions}
-        />
+    // Rely on parent for aspect-ratio, this div just fills the parent.
+    <div ref={containerRef} className="w-full h-full bg-black">
+      {isContainerReady ? (
+        (() => {
+          const plyrSource: PlyrProps['source'] = {
+            type: 'video',
+            sources: [
+              {
+                src: videoId,
+                provider: 'youtube',
+              },
+            ],
+          };
+
+          const plyrOptions: PlyrProps['options'] = {
+            // No debug options needed for production
+          };
+
+          return (
+            <Plyr
+              key={videoId} // This is important!
+              ref={plyrRef}
+              source={plyrSource}
+              options={plyrOptions}
+            />
+          );
+        })()
       ) : (
         // This loader is usually very brief as the parent dynamic import handles the main loading state.
         // It ensures nothing attempts to render if the container isn't ready for some reason.
