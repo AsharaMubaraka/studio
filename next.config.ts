@@ -1,8 +1,15 @@
 
 import type {NextConfig} from 'next';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true, // auto registers the service worker
+  skipWaiting: true, // forces prompt to update PWA when new version available
+  // disable: process.env.NODE_ENV === 'development', // Optional: disable PWA in development
+});
 
 const nextConfig: NextConfig = {
-  output: 'export', // Ensure static export for Capacitor
+  // output: 'export', // Removed for PWA, standard Next.js build is generally preferred
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -10,40 +17,32 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    unoptimized: true, // Required for static export with next/image
+    // unoptimized: true, // Removed, default Next.js image optimization will apply
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'placehold.co', // For placeholder images
+        hostname: 'placehold.co', 
         port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'live.lunawadajamaat.org', // Existing, kept
+        hostname: 'live.lunawadajamaat.org', 
         port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'pbs.twimg.com', // Added for this error
+        hostname: 'pbs.twimg.com', 
         port: '',
         pathname: '/**',
       },
-      { // For Firebase Storage
+      { 
         protocol: 'https',
         hostname: 'firebasestorage.googleapis.com',
         port: '',
         pathname: '/**',
       },
-      // IMPORTANT: Add hostnames for any external image services you use here.
-      // For example, if you use Imgur:
-      // {
-      //   protocol: 'https',
-      //   hostname: 'i.imgur.com',
-      //   port: '',
-      //   pathname: '/**',
-      // }
     ],
   },
   allowedDevOrigins: [
@@ -52,4 +51,4 @@ const nextConfig: NextConfig = {
   ]
 };
 
-export default nextConfig;
+export default withPWA(nextConfig);
