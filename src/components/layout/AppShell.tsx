@@ -94,7 +94,7 @@ function MainNav({ currentNavItems }: { currentNavItems: NavItemConfig[] }) {
 function AppShellInternal({ children }: AppShellProps) {
   const pathname = usePathname();
   const { isAdminMode } = useAdminMode();
-  const { isMobile } = useSidebar(); // Get isMobile from context
+  const { isMobile } = useSidebar(); 
 
   const currentNavItems = isAdminMode ? adminNavItems : userNavItems;
 
@@ -112,8 +112,8 @@ function AppShellInternal({ children }: AppShellProps) {
   const isWebViewPage = pathname === '/web-view';
 
   const contentWrapperClasses = cn(
-    "flex-1", // Common: take available space
-    isWebViewPage ? "p-0" : "p-4 md:p-6 lg:p-8 overflow-y-auto" // For WebView, container just fills space. WebViewPage itself handles internal flex.
+    "flex-1", 
+    isWebViewPage ? "flex flex-col p-0" : "p-4 md:p-6 lg:p-8 overflow-y-auto"
   );
 
   return (
@@ -131,8 +131,8 @@ function AppShellInternal({ children }: AppShellProps) {
       <SidebarInset className="flex flex-col min-h-screen pb-16 md:pb-0">
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
-            {!isMobile && <SidebarTrigger />} {/* Show trigger only on desktop if sidebar can be toggled */}
-            {isMobile && <SidebarTrigger className="md:hidden" />} {/* This trigger will be hidden by CSS on desktop, but shown on mobile if needed */}
+            {!isMobile && <SidebarTrigger />} 
+            {isMobile && <SidebarTrigger className="md:hidden" />} 
             <h1 className="text-xl font-bold text-nav-foreground truncate">{currentTitle}</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -141,12 +141,10 @@ function AppShellInternal({ children }: AppShellProps) {
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
 
-        {/* Main content area */}
         <main className="flex flex-col flex-1 bg-transparent text-foreground">
           <div className={contentWrapperClasses}>
             {children}
           </div>
-          {/* Bottom decorative border for mobile, rendered before BottomNav space */}
           <div className="block md:hidden decorative-border-repeat decorative-border-repeat-h20" />
         </main>
         
@@ -158,11 +156,6 @@ function AppShellInternal({ children }: AppShellProps) {
 
 
 export function AppShell({ children }: AppShellProps) {
-  const pathname = usePathname();
-  
-  // If web-view, it's now handled by AppShellInternal to be part of the layout
-  // The full screen logic has been removed.
-  // We always need SidebarProvider for AppShellInternal
   return (
     <SidebarProvider defaultOpen={true}> 
       <AppShellInternal>{children}</AppShellInternal>
