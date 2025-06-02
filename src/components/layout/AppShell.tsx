@@ -25,13 +25,18 @@ import { cn } from "@/lib/utils";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import { useEffect, useState } from "react";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile
 
 interface AppShellProps {
   children: ReactNode;
 }
 
 function SidebarLogo() {
-  const { isMobile } = useSidebar();
+  const { isMobile: isSidebarHookMobile } = useSidebar(); // From sidebar context
+  const actualIsMobile = useIsMobile(); // Direct check
+  const displayMobileLayout = typeof isSidebarHookMobile === 'boolean' ? isSidebarHookMobile : actualIsMobile;
+
+
   const { settings: appSettings, isLoading: isLoadingSettings } = useAppSettings();
   const [currentLogoUrl, setCurrentLogoUrl] = useState(siteConfig.defaultLogoUrl);
 
@@ -50,8 +55,8 @@ function SidebarLogo() {
       <Image
         src={currentLogoUrl}
         alt={siteConfig.name + " Logo"}
-        width={isMobile ? 24 : 28}
-        height={isMobile ? 24 : 28}
+        width={displayMobileLayout ? 24 : 28}
+        height={displayMobileLayout ? 24 : 28}
         className=""
         data-ai-hint="logo"
         unoptimized={!!currentLogoUrl.includes('?') || !!currentLogoUrl.includes('&')}
@@ -68,7 +73,10 @@ function SidebarLogo() {
 
 function MainNav({ currentNavItems }: { currentNavItems: NavItemConfig[] }) {
   const pathname = usePathname();
-  const { isMobile } = useSidebar();
+  const { isMobile: isSidebarHookMobile } = useSidebar(); // From sidebar context
+  const actualIsMobile = useIsMobile(); // Direct check
+  const displayMobileLayout = typeof isSidebarHookMobile === 'boolean' ? isSidebarHookMobile : actualIsMobile;
+
 
   return (
     <SidebarMenu>
@@ -77,7 +85,7 @@ function MainNav({ currentNavItems }: { currentNavItems: NavItemConfig[] }) {
           <SidebarMenuButton
             asChild
             isActive={pathname === item.href || (item.href !== "/dashboard" && item.href !== "/" && pathname.startsWith(item.href))}
-            tooltip={{ children: item.title, hidden: isMobile }}
+            tooltip={{ children: item.title, hidden: displayMobileLayout }}
           >
             <Link href={item.href}>
               <item.icon />
@@ -94,7 +102,13 @@ function MainNav({ currentNavItems }: { currentNavItems: NavItemConfig[] }) {
 function AppShellInternal({ children }: AppShellProps) {
   const pathname = usePathname();
   const { isAdminMode } = useAdminMode();
-  const { isMobile } = useSidebar(); 
+  const { isMobile: isSidebarHookMobile } = useSidebar(); // This is from context, reflects provider's view
+  const actualIsMobile = useIsMobile(); // Direct check for rendering decisions
+  
+  // Prefer actualIsMobile for direct rendering decisions if available,
+  // otherwise fallback to context's isMobile (which depends on provider init)
+  const displayMobileLayout = typeof actualIsMobile === 'boolean' ? actualIsMobile : isSidebarHookMobile;
+
 
   const currentNavItems = isAdminMode ? adminNavItems : userNavItems;
 
@@ -111,14 +125,19 @@ function AppShellInternal({ children }: AppShellProps) {
   
   const isWebViewPage = pathname === '/web-view';
 
-  const contentWrapperClasses = cn(
-    "flex-1", 
-    isWebViewPage ? "flex flex-col p-0" : "p-4 md:p-6 lg:p-8 overflow-y-auto"
+  const mainElementClasses = cn(
+    "flex flex-col flex-1", // Always a flex column and grows
+    isWebViewPage ? "overflow-hidden" : "overflow-y-auto" // Scroll handling based on page
   );
+
+  const contentWrapperClasses = cn(
+    isWebViewPage ? "flex flex-col flex-1 p-0 min-h-0" : "flex-1 p-4 md:p-6 lg:p-8" 
+  );
+  
 
   return (
     <>
-      <Sidebar>
+      <Sidebar> {/* Sidebar now renders null on mobile itself */}
         <SidebarHeader>
           <SidebarLogo />
         </SidebarHeader>
@@ -128,11 +147,11 @@ function AppShellInternal({ children }: AppShellProps) {
           </ScrollArea>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset className="flex flex-col min-h-screen pb-16 md:pb-0">
+      <SidebarInset className="flex flex-col min-h-screen pb-16 md:pb-0"> {/* pb-16 for bottom nav, md:pb-0 for desktop */}
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
-            {!isMobile && <SidebarTrigger />} 
-            {isMobile && <SidebarTrigger className="md:hidden" />} 
+            {/* Only show SidebarTrigger on non-mobile views */}
+            {!displayMobileLayout && <SidebarTrigger />} 
             <h1 className="text-xl font-bold text-nav-foreground truncate">{currentTitle}</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -141,14 +160,17 @@ function AppShellInternal({ children }: AppShellProps) {
         </header>
         <div className="decorative-border-repeat decorative-border-repeat-h20"></div>
 
-        <main className="flex flex-col flex-1 bg-transparent text-foreground">
+        <main className={mainElementClasses}>
           <div className={contentWrapperClasses}>
             {children}
           </div>
-          <div className="block md:hidden decorative-border-repeat decorative-border-repeat-h20" />
+          {/* Mobile bottom border is part of main's parent to allow main to flex correctly */}
         </main>
         
-        <BottomNav />
+        {/* This decorative border is now outside main, directly in SidebarInset for mobile */}
+        {displayMobileLayout && <div className="block md:hidden decorative-border-repeat decorative-border-repeat-h20 mt-auto" />}
+
+        <BottomNav /> {/* BottomNav is aware of mobile state */}
       </SidebarInset>
     </>
   );
@@ -156,8 +178,14 @@ function AppShellInternal({ children }: AppShellProps) {
 
 
 export function AppShell({ children }: AppShellProps) {
+  // Use useIsMobile here to pass an initial hint to SidebarProvider if needed,
+  // though SidebarProvider also calls useIsMobile itself.
+  // This ensures that defaultOpen is more accurately set initially.
+  const isMobileInitial = useIsMobile();
+  const defaultOpen = typeof isMobileInitial === 'boolean' ? !isMobileInitial : true;
+
   return (
-    <SidebarProvider defaultOpen={true}> 
+    <SidebarProvider defaultOpen={defaultOpen}> 
       <AppShellInternal>{children}</AppShellInternal>
     </SidebarProvider>
   );

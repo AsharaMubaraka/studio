@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -12,7 +11,7 @@ import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetClose, 
+  // SheetClose, // No longer explicitly used
 } from "@/components/ui/sheet"; 
 
 // Context for sidebar state
@@ -42,13 +41,24 @@ export function SidebarProvider({
   defaultOpen = true, 
 }: SidebarProviderProps) {
   const isMobile = useIsMobile();
-  const [isOpen, setIsOpen] = React.useState(isMobile ? false : defaultOpen);
+  // Initialize isOpen based on isMobile once isMobile is resolved
+  const [isOpen, setIsOpen] = React.useState(() => {
+    if (typeof isMobile === 'boolean') {
+      return isMobile ? false : defaultOpen;
+    }
+    // Fallback or initial state before isMobile is determined,
+    // assuming defaultOpen for non-mobile and false for initial mobile.
+    // This will be quickly updated by useEffect.
+    return defaultOpen; 
+  });
 
   React.useEffect(() => {
-    if (isMobile) {
-      setIsOpen(false); 
-    } else {
-      setIsOpen(defaultOpen);
+    if (typeof isMobile === 'boolean') { // Only run if isMobile is boolean
+      if (isMobile) {
+        setIsOpen(false); 
+      } else {
+        setIsOpen(defaultOpen);
+      }
     }
   }, [isMobile, defaultOpen]);
 
@@ -66,18 +76,8 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
     const { isOpen, setIsOpen, isMobile } = useSidebar();
 
     if (isMobile) {
-      return (
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetContent side="left" className={cn("w-64 p-0 flex flex-col", className)}>
-            {/*
-              SheetContent renders its own close button by default.
-              The children passed to Sidebar (e.g., <SidebarHeader> and <SidebarContent>)
-              will be rendered here directly.
-            */}
-            {children}
-          </SheetContent>
-        </Sheet>
-      );
+      // If mobile, do not render any sidebar (Sheet or otherwise)
+      return null;
     }
 
     // Desktop sidebar rendering logic
@@ -101,6 +101,13 @@ const SidebarTrigger = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, children, ...props }, ref) => {
     const { setIsOpen, isMobile, isOpen } = useSidebar(); 
     
+    // The trigger should only be functional if it's not mobile,
+    // as AppShell will hide it on mobile.
+    // If it were to be rendered on mobile by mistake, this check prevents issues.
+    if (isMobile) {
+        return null; 
+    }
+
     return (
       <Button
         ref={ref}
@@ -259,7 +266,6 @@ const SidebarInset = React.forwardRef<
 SidebarInset.displayName = "SidebarInset";
 
 export {
-  // SidebarProvider is NOT exported here again
   useSidebar,
   Sidebar,
   SidebarTrigger,
