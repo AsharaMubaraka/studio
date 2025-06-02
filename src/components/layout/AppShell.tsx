@@ -110,10 +110,9 @@ export function AppShell({ children }: AppShellProps) {
   const isWebViewPage = pathname === '/web-view';
 
   const contentWrapperClasses = cn(
-    "flex-1", // Grow
-    isWebViewPage ? "flex flex-col p-0" : "p-4 md:p-6 lg:p-8 overflow-y-auto" // Conditional: webview is flex-col, others have padding & scroll
+    "flex-1", // Common: take available space
+    isWebViewPage ? "flex flex-col p-0" : "p-4 md:p-6 lg:p-8 overflow-y-auto" // Specific for webview vs other pages
   );
-
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -127,7 +126,7 @@ export function AppShell({ children }: AppShellProps) {
           </ScrollArea>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset className="flex flex-col min-h-screen pb-16 md:pb-0">
+      <SidebarInset className="flex flex-col min-h-screen pb-16 md:pb-0"> {/* pb-16 for BottomNav space */}
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" />
@@ -143,9 +142,10 @@ export function AppShell({ children }: AppShellProps) {
           <div className={contentWrapperClasses}>
             {children}
           </div>
+          {/* Bottom decorative border for mobile, rendered before BottomNav space */}
           <div className="block md:hidden decorative-border-repeat decorative-border-repeat-h20" />
         </main>
-
+        
         <BottomNav />
       </SidebarInset>
     </SidebarProvider>
