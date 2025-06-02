@@ -22,16 +22,14 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAdminMode } from "@/contexts/AdminModeContext";
-// import PlyrPlayer from '@/components/live-relay/PlyrPlayer'; // Standard import removed
-import dynamic from 'next/dynamic'; // Import dynamic
+import dynamic from 'next/dynamic'; 
 import { db } from "@/lib/firebase";
 import { doc, setDoc, deleteDoc, collection, onSnapshot, serverTimestamp, Unsubscribe } from "firebase/firestore";
 import { siteConfig } from "@/config/site";
 
-// Dynamically import PlyrPlayer
 const PlyrPlayer = dynamic(() => import('@/components/live-relay/PlyrPlayer'), {
-  loading: () => <Skeleton className="aspect-video w-full h-full bg-muted" />, // Show skeleton while loading
-  ssr: false // Plyr typically needs client-side environment
+  loading: () => <Skeleton className="aspect-video w-full bg-muted" />, // Ensured skeleton uses w-full and aspect-video
+  ssr: false 
 });
 
 
