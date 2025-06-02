@@ -10,12 +10,8 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetHeader as ShadcnSheetHeader, // Aliased import
-  SheetTitle as ShadcnSheetTitle,   // Aliased import
-} from "@/components/ui/sheet";
+  SheetClose, // Sheet parts are no longer used by Sidebar directly for mobile
+} from "@/components/ui/sheet"; // Sheet component itself might still be used elsewhere
 
 // Context for sidebar state
 interface SidebarContextProps {
@@ -41,14 +37,17 @@ interface SidebarProviderProps {
 
 export function SidebarProvider({
   children,
-  defaultOpen = false,
+  defaultOpen = true, // Keep defaultOpen true for desktop
 }: SidebarProviderProps) {
   const isMobile = useIsMobile();
+  // isOpen state now primarily controls the desktop sidebar's visibility/translation
   const [isOpen, setIsOpen] = React.useState(isMobile ? false : defaultOpen);
 
   React.useEffect(() => {
+    // On mobile, we want the concept of "isOpen" to effectively be false for layout purposes
+    // as there's no mobile sidebar panel. For desktop, respect defaultOpen.
     if (isMobile) {
-      setIsOpen(false);
+      setIsOpen(false); 
     } else {
       setIsOpen(defaultOpen);
     }
@@ -65,37 +64,26 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
   ({ className, children, ...props }, ref) => {
-    const { isOpen, setIsOpen, isMobile } = useSidebar();
+    const { isOpen, isMobile } = useSidebar();
 
+    // If mobile, the sidebar does not render anything.
+    // The functionality is effectively removed from mobile.
     if (isMobile) {
-      return (
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetContent side="left" className={cn("w-72 bg-sidebar p-0 text-sidebar-foreground shadow-lg", className)} {...props} ref={ref}>
-            <ShadcnSheetHeader className="flex items-center justify-between p-2 border-b border-sidebar-border">
-              <ShadcnSheetTitle className="sr-only">Main Menu</ShadcnSheetTitle> {/* Visually hidden title for accessibility */}
-              <SheetClose asChild>
-                <Button variant="ghost" size="icon" className="text-sidebar-foreground hover:bg-sidebar-accent">
-                  <X className="h-5 w-5" />
-                  <span className="sr-only">Close sidebar</span>
-                </Button>
-              </SheetClose>
-            </ShadcnSheetHeader>
-            {children}
-          </SheetContent>
-        </Sheet>
-      );
+      return null;
     }
 
+    // Desktop sidebar rendering logic
     const desktopSidebarClasses = cn(
       "fixed inset-y-0 left-0 z-30 flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 ease-in-out",
-      "w-64",
+      "w-64", // Fixed width for desktop sidebar
       isOpen ? "translate-x-0" : "-translate-x-full",
       className
     );
 
     return (
       <aside ref={ref} className={desktopSidebarClasses} {...props}>
-        {children}
+        {/* The children (SidebarHeader, SidebarContent) will be rendered here for desktop */}
+        {children} 
       </aside>
     );
   }
@@ -104,23 +92,27 @@ Sidebar.displayName = "Sidebar";
 
 const SidebarTrigger = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, children, ...props }, ref) => {
-    const { setIsOpen, isMobile } = useSidebar();
+    const { setIsOpen, isMobile, isOpen } = useSidebar(); // Added isOpen to toggle desktop
     
-    if (!isMobile) {
+    // On mobile, the trigger (hamburger icon) should not render
+    if (isMobile) {
       return null;
     }
 
+    // This trigger logic is now for a potential DESKTOP sidebar toggle,
+    // if you were to place a trigger visible on desktop.
+    // The AppShell's md:hidden trigger will be handled by the `if (isMobile)` above.
     return (
       <Button
         ref={ref}
         variant="ghost"
         size="icon"
-        className={cn("text-nav-foreground hover:bg-nav-foreground/10", className)}
-        onClick={() => setIsOpen(true)}
+        className={cn("text-nav-foreground hover:bg-nav-foreground/10", className)} // Example styling
+        onClick={() => setIsOpen(!isOpen)} // Toggles desktop sidebar
         {...props}
       >
-        {children || <Menu className="h-6 w-6" />}
-        <span className="sr-only">Open sidebar</span>
+        {children || (isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />)}
+        <span className="sr-only">{isOpen ? "Close sidebar" : "Open sidebar"}</span>
       </Button>
     );
   }
@@ -143,12 +135,12 @@ SidebarHeader.displayName = "SidebarHeader";
 const SidebarContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean }
->(({ className, asChild = false, ...props }, ref) => { // Default asChild to false
+>(({ className, asChild = false, ...props }, ref) => { 
   const Comp = asChild ? Slot : "div";
   return (
     <Comp
       ref={ref}
-      data-sidebar="content" // Added to help identify this specific element
+      data-sidebar="content" 
       className={cn("flex-1 overflow-y-auto", className)}
       {...props}
     />
@@ -206,9 +198,9 @@ const SidebarMenuButton = React.forwardRef<
   const Comp = asChild ? Slot : Button;
   
   const [showTooltip, setShowTooltip] = React.useState(false);
-  const { isMobile } = useSidebar();
+  const { isMobile } = useSidebar(); // isMobile is still available from context
 
-  if (tooltip && !tooltip.hidden && !isMobile) {
+  if (tooltip && !tooltip.hidden && !isMobile) { // Tooltip only for desktop
      return (
       <div className="relative">
         <Comp
@@ -250,9 +242,10 @@ const SidebarInset = React.forwardRef<
   const { isOpen, isMobile } = useSidebar();
   
   const insetClasses = cn(
-    "transition-all duration-300 ease-in-out bg-transparent", // Ensure inset area is transparent
-    !isMobile && isOpen && "md:pl-64",
-    !isMobile && !isOpen && "md:pl-0",
+    "transition-all duration-300 ease-in-out bg-transparent", 
+    !isMobile && isOpen && "md:pl-64", // Apply padding only if NOT mobile AND sidebar is open
+    !isMobile && !isOpen && "md:pl-0", // Apply no padding if NOT mobile AND sidebar is closed
+    // On mobile, isMobile is true, so neither of the above md:pl-* conditions apply, resulting in pl-0 implicitly.
     className
   );
 
@@ -276,4 +269,6 @@ export {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  SidebarProvider, // Ensure SidebarProvider is exported
+  useSidebar, // Ensure useSidebar is exported
 };
