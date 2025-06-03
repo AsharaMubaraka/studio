@@ -1,13 +1,62 @@
 {
-  "name": "Ashara Mubaraka",
-  "short_name": "AsharaApp",
-  "description": "Ashara Mubaraka Official application for communication and better view",
+  "id": "/",
+  "dir": "ltr",
+  "lang": "en",
+  "name": "Anjuman Hub",
+  "scope": "/",
+  "display": "standalone",
+  "start_url": "/",
+  "short_name": "AnjumanHub",
+  "theme_color": "#3F51B5",
+  "description": "Secure user authentication, dashboard, announcements, web view, and live relay for Anjuman Hub.",
+  "orientation": "any",
+  "background_color": "#F5F5F5",
+  "prefer_related_applications": false,
+  "display_override": [
+    "window-controls-overlay"
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/screen1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Dashboard View",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshots/screen2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Announcements Feed",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshots/screen3.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Live Relay Page",
+      "form_factor": "narrow"
+    }
+  ],
+  "features": [
+    "Secure Authentication",
+    "User Dashboard",
+    "Dynamic Announcements",
+    "Embedded Web View",
+    "Live Video Relay"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/icon-512x512.png",
@@ -22,9 +71,40 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#9f8a3e",
-  "background_color": "#f3efe5",
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait"
+  "categories": [
+    "utilities",
+    "communication"
+  ],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "edge_side_panel": {},
+  "shortcuts": [
+    {
+      "name": "Go to Dashboard",
+      "short_name": "Dashboard",
+      "description": "Access your Anjuman Hub dashboard",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icons/shortcut-dashboard-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "View Announcements",
+      "short_name": "Announcements",
+      "description": "Check the latest announcements",
+      "url": "/announcements",
+      "icons": [
+        {
+          "src": "/icons/shortcut-announcements-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }

@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Asharamubaraka</string>
-    <string name="title_activity_main">Asharamubaraka</string>
-    <string name="package_name">com.asharamubaraka.app</string>
-    <string name="custom_url_scheme">com.asharamubaraka.app</string>
-</resources>
