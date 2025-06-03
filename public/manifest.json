@@ -1,52 +1,52 @@
+
 {
-  "id": "/",
+  "theme_color": "#9f8a3e",
+  "background_color": "#f3efe5",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/dashboard",
+  "name": "Ashara Mubaraka",
+  "short_name": "Ashara",
+  "description": "Ashara Mubaraka Official application for communication and PWA features.",
+  "orientation": "any",
+  "id": "/?utm_source=pwa",
   "dir": "ltr",
   "lang": "en",
-  "name": "Ashara Mubaraka",
-  "scope": "/",
-  "display": "standalone",
-  "start_url": "/dashboard",
-  "short_name": "Ashara App",
-  "theme_color": "#3F51B5",
-  "description": "Ashara Mubaraka Official application for communication, announcements, live relays, and more.",
-  "orientation": "any",
-  "background_color": "#F5F5F5",
-  "prefer_related_applications": false,
   "display_override": [
-    "window-controls-overlay",
-    "standalone"
+    "window-controls-overlay"
   ],
-  "screenshots": [
-    {
-      "src": "/screenshots/screen1.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Dashboard View"
-    },
-    {
-      "src": "/screenshots/screen2.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Announcements Feed"
-    },
-    {
-      "src": "/screenshots/screen3.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Live Relay"
-    }
-  ],
-  "features": [
-    "Secure Authentication",
-    "User Dashboard",
-    "Real-time Announcements",
-    "Embedded Web View",
-    "Live Video Relay"
-  ],
+  "prefer_related_applications": false,
   "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
@@ -60,6 +60,12 @@
       "purpose": "maskable"
     },
     {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
@@ -70,26 +76,56 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
+  "screenshots": [
+    {
+      "src": "/screenshots/screen1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Dashboard View"
+    },
+    {
+      "src": "/screenshots/screen2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Notifications Page"
+    },
+    {
+      "src": "/screenshots/screen3.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Live Relay View"
+    }
+  ],
+  "features": [
+    "Notifications",
+    "Live Streaming",
+    "Offline Access (Partial)",
+    "Installable"
+  ],
   "categories": [
-    "communication",
-    "community",
-    "events",
-    "lifestyle"
+    "education",
+    "lifestyle",
+    "news",
+    "utilities"
   ],
   "launch_handler": {
     "client_mode": "navigate-existing"
   },
-  "edge_side_panel": {
-    "preferred_width": 480
-  },
+  "edge_side_panel": {},
   "shortcuts": [
     {
       "name": "Open Dashboard",
       "short_name": "Dashboard",
-      "description": "Go directly to your dashboard",
-      "url": "/dashboard",
+      "description": "Go directly to the app dashboard",
+      "url": "/dashboard?source=pwa_shortcut",
       "icons": [
         {
           "src": "/icons/shortcut-dashboard-96x96.png",
@@ -99,26 +135,13 @@
       ]
     },
     {
-      "name": "View Announcements",
-      "short_name": "Notify",
+      "name": "View Notifications",
+      "short_name": "Notifications",
       "description": "Check the latest announcements",
-      "url": "/announcements",
+      "url": "/announcements?source=pwa_shortcut",
       "icons": [
         {
-          "src": "/icons/shortcut-announcements-96x96.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Live Relay",
-      "short_name": "Live",
-      "description": "Watch live broadcasts",
-      "url": "/live-relay",
-      "icons": [
-        {
-          "src": "/icons/shortcut-live-96x96.png",
+          "src": "/icons/shortcut-notifications-96x96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
