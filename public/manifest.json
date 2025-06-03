@@ -2,46 +2,47 @@
   "id": "/",
   "dir": "ltr",
   "lang": "en",
-  "name": "Anjuman Hub",
+  "name": "Ashara Mubaraka",
   "scope": "/",
   "display": "standalone",
-  "start_url": "/",
-  "short_name": "AnjumanHub",
+  "start_url": "/dashboard",
+  "short_name": "Ashara App",
   "theme_color": "#3F51B5",
-  "description": "Secure user authentication, dashboard, announcements, web view, and live relay for Anjuman Hub.",
+  "description": "Ashara Mubaraka Official application for communication, announcements, live relays, and more.",
   "orientation": "any",
   "background_color": "#F5F5F5",
   "prefer_related_applications": false,
   "display_override": [
-    "window-controls-overlay"
+    "window-controls-overlay",
+    "standalone"
   ],
   "screenshots": [
     {
       "src": "/screenshots/screen1.png",
       "sizes": "1080x1920",
       "type": "image/png",
-      "label": "Dashboard View",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "Dashboard View"
     },
     {
       "src": "/screenshots/screen2.png",
       "sizes": "1080x1920",
       "type": "image/png",
-      "label": "Announcements Feed",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "Announcements Feed"
     },
     {
       "src": "/screenshots/screen3.png",
-      "sizes": "1080x1920",
+      "sizes": "1280x720",
       "type": "image/png",
-      "label": "Live Relay Page",
-      "form_factor": "narrow"
+      "form_factor": "wide",
+      "label": "Live Relay"
     }
   ],
   "features": [
     "Secure Authentication",
     "User Dashboard",
-    "Dynamic Announcements",
+    "Real-time Announcements",
     "Embedded Web View",
     "Live Video Relay"
   ],
@@ -72,18 +73,22 @@
     }
   ],
   "categories": [
-    "utilities",
-    "communication"
+    "communication",
+    "community",
+    "events",
+    "lifestyle"
   ],
   "launch_handler": {
     "client_mode": "navigate-existing"
   },
-  "edge_side_panel": {},
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
   "shortcuts": [
     {
-      "name": "Go to Dashboard",
+      "name": "Open Dashboard",
       "short_name": "Dashboard",
-      "description": "Access your Anjuman Hub dashboard",
+      "description": "Go directly to your dashboard",
       "url": "/dashboard",
       "icons": [
         {
@@ -95,12 +100,25 @@
     },
     {
       "name": "View Announcements",
-      "short_name": "Announcements",
+      "short_name": "Notify",
       "description": "Check the latest announcements",
       "url": "/announcements",
       "icons": [
         {
           "src": "/icons/shortcut-announcements-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Live Relay",
+      "short_name": "Live",
+      "description": "Watch live broadcasts",
+      "url": "/live-relay",
+      "icons": [
+        {
+          "src": "/icons/shortcut-live-96x96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
