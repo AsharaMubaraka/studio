@@ -55,8 +55,8 @@ function SidebarLogo() {
       <Image
         src={currentLogoUrl}
         alt={siteConfig.name + " Logo"}
-        width={displayMobileLayout ? 24 : 28}
-        height={displayMobileLayout ? 24 : 28}
+        width={displayMobileLayout ? 24 : 36}
+        height={displayMobileLayout ? 24 : 36}
         className=""
         data-ai-hint="logo"
         unoptimized={!!currentLogoUrl.includes('?') || !!currentLogoUrl.includes('&')}

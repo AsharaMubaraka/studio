@@ -136,9 +136,9 @@ export function UserProfileMenu() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 gap-2 px-2">
             {isLoadingSettings ? (
-              <Loader2 className="h-7 w-7 animate-spin" />
+              <Loader2 className="h-10 w-10 animate-spin" /> 
             ) : (
-              <Avatar className="h-8 w-8">
+              <Avatar className="h-10 w-10">
                 <AvatarImage src={displayAvatarUrl} alt={user.username} onError={() => setDisplayAvatarUrl(siteConfig.defaultLogoUrl)} />
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
