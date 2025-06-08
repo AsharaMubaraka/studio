@@ -43,6 +43,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'ashara1447.udaem.site', // Added this new hostname
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   allowedDevOrigins: [
