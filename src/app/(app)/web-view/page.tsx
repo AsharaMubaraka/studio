@@ -26,13 +26,13 @@ export default function WebViewPage() {
       const urlToLoad = settings?.webViewUrl || null;
       setConfiguredUrl(urlToLoad);
       if (urlToLoad) {
-        setIframeError(null); 
+        setIframeError(null);
       }
     }
   }, [settings, isLoadingSettings]);
 
   const handleIframeLoad = () => {
-    setIframeError(null); 
+    setIframeError(null);
   };
 
   const handleIframeErrorEvent = (e: React.SyntheticEvent<HTMLIFrameElement, Event>) => {
@@ -47,7 +47,7 @@ export default function WebViewPage() {
   return (
     <div
       id="page-container"
-      className="flex-1 w-full flex flex-col bg-transparent"
+      className="flex-1 w-full flex flex-col" // Removed bg-transparent
     >
       {pageIsLoading && !configuredUrl && (
         <div className="flex flex-1 items-center justify-center">
@@ -110,10 +110,10 @@ export default function WebViewPage() {
       )}
       
       {configuredUrl && !iframeError && (
-        <div id="iframe-wrapper" className="flex-1">
+        <div id="iframe-wrapper" className="flex-1 min-h-0"> {/* Added min-h-0 */}
           <iframe
             ref={iframeRef}
-            key={configuredUrl} 
+            key={configuredUrl}
             src={configuredUrl}
             title="Embedded Web View"
             className="h-full w-full border-0"
