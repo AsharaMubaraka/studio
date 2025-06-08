@@ -16,7 +16,7 @@ export async function updateAppSettingsAction(data: AppSettingsFormValues) {
     const settingsRef = doc(db, SETTINGS_COLLECTION, GLOBAL_CONFIG_DOC_ID);
 
     await setDoc(settingsRef, {
-      webViewUrl: validatedData.webViewUrl || null,
+      webViewUrl: validatedData.webViewUrl ? String(validatedData.webViewUrl).trim() : null, // Trim here on save too
       logoUrl: validatedData.logoUrl || null,
       updateLogoOnLogin: validatedData.logoUrl ? validatedData.updateLogoOnLogin : false,
       updateLogoOnSidebar: validatedData.logoUrl ? validatedData.updateLogoOnSidebar : false,
@@ -42,7 +42,7 @@ export async function fetchAppSettings(): Promise<AppSettings | null> {
       const data = docSnap.data();
       // Cast to AppSettings to ensure type conformity
       const settings: AppSettings = {
-        webViewUrl: data.webViewUrl || null,
+        webViewUrl: data.webViewUrl ? String(data.webViewUrl).trim() : null, // Trimmed here
         logoUrl: data.logoUrl || null,
         updateLogoOnLogin: data.logoUrl ? !!data.updateLogoOnLogin : false,
         updateLogoOnSidebar: data.logoUrl ? !!data.updateLogoOnSidebar : false,
