@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format, parseISO, isWithinInterval, compareAsc, isPast } from "date-fns";
-import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2, Users, Pencil, XCircle } from "lucide-react";
+import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2, Users, Pencil, XCircle, Ban } from "lucide-react";
 import { saveRelayAction, deleteRelayAction, fetchRelays, type LiveRelay, type RelayFormValues } from "@/actions/relayActions";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -26,9 +26,11 @@ import dynamic from 'next/dynamic';
 import { db } from "@/lib/firebase";
 import { doc, setDoc, deleteDoc, collection, onSnapshot, serverTimestamp, Unsubscribe } from "firebase/firestore";
 import { siteConfig } from "@/config/site";
+import { useAppSettings } from "@/hooks/useAppSettings";
+import { useRouter } from "next/navigation";
 
 const PlyrPlayer = dynamic(() => import('@/components/live-relay/PlyrPlayer'), {
-  loading: () => <Skeleton className="aspect-video w-full bg-muted" />, // Ensured skeleton uses w-full and aspect-video
+  loading: () => <Skeleton className="aspect-video w-full bg-muted" />, 
   ssr: false 
 });
 
@@ -348,7 +350,38 @@ function UserLiveRelayViewer() {
 export default function LiveRelayPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { isAdminMode } = useAdminMode();
+  const { settings: appSettings, isLoading: settingsLoading } = useAppSettings();
+  const router = useRouter();
+
   useEffect(() => { document.title = `Live Relay | ${siteConfig.name}`; }, []);
-  if (authLoading) return <div className="flex flex-1 items-center justify-center p-4"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+
+  useEffect(() => {
+    if (!settingsLoading && appSettings && typeof appSettings.showLiveRelayPage === 'boolean' && !appSettings.showLiveRelayPage) {
+      router.replace('/dashboard');
+    }
+  }, [appSettings, settingsLoading, router]);
+
+  if (authLoading || settingsLoading) {
+    return <div className="flex flex-1 items-center justify-center p-4"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+  }
+  
+  if (appSettings && typeof appSettings.showLiveRelayPage === 'boolean' && !appSettings.showLiveRelayPage) {
+    // This state might be briefly visible before redirect or if redirect fails.
+    return (
+        <div className="flex flex-1 flex-col items-center justify-center p-4">
+            <Card className="shadow-lg p-8 animate-fadeIn w-full max-w-md text-center">
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-center"><Ban className="mr-2 h-7 w-7 text-destructive" /> Page Not Available</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">The Live Relay page is currently not available.</p>
+                    <Button onClick={() => router.push('/dashboard')} className="mt-4">Go to Dashboard</Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
+
   return user?.isAdmin && isAdminMode ? <AdminLiveRelayManager /> : <UserLiveRelayViewer />;
 }
+

@@ -3,19 +3,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { userNavItems, adminNavItems, type NavItemConfig } from "@/config/site";
+import { userNavItems as baseUserNavItems, adminNavItems as baseAdminNavItems, type NavItemConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAdminMode } from "@/contexts/AdminModeContext"; // Added import
+import { useAdminMode } from "@/contexts/AdminModeContext"; 
+import { useAppSettings } from "@/hooks/useAppSettings";
+import { useMemo } from "react";
 
 export function BottomNav() {
   const isMobile = useIsMobile();
   const pathname = usePathname();
-  const { isAdminMode } = useAdminMode(); // Get admin mode
+  const { isAdminMode } = useAdminMode(); 
+  const { settings: appSettings, isLoading: isLoadingSettings } = useAppSettings();
 
-  const currentNavItems = isAdminMode ? adminNavItems : userNavItems;
+  const currentNavItems = useMemo(() => {
+    let baseItems = isAdminMode ? baseAdminNavItems : baseUserNavItems;
+    if (appSettings && typeof appSettings.showLiveRelayPage === 'boolean' && !appSettings.showLiveRelayPage) {
+      baseItems = baseItems.filter(item => item.href !== '/live-relay');
+    }
+    return baseItems;
+  }, [isAdminMode, appSettings]);
 
-  if (!isMobile) {
+  if (!isMobile || isLoadingSettings) { // Don't render if not mobile or settings are still loading
     return null;
   }
 
@@ -43,3 +52,4 @@ export function BottomNav() {
     </nav>
   );
 }
+

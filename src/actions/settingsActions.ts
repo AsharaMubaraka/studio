@@ -21,6 +21,7 @@ export async function updateAppSettingsAction(data: AppSettingsFormValues) {
       updateLogoOnLogin: validatedData.logoUrl ? validatedData.updateLogoOnLogin : false,
       updateLogoOnSidebar: validatedData.logoUrl ? validatedData.updateLogoOnSidebar : false,
       updateLogoOnProfileAvatar: validatedData.logoUrl ? validatedData.updateLogoOnProfileAvatar : false,
+      showLiveRelayPage: validatedData.showLiveRelayPage,
     }, { merge: true });
 
     return { success: true, message: "App settings updated successfully." };
@@ -47,12 +48,30 @@ export async function fetchAppSettings(): Promise<AppSettings | null> {
         updateLogoOnLogin: data.logoUrl ? !!data.updateLogoOnLogin : false,
         updateLogoOnSidebar: data.logoUrl ? !!data.updateLogoOnSidebar : false,
         updateLogoOnProfileAvatar: data.logoUrl ? !!data.updateLogoOnProfileAvatar : false,
+        showLiveRelayPage: typeof data.showLiveRelayPage === 'boolean' ? data.showLiveRelayPage : true, // Default to true if not set
       };
       return settings;
     }
-    return null; // No settings configured yet
+    // Default settings if the document doesn't exist
+    return { 
+        webViewUrl: null, 
+        logoUrl: null, 
+        updateLogoOnLogin: false, 
+        updateLogoOnSidebar: false, 
+        updateLogoOnProfileAvatar: false,
+        showLiveRelayPage: true 
+    }; 
   } catch (error) {
     console.error("Error fetching app settings:", error);
-    return null; 
+    // Return default settings on error as well
+    return { 
+        webViewUrl: null, 
+        logoUrl: null, 
+        updateLogoOnLogin: false, 
+        updateLogoOnSidebar: false, 
+        updateLogoOnProfileAvatar: false,
+        showLiveRelayPage: true 
+    }; 
   }
 }
+

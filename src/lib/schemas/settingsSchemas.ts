@@ -7,6 +7,7 @@ export const appSettingsSchema = z.object({
   updateLogoOnLogin: z.boolean().optional().default(false),
   updateLogoOnSidebar: z.boolean().optional().default(false),
   updateLogoOnProfileAvatar: z.boolean().optional().default(false),
+  showLiveRelayPage: z.boolean().optional().default(true),
 });
 
 export type AppSettingsFormValues = z.infer<typeof appSettingsSchema>;
@@ -17,4 +18,6 @@ export interface AppSettings {
   updateLogoOnLogin?: boolean;
   updateLogoOnSidebar?: boolean;
   updateLogoOnProfileAvatar?: boolean;
+  showLiveRelayPage?: boolean;
 }
+

@@ -4,7 +4,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { siteConfig, userNavItems, adminNavItems, type NavItemConfig } from "@/config/site";
+import { siteConfig, userNavItems as baseUserNavItems, adminNavItems as baseAdminNavItems, type NavItemConfig } from "@/config/site";
 import {
   SidebarProvider,
   Sidebar,
@@ -23,17 +23,18 @@ import { BottomNav } from "./BottomNav";
 import { UserProfileMenu } from "./UserProfileMenu";
 import { cn } from "@/lib/utils";
 import { useAdminMode } from "@/contexts/AdminModeContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile
+import { useIsMobile } from "@/hooks/use-mobile"; 
+import { Loader2 } from "lucide-react";
 
 interface AppShellProps {
   children: ReactNode;
 }
 
 function SidebarLogo() {
-  const { isMobile: isSidebarHookMobile } = useSidebar(); // From sidebar context
-  const actualIsMobile = useIsMobile(); // Direct check
+  const { isMobile: isSidebarHookMobile } = useSidebar(); 
+  const actualIsMobile = useIsMobile(); 
   const displayMobileLayout = typeof isSidebarHookMobile === 'boolean' ? isSidebarHookMobile : actualIsMobile;
 
 
@@ -73,8 +74,8 @@ function SidebarLogo() {
 
 function MainNav({ currentNavItems }: { currentNavItems: NavItemConfig[] }) {
   const pathname = usePathname();
-  const { isMobile: isSidebarHookMobile } = useSidebar(); // From sidebar context
-  const actualIsMobile = useIsMobile(); // Direct check
+  const { isMobile: isSidebarHookMobile } = useSidebar(); 
+  const actualIsMobile = useIsMobile(); 
   const displayMobileLayout = typeof isSidebarHookMobile === 'boolean' ? isSidebarHookMobile : actualIsMobile;
 
 
@@ -98,20 +99,23 @@ function MainNav({ currentNavItems }: { currentNavItems: NavItemConfig[] }) {
   );
 }
 
-// Internal component to ensure SidebarProvider wraps sidebar-related hooks/components
 function AppShellInternal({ children }: AppShellProps) {
   const pathname = usePathname();
   const { isAdminMode } = useAdminMode();
-  const { isMobile: isSidebarHookMobile } = useSidebar(); // This is from context, reflects provider's view
-  const actualIsMobile = useIsMobile(); // Direct check for rendering decisions
+  const { settings: appSettings, isLoading: isLoadingSettings } = useAppSettings();
+  const { isMobile: isSidebarHookMobile } = useSidebar(); 
+  const actualIsMobile = useIsMobile(); 
   
-  // Prefer actualIsMobile for direct rendering decisions if available,
-  // otherwise fallback to context's isMobile (which depends on provider init)
   const displayMobileLayout = typeof actualIsMobile === 'boolean' ? actualIsMobile : isSidebarHookMobile;
 
-
-  const currentNavItems = isAdminMode ? adminNavItems : userNavItems;
-
+  const currentNavItems = useMemo(() => {
+    let baseItems = isAdminMode ? baseAdminNavItems : baseUserNavItems;
+    if (appSettings && typeof appSettings.showLiveRelayPage === 'boolean' && !appSettings.showLiveRelayPage) {
+      baseItems = baseItems.filter(item => item.href !== '/live-relay');
+    }
+    return baseItems;
+  }, [isAdminMode, appSettings]);
+  
   let currentTitle = siteConfig.name;
   const sortedNavItems = [...currentNavItems].sort((a, b) => b.href.length - a.href.length);
   const activeNavItem = sortedNavItems.find(item => pathname === item.href || (item.href !== "/" && item.href !== "/dashboard" && pathname.startsWith(item.href)));
@@ -126,18 +130,25 @@ function AppShellInternal({ children }: AppShellProps) {
   const isWebViewPage = pathname === '/web-view';
 
   const mainElementClasses = cn(
-    "flex flex-col flex-1", // Always a flex column and grows
-    isWebViewPage ? "overflow-hidden" : "overflow-y-auto" // Scroll handling based on page
+    "flex flex-col flex-1", 
+    isWebViewPage ? "overflow-hidden" : "overflow-y-auto" 
   );
 
   const contentWrapperClasses = cn(
     isWebViewPage ? "flex flex-col flex-1 p-0 min-h-0" : "flex-1 p-4 md:p-6 lg:p-8" 
   );
   
+  if (isLoadingSettings && appSettings === null) { // Show loader only if settings are truly loading for the first time
+    return (
+        <div className="flex min-h-screen items-center justify-center bg-background">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
     <>
-      <Sidebar> {/* Sidebar now renders null on mobile itself */}
+      <Sidebar> 
         <SidebarHeader>
           <SidebarLogo />
         </SidebarHeader>
@@ -147,10 +158,9 @@ function AppShellInternal({ children }: AppShellProps) {
           </ScrollArea>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset className="flex flex-col min-h-screen pb-16 md:pb-0"> {/* pb-16 for bottom nav, md:pb-0 for desktop */}
+      <SidebarInset className="flex flex-col min-h-screen pb-16 md:pb-0"> 
         <header className="appshell-header sticky top-0 z-40 flex h-16 items-center justify-between border-b px-4 shadow-md">
           <div className="flex items-center gap-2">
-            {/* Only show SidebarTrigger on non-mobile views */}
             {!displayMobileLayout && <SidebarTrigger />} 
             <h1 className="text-xl font-bold text-nav-foreground truncate">{currentTitle}</h1>
           </div>
@@ -164,13 +174,11 @@ function AppShellInternal({ children }: AppShellProps) {
           <div className={contentWrapperClasses}>
             {children}
           </div>
-          {/* Mobile bottom border is part of main's parent to allow main to flex correctly */}
         </main>
         
-        {/* This decorative border is now outside main, directly in SidebarInset for mobile */}
         {displayMobileLayout && <div className="block md:hidden decorative-border-repeat decorative-border-repeat-h20 mt-auto" />}
 
-        <BottomNav /> {/* BottomNav is aware of mobile state */}
+        <BottomNav /> 
       </SidebarInset>
     </>
   );
@@ -178,9 +186,6 @@ function AppShellInternal({ children }: AppShellProps) {
 
 
 export function AppShell({ children }: AppShellProps) {
-  // Use useIsMobile here to pass an initial hint to SidebarProvider if needed,
-  // though SidebarProvider also calls useIsMobile itself.
-  // This ensures that defaultOpen is more accurately set initially.
   const isMobileInitial = useIsMobile();
   const defaultOpen = typeof isMobileInitial === 'boolean' ? !isMobileInitial : true;
 
@@ -190,3 +195,4 @@ export function AppShell({ children }: AppShellProps) {
     </SidebarProvider>
   );
 }
+

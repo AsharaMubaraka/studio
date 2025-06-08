@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Loader2, Settings, Link as LinkIcon, Image as ImageIcon } from "lucide-react";
+import { Loader2, Settings, Link as LinkIcon, Image as ImageIcon, Youtube } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { updateAppSettingsAction } from "@/actions/settingsActions";
 import { appSettingsSchema, type AppSettingsFormValues } from "@/lib/schemas/settingsSchemas";
@@ -41,6 +41,7 @@ export default function AppSettingsPage() {
       updateLogoOnLogin: false,
       updateLogoOnSidebar: false,
       updateLogoOnProfileAvatar: false,
+      showLiveRelayPage: true,
     },
   });
 
@@ -58,14 +59,16 @@ export default function AppSettingsPage() {
         updateLogoOnLogin: currentSettings.logoUrl ? !!currentSettings.updateLogoOnLogin : false,
         updateLogoOnSidebar: currentSettings.logoUrl ? !!currentSettings.updateLogoOnSidebar : false,
         updateLogoOnProfileAvatar: currentSettings.logoUrl ? !!currentSettings.updateLogoOnProfileAvatar : false,
+        showLiveRelayPage: typeof currentSettings.showLiveRelayPage === 'boolean' ? currentSettings.showLiveRelayPage : true,
       });
-    } else if (!isLoadingSettings && !currentSettings) { // Handles case where settings are explicitly null (e.g. after error or initial load)
+    } else if (!isLoadingSettings && !currentSettings) { 
         form.reset({
             webViewUrl: "",
             logoUrl: "",
             updateLogoOnLogin: false,
             updateLogoOnSidebar: false,
             updateLogoOnProfileAvatar: false,
+            showLiveRelayPage: true,
         });
     }
   }, [currentSettings, isLoadingSettings, form]);
@@ -80,8 +83,8 @@ export default function AppSettingsPage() {
     const result = await updateAppSettingsAction(values);
     if (result.success) {
       toast({ title: "Success", description: result.message });
-      invalidateAppSettingsCache(); // Invalidate the cache
-      refreshAppSettings(); // Trigger a refresh for the current page
+      invalidateAppSettingsCache(); 
+      refreshAppSettings(); 
     } else {
       toast({ variant: "destructive", title: "Error", description: result.message || "Failed to update settings." });
       if (result.errors) {
@@ -118,9 +121,9 @@ export default function AppSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoadingSettings && !form.formState.isDirty ? ( // Show skeleton only on initial load
+          {isLoadingSettings && !form.formState.isDirty ? ( 
             <div className="space-y-6">
-              {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full mb-2" />)}
+              {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-10 w-full mb-2" />)}
               <Skeleton className="h-10 w-1/4 mt-6" />
             </div>
           ) : (
@@ -135,6 +138,18 @@ export default function AppSettingsPage() {
                   </FormItem>
                 )} />
                 
+                <Separator />
+                
+                <FormField control={form.control} name="showLiveRelayPage" render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-3 space-y-0 p-3 border rounded-md">
+                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                    <div className="space-y-0.5">
+                      <FormLabel className="flex items-center text-base"><Youtube className="mr-2 h-5 w-5" /> Show Live Relay Page</FormLabel>
+                      <FormDescription>Toggle visibility of the Live Relay page in navigation and access.</FormDescription>
+                    </div>
+                  </FormItem>
+                )} />
+
                 <Separator />
 
                 <div>
@@ -184,3 +199,4 @@ export default function AppSettingsPage() {
     </div>
   );
 }
+
