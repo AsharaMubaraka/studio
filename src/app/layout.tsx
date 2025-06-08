@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { siteConfig } from '@/config/site';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AdminModeProvider } from '@/contexts/AdminModeContext';
+import Script from 'next/script'; // Import the Script component
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -59,6 +60,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* PWA specific meta tags added via metadata object now */}
+        {/* The AdSense script will be loaded via next/script below, typically placed before closing </body> or in <head> */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`} suppressHydrationWarning>
         <AuthProvider>
@@ -69,6 +71,12 @@ export default function RootLayout({
             </AdminModeProvider>
           </ThemeProvider>
         </AuthProvider>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4478399347291835"
+          crossOrigin="anonymous"
+          strategy="afterInteractive" // Loads after the page becomes interactive
+        />
       </body>
     </html>
   );
