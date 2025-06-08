@@ -42,85 +42,90 @@ export default function WebViewPage() {
     );
   };
 
-  const pageIsLoading = isLoadingSettings || configuredUrl === undefined;
+  const pageIsLoadingInitially = isLoadingSettings || configuredUrl === undefined;
+
+  const showIframe = configuredUrl && !iframeError;
+  const showInitialLoader = pageIsLoadingInitially && !configuredUrl; // Only for the very first load state
+  const showErrorState = !pageIsLoadingInitially && iframeError && configuredUrl;
+  const showNotConfiguredState = !pageIsLoadingInitially && !configuredUrl && !iframeError;
+
+
+  let containerClasses = "flex-1 w-full";
+  if (showIframe) {
+    containerClasses += " relative"; // For absolute positioning of iframe
+  } else {
+    // For loading, error, or not configured states, center their Card content
+    containerClasses += " flex flex-col items-center justify-center p-4";
+  }
 
   return (
-    <div
-      id="page-container"
-      className="flex-1 w-full flex flex-col" // Removed bg-transparent
-    >
-      {pageIsLoading && !configuredUrl && (
-        <div className="flex flex-1 items-center justify-center">
-          <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
+    <div className={containerClasses}>
+      {showInitialLoader && (
+        // This loader is for when settings are loading or URL isn't determined yet.
+        // It's directly centered by the parent's flex properties.
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
       )}
 
-      {!pageIsLoading && iframeError && configuredUrl && (
-        <div className="flex flex-1 items-center justify-center p-4">
-          <Card className="shadow-md w-full max-w-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-center text-xl">
-                <AlertCircle className="mr-2 h-6 w-6 text-destructive" /> Error Loading Content
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-muted-foreground">
-                Could not load the page from:
-                <br />
-                <code className="text-sm bg-muted p-1 rounded">{configuredUrl}</code>
-              </p>
-              <p className="text-sm text-destructive">{iframeError}</p>
-              <p className="text-xs text-muted-foreground pt-2">
-                Please ensure the URL is correct and the external website allows embedding. Some websites (like Google, Facebook) explicitly block being embedded in iframes.
-              </p>
-              {user?.isAdmin && (
-                <Button asChild variant="outline" className="mt-4">
-                  <Link href="/settings">
-                    <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
-                  </Link>
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+      {showErrorState && (
+        <Card className="shadow-md w-full max-w-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-center text-xl">
+              <AlertCircle className="mr-2 h-6 w-6 text-destructive" /> Error Loading Content
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-muted-foreground">
+              Could not load the page from:
+              <br />
+              <code className="text-sm bg-muted p-1 rounded">{configuredUrl}</code>
+            </p>
+            <p className="text-sm text-destructive">{iframeError}</p>
+            <p className="text-xs text-muted-foreground pt-2">
+              Please ensure the URL is correct and the external website allows embedding. Some websites (like Google, Facebook) explicitly block being embedded in iframes.
+            </p>
+            {user?.isAdmin && (
+              <Button asChild variant="outline" className="mt-4">
+                <Link href="/settings">
+                  <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
+                </Link>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      {!pageIsLoading && !configuredUrl && !iframeError && (
-        <div className="flex flex-1 items-center justify-center p-4">
-          <Card className="shadow-lg w-full max-w-lg text-center">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-center text-xl">
-                <Globe className="mr-2 h-6 w-6 text-primary" /> Web View Not Configured
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-muted-foreground">
-                The URL for the web view has not been set up.
-              </p>
-              {user?.isAdmin && (
-                <Button asChild>
-                  <Link href="/settings">
-                    <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
-                  </Link>
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+      {showNotConfiguredState && (
+        <Card className="shadow-lg w-full max-w-lg text-center">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-center text-xl">
+              <Globe className="mr-2 h-6 w-6 text-primary" /> Web View Not Configured
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              The URL for the web view has not been set up.
+            </p>
+            {user?.isAdmin && (
+              <Button asChild>
+                <Link href="/settings">
+                  <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
+                </Link>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       )}
       
-      {configuredUrl && !iframeError && (
-        <div id="iframe-wrapper" className="flex-1 min-h-0"> {/* Added min-h-0 */}
-          <iframe
-            ref={iframeRef}
-            key={configuredUrl}
-            src={configuredUrl}
-            title="Embedded Web View"
-            className="h-full w-full border-0"
-            onLoad={handleIframeLoad}
-            onError={handleIframeErrorEvent}
-          />
-        </div>
+      {showIframe && (
+        <iframe
+          ref={iframeRef}
+          key={configuredUrl} // Re-mount iframe if URL changes
+          src={configuredUrl}
+          title="Embedded Web View"
+          className="absolute inset-0 w-full h-full border-0" // Fills parent
+          onLoad={handleIframeLoad}
+          onError={handleIframeErrorEvent}
+        />
       )}
     </div>
   );
