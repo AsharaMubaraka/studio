@@ -110,6 +110,7 @@ function AppShellInternal({ children }: AppShellProps) {
 
   const currentNavItems = useMemo(() => {
     let baseItems = isAdminMode ? baseAdminNavItems : baseUserNavItems;
+    // Ensure appSettings is available and showLiveRelayPage is explicitly false before filtering
     if (appSettings && typeof appSettings.showLiveRelayPage === 'boolean' && !appSettings.showLiveRelayPage) {
       baseItems = baseItems.filter(item => item.href !== '/live-relay');
     }
@@ -138,7 +139,8 @@ function AppShellInternal({ children }: AppShellProps) {
     isWebViewPage ? "flex flex-col flex-1 p-0 min-h-0" : "flex-1 p-4 md:p-6 lg:p-8" 
   );
   
-  if (isLoadingSettings && appSettings === null) { // Show loader only if settings are truly loading for the first time
+  // Show loader if settings are loading for the first time (appSettings is null)
+  if (isLoadingSettings && appSettings === null) { 
     return (
         <div className="flex min-h-screen items-center justify-center bg-background">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -195,4 +197,3 @@ export function AppShell({ children }: AppShellProps) {
     </SidebarProvider>
   );
 }
-

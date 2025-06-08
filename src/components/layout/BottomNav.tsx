@@ -18,13 +18,15 @@ export function BottomNav() {
 
   const currentNavItems = useMemo(() => {
     let baseItems = isAdminMode ? baseAdminNavItems : baseUserNavItems;
+    // Ensure appSettings is available and showLiveRelayPage is explicitly false before filtering
     if (appSettings && typeof appSettings.showLiveRelayPage === 'boolean' && !appSettings.showLiveRelayPage) {
       baseItems = baseItems.filter(item => item.href !== '/live-relay');
     }
     return baseItems;
   }, [isAdminMode, appSettings]);
 
-  if (!isMobile || isLoadingSettings) { // Don't render if not mobile or settings are still loading
+  // Don't render if not mobile or if settings are still loading
+  if (!isMobile || isLoadingSettings) { 
     return null;
   }
 
@@ -52,4 +54,3 @@ export function BottomNav() {
     </nav>
   );
 }
-
