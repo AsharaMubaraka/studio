@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { User, Hash, CalendarDays, Loader2, Bell } from "lucide-react";
+import { User, Hash, CalendarDays, Loader2, Bell, Info } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
@@ -13,6 +13,7 @@ import { doc, getDoc, collection, query, orderBy, limit, getDocs, Timestamp } fr
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatWhatsAppTextToHtml } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
+import { AdPlaceholder } from "@/components/ads/AdPlaceholder"; // Added AdPlaceholder import
 
 interface DateInfo {
   monthYear: string;
@@ -309,6 +310,8 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      <AdPlaceholder />
     </div>
   );
 }
