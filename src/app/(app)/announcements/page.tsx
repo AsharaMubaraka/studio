@@ -8,14 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
-import { Bell, CheckCheck, Loader2 } from "lucide-react"; // Added CheckCheck, Loader2
+import { Bell, CheckCheck, Loader2, Tag } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
-import { markNotificationAsReadAction, markAllNotificationsAsReadForUserAction } from "@/actions/notificationActions"; // Added markAllNotificationsAsReadForUserAction
+import { markNotificationAsReadAction, markAllNotificationsAsReadForUserAction, notificationCategories } from "@/actions/notificationActions";
 import { useToast } from "@/hooks/use-toast";
 import { siteConfig } from "@/config/site";
-import { Button } from "@/components/ui/button"; // Added Button
+import { Button } from "@/components/ui/button";
 
 const READ_NOTIFICATIONS_STORAGE_KEY_PREFIX = "ashara_mubaraka_read_notifications_";
 
@@ -35,6 +35,7 @@ async function fetchFirestoreAnnouncements(): Promise<Omit<Announcement, 'status
         author: data.authorName || "Unknown Author",
         imageUrl: data.imageUrl,
         imageHint: data.title ? data.title.split(" ").slice(0,2).join(" ") : "notification image",
+        category: data.category || "General",
         readByUserIds: (data.readByUserIds as string[] | undefined) || [],
       };
     });
@@ -52,9 +53,10 @@ export default function AnnouncementsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"status" | "newest" | "oldest">("status");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
-  
+
   const [localStorageReadIds, setLocalStorageReadIds] = useState<Set<string>>(new Set());
   const READ_NOTIFICATIONS_STORAGE_KEY = authUser ? `${READ_NOTIFICATIONS_STORAGE_KEY_PREFIX}${authUser.username}` : '';
 
@@ -147,7 +149,7 @@ export default function AnnouncementsPage() {
         title: "Success",
         description: result.message,
       });
-      
+
       // Update local storage
       setLocalStorageReadIds(prevIds => {
         const newIds = new Set(prevIds);
@@ -181,18 +183,20 @@ export default function AnnouncementsPage() {
   };
 
   const filteredAndSortedAnnouncements = announcements
-    .filter(ann => ann.title.toLowerCase().includes(searchTerm.toLowerCase()) || ann.content.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter(ann =>
+      (ann.title.toLowerCase().includes(searchTerm.toLowerCase()) || ann.content.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (selectedCategory === "All" || ann.category === selectedCategory)
+    )
     .sort((a, b) => {
       if (sortOrder === "newest") {
         return b.date.getTime() - a.date.getTime();
       } else if (sortOrder === "oldest") {
         return a.date.getTime() - b.date.getTime();
-      } else { 
-        const statusOrder = { new: 0, unread: 1, read: 2 }; // 'new' could be treated same as 'unread' for sorting logic
+      } else {
+        const statusOrder = { new: 0, unread: 1, read: 2 };
         if (a.status !== b.status) {
              return statusOrder[a.status] - statusOrder[b.status];
         }
-        // If status is the same, sort by newest first (secondary sort)
         return b.date.getTime() - a.date.getTime();
       }
     });
@@ -203,13 +207,24 @@ export default function AnnouncementsPage() {
     <div className="space-y-8 animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 bg-card rounded-lg shadow-lg">
         <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
-        <div className="flex flex-wrap gap-2 w-full md:w-auto justify-center">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full md:w-auto justify-center md:justify-end">
           <Input
             placeholder="Search notifications..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-xs flex-grow sm:flex-grow-0"
+            className="max-w-xs flex-grow sm:flex-grow-0 w-full sm:w-auto"
           />
+          <Select value={selectedCategory} onValueChange={(value: string) => setSelectedCategory(value)}>
+            <SelectTrigger className="w-full sm:w-[180px] flex-grow sm:flex-grow-0">
+              <SelectValue placeholder="Filter by Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Categories</SelectItem>
+              {notificationCategories.map(category => (
+                <SelectItem key={category} value={category}>{category}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={sortOrder} onValueChange={(value: "status" | "newest" | "oldest") => setSortOrder(value)}>
             <SelectTrigger className="w-full sm:w-[180px] flex-grow sm:flex-grow-0">
               <SelectValue placeholder="Sort by" />
@@ -255,9 +270,9 @@ export default function AnnouncementsPage() {
       ) : filteredAndSortedAnnouncements.length > 0 ? (
         <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2">
           {filteredAndSortedAnnouncements.map((announcement) => (
-            <AnnouncementItem 
-              key={announcement.id} 
-              announcement={announcement} 
+            <AnnouncementItem
+              key={announcement.id}
+              announcement={announcement}
               onCardClick={handleMarkAsRead}
             />
           ))}
@@ -267,7 +282,7 @@ export default function AnnouncementsPage() {
            <Bell className="h-5 w-5" />
            <AlertTitle>No Notifications Found</AlertTitle>
            <AlertDescription>
-             {searchTerm ? "No notifications match your search criteria. Try a different search term." : "There are no notifications at this time. Please check back later."}
+             {searchTerm || selectedCategory !== "All" ? "No notifications match your search/filter criteria." : "There are no notifications at this time. Please check back later."}
            </AlertDescription>
          </Alert>
       )}

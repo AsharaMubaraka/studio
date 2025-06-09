@@ -19,9 +19,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon, Pencil, XCircle, Sparkles } from "lucide-react";
+import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon, Pencil, XCircle, Sparkles, Tag } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { saveNotificationAction, deleteNotificationAction } from "@/actions/notificationActions";
+import { saveNotificationAction, deleteNotificationAction, notificationCategories } from "@/actions/notificationActions";
 import type { NotificationFormValues } from "@/actions/notificationActions";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
@@ -42,12 +42,14 @@ import {
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
 import { formatWhatsAppTextToHtml } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
-import { generateNotificationImage } from "@/ai/flows/generate-notification-image-flow"; // New import
+import { generateNotificationImage } from "@/ai/flows/generate-notification-image-flow";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added Select
 
 const notificationFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
   content: z.string().min(2, "Content must be at least 2 characters.").max(5000, "Content must be at most 5000 characters."),
   imageUrl: z.string().url("Must be a valid URL if provided, or leave empty.").or(z.literal('')).optional(),
+  category: z.enum(notificationCategories).default("General").describe("The category of the notification."),
 });
 
 interface PostedNotification {
@@ -58,6 +60,7 @@ interface PostedNotification {
   authorName?: string;
   authorId?: string;
   imageUrl?: string;
+  category?: typeof notificationCategories[number];
   readByUserIds?: string[];
 }
 
@@ -81,6 +84,7 @@ export default function SendNotificationPage() {
       title: "",
       content: "",
       imageUrl: "",
+      category: "General",
     },
   });
 
@@ -88,12 +92,13 @@ export default function SendNotificationPage() {
   const watchedTitle = watch("title");
   const watchedContent = watch("content");
   const watchedImageUrl = watch("imageUrl");
+  const watchedCategory = watch("category");
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (isDirty) {
         event.preventDefault();
-        event.returnValue = ''; 
+        event.returnValue = '';
       }
     };
 
@@ -120,6 +125,7 @@ export default function SendNotificationPage() {
           authorName: data.authorName,
           authorId: data.authorId,
           imageUrl: data.imageUrl,
+          category: data.category || "General",
           readByUserIds: (data.readByUserIds as string[] | undefined) || [],
         };
       });
@@ -145,6 +151,7 @@ export default function SendNotificationPage() {
       title: notification.title,
       content: notification.content,
       imageUrl: notification.imageUrl || "",
+      category: notification.category || "General",
     });
     setImagePrompt(""); // Clear image prompt when editing
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -152,7 +159,7 @@ export default function SendNotificationPage() {
 
   const handleCancelEdit = () => {
     setEditingNotificationId(null);
-    form.reset({ title: "", content: "", imageUrl: "" });
+    form.reset({ title: "", content: "", imageUrl: "", category: "General" });
     setImagePrompt("");
   };
 
@@ -169,7 +176,7 @@ export default function SendNotificationPage() {
 
     try {
       const result = await saveNotificationAction(
-        { title: values.title, content: values.content, imageUrl: values.imageUrl || undefined },
+        { title: values.title, content: values.content, imageUrl: values.imageUrl || undefined, category: values.category },
         {id: adminUser.username, name: adminUser.name},
         editingNotificationId || undefined
       );
@@ -178,10 +185,10 @@ export default function SendNotificationPage() {
               title: "Success",
               description: result.message,
           });
-          form.reset({ title: "", content: "", imageUrl: "" });
+          form.reset({ title: "", content: "", imageUrl: "", category: "General" });
           setImagePrompt("");
           setEditingNotificationId(null);
-          fetchPostedNotifications(); 
+          fetchPostedNotifications();
       } else {
           toast({
               variant: "destructive",
@@ -262,7 +269,7 @@ export default function SendNotificationPage() {
       setIsGeneratingImage(false);
     }
   };
-  
+
   if (!isAuthenticated || !adminUser?.isAdmin) {
     return (
         <div className="flex flex-1 items-center justify-center p-4">
@@ -282,9 +289,10 @@ export default function SendNotificationPage() {
     content: watchedContent || "Sample content for the notification. Supports basic HTML.",
     date: new Date(),
     author: adminUser?.name || "Admin",
-    status: 'new', 
+    status: 'new',
     imageUrl: watchedImageUrl || undefined,
-    imageHint: watchedTitle ? watchedTitle.split(" ").slice(0,2).join(" ") : "preview image"
+    imageHint: watchedTitle ? watchedTitle.split(" ").slice(0,2).join(" ") : "preview image",
+    category: watchedCategory || "General",
   };
 
   return (
@@ -292,7 +300,7 @@ export default function SendNotificationPage() {
       <Card className="shadow-lg w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="text-2xl font-bold tracking-tight flex items-center">
-            <MessageSquarePlus className="mr-3 h-8 w-8 text-primary" /> 
+            <MessageSquarePlus className="mr-3 h-8 w-8 text-primary" />
             {editingNotificationId ? "Edit Notification" : "Send Notification"}
           </CardTitle>
           <CardDescription>
@@ -316,7 +324,35 @@ export default function SendNotificationPage() {
                   <FormMessage />
                 </FormItem>
               )} />
-              
+
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4" /> Category</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {notificationCategories.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Choose a category for this notification.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <Separator />
 
               <div className="space-y-3">
@@ -331,9 +367,9 @@ export default function SendNotificationPage() {
 
                 <div className="space-y-2">
                   <FormLabel htmlFor="imagePrompt" className="flex items-center text-sm"><Sparkles className="mr-2 h-4 w-4 text-yellow-500" /> AI Image Prompt</FormLabel>
-                  <Textarea 
+                  <Textarea
                     id="imagePrompt"
-                    placeholder="e.g., A beautiful mosque at sunset with intricate details" 
+                    placeholder="e.g., A beautiful mosque at sunset with intricate details"
                     value={imagePrompt}
                     onChange={(e) => setImagePrompt(e.target.value)}
                     className="min-h-[80px]"
@@ -347,7 +383,7 @@ export default function SendNotificationPage() {
                   </FormDescription>
                 </div>
               </div>
-              
+
               <Separator />
 
               <div className="flex gap-2">
@@ -378,7 +414,7 @@ export default function SendNotificationPage() {
       <Card className="shadow-lg w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="text-xl font-semibold tracking-tight flex items-center"><ListChecks className="mr-3 h-7 w-7 text-primary" /> Posted Notifications Log</CardTitle>
-          <CardDescription>List of all active notifications. Newest first.</CardDescription>
+          <CardDescription>List of all active notifications. Newest first. Category: {notification.category}</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoadingLog ? (
@@ -393,10 +429,11 @@ export default function SendNotificationPage() {
                 <div key={notification.id} className="p-4 border rounded-lg shadow-sm bg-card">
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-grow">
-                      <h3 
-                        className="font-semibold text-lg mb-1" 
-                        dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(notification.title) }} 
+                      <h3
+                        className="font-semibold text-lg mb-1"
+                        dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(notification.title) }}
                       />
+                      <p className="text-xs text-muted-foreground mb-1">Category: <span className="font-medium text-primary">{notification.category || "General"}</span></p>
                       <div className="text-sm text-muted-foreground whitespace-pre-line mb-2" dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(notification.content) }} />
                       {notification.imageUrl && (<a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline break-all">View Image/File</a>)}
                     </div>
@@ -431,5 +468,3 @@ export default function SendNotificationPage() {
     </div>
   );
 }
-
-    

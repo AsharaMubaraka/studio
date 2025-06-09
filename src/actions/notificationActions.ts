@@ -5,17 +5,21 @@ import { z } from "zod";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, doc, deleteDoc, updateDoc, arrayUnion, getDoc, setDoc, getDocs, query as firestoreQuery } from "firebase/firestore"; // Added getDocs and firestoreQuery
 
+// Predefined categories
+export const notificationCategories = ["General", "Important", "Event", "Update"] as const;
+
 // Schema for client-side form validation (used in send-notification page)
 const notificationFormSchemaClient = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
   content: z.string().min(2, "Content must be at least 2 characters.").max(5000, "Content must be at most 5000 characters."),
   imageUrl: z.string().url("Must be a valid URL if provided, or leave empty.").optional().or(z.literal('')),
+  category: z.enum(notificationCategories).default("General").describe("The category of the notification."),
 });
 
 export type NotificationFormValues = z.infer<typeof notificationFormSchemaClient>;
 
 export async function saveNotificationAction(
-  data: { title: string; content: string; imageUrl?: string },
+  data: { title: string; content: string; imageUrl?: string; category: typeof notificationCategories[number] },
   author: {id: string; name: string | undefined},
   notificationId?: string // Optional: ID for updating an existing notification
 ) {
@@ -26,6 +30,7 @@ export async function saveNotificationAction(
       authorId: author.id, // The ID of the admin performing the action
       authorName: "Admin", // Consistent author name as per requirements
       imageUrl: data.imageUrl || null,
+      category: data.category || "General", // Ensure category is saved
       // readByUserIds will be preserved if updating, or initialized if new
     };
 
@@ -34,7 +39,7 @@ export async function saveNotificationAction(
       const notificationRef = doc(db, "notifications", notificationId);
       await setDoc(notificationRef, {
         ...notificationData,
-      }, { merge: true }); 
+      }, { merge: true });
       return { success: true, message: "Notification updated successfully!" };
     } else {
       // Create new notification
