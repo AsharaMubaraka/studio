@@ -1,12 +1,14 @@
 name = "ashara-mubaraka"
-compatibility_date = "2024-06-10" # Use a recent, valid date.
+compatibility_date = "2024-06-10"
 compatibility_flags = ["nodejs_compat"]
 
-# main specifies the entry point to your Worker.
-# @cloudflare/next-on-pages generates this file in the .cloudflare directory.
+# For Cloudflare Pages to correctly identify the output of `next-on-pages`
+# This directory contains the static assets and the _worker.js ready for Pages.
+pages_build_output_dir = ".vercel/output/static"
+
+# For the explicit `npx wrangler deploy` command (if used in Pages UI "Deploy command")
+# `next-on-pages` also prepares output in the .cloudflare directory.
 main = ".cloudflare/_worker.js"
 
 [site]
-# bucket specifies the directory of static assets to upload.
-# @cloudflare/next-on-pages places static assets here.
 bucket = ".cloudflare/static"
