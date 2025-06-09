@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, User, Hash, Save } from "lucide-react";
 import { updateUserDisplayNameAction } from "@/actions/userActions";
 import { siteConfig } from "@/config/site";
+import { Label } from "@/components/ui/label"; // Added import
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Name must be at least 2 characters.").max(100, "Name must be at most 100 characters."),
