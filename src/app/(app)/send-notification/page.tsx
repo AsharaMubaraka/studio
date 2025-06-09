@@ -22,7 +22,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon, Pencil, XCircle, Sparkles, Tag, CalendarIcon, Clock } from "lucide-react";
+import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon, Pencil, XCircle, Tag, CalendarIcon, Clock } from "lucide-react"; // Removed Sparkles
 import { useAuth } from "@/hooks/useAuth";
 import { saveNotificationAction, deleteNotificationAction } from "@/actions/notificationActions";
 import type { NotificationFormValues as ClientNotificationFormValues } from "@/actions/notificationActions"; // Renamed to avoid conflict
@@ -45,7 +45,7 @@ import {
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
 import { formatWhatsAppTextToHtml, cn } from "@/lib/utils";
 import { siteConfig, notificationCategories, type NotificationCategory } from "@/config/site";
-import { generateNotificationImage } from "@/ai/flows/generate-notification-image-flow";
+// Removed: import { generateNotificationImage } from "@/ai/flows/generate-notification-image-flow";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const notificationFormSchema = z.object({
@@ -70,10 +70,6 @@ const notificationFormSchema = z.object({
         if (isNaN(scheduledDateTime.getTime())) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["scheduledDate"], message: "Invalid date or time." });
         }
-        // Optional: check if date is in the past
-        // if (scheduledDateTime < new Date()) {
-        //   ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["scheduledDate"], message: "Scheduled date and time must be in the future." });
-        // }
       } catch (e) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["scheduledDate"], message: "Invalid date/time format." });
       }
@@ -95,7 +91,7 @@ interface PostedNotification {
   category?: NotificationCategory;
   readByUserIds?: string[];
   scheduledAt?: Date | null;
-  status?: 'draft' | 'scheduled' | 'sent'; // This is the status from Firestore
+  status?: 'draft' | 'scheduled' | 'sent';
 }
 
 export default function SendNotificationPage() {
@@ -109,8 +105,9 @@ export default function SendNotificationPage() {
   const [logError, setLogError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  const [imagePrompt, setImagePrompt] = useState("");
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  // Removed AI Image generation state
+  // const [imagePrompt, setImagePrompt] = useState("");
+  // const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(notificationFormSchema),
@@ -164,7 +161,7 @@ export default function SendNotificationPage() {
           category: data.category || "General",
           readByUserIds: (data.readByUserIds as string[] | undefined) || [],
           scheduledAt: (data.scheduledAt as Timestamp)?.toDate() || null,
-          status: data.status || 'sent', // Firestore status
+          status: data.status || 'sent',
         };
       });
       setPostedNotifications(fetchedNotifications);
@@ -192,14 +189,14 @@ export default function SendNotificationPage() {
       scheduledDate: notification.scheduledAt ? format(notification.scheduledAt, "yyyy-MM-dd") : undefined,
       scheduledTime: notification.scheduledAt ? format(notification.scheduledAt, "HH:mm") : undefined,
     });
-    setImagePrompt("");
+    // Removed: setImagePrompt("");
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancelEdit = () => {
     setEditingNotificationId(null);
     form.reset({ title: "", content: "", imageUrl: "", category: "General", isScheduled: false, scheduledDate: undefined, scheduledTime: undefined });
-    setImagePrompt("");
+    // Removed: setImagePrompt("");
   };
 
   async function onSubmit(values: FormValues) {
@@ -228,7 +225,7 @@ export default function SendNotificationPage() {
           content: values.content,
           imageUrl: values.imageUrl || undefined,
           category: values.category,
-          scheduledAt: scheduledAtDateTime // Pass Date object or null
+          scheduledAt: scheduledAtDateTime
         },
         {id: adminUser.username, name: adminUser.name},
         editingNotificationId || undefined
@@ -236,7 +233,7 @@ export default function SendNotificationPage() {
       if (result.success) {
           toast({ title: "Success", description: result.message });
           form.reset({ title: "", content: "", imageUrl: "", category: "General", isScheduled: false, scheduledDate: undefined, scheduledTime: undefined });
-          setImagePrompt("");
+          // Removed: setImagePrompt("");
           setEditingNotificationId(null);
           fetchPostedNotifications();
       } else {
@@ -268,27 +265,7 @@ export default function SendNotificationPage() {
     }
   }
 
-  const handleGenerateImage = async () => {
-    if (!imagePrompt.trim()) {
-      toast({ variant: "destructive", title: "Prompt Required", description: "Please enter a prompt." });
-      return;
-    }
-    setIsGeneratingImage(true);
-    try {
-      const result = await generateNotificationImage({ prompt: imagePrompt });
-      if (result.imageUrl) {
-        setValue("imageUrl", result.imageUrl, { shouldValidate: true, shouldDirty: true });
-        toast({ title: "Image Generated", description: "Image added to notification." });
-      } else {
-        throw new Error("Image generation did not return a URL.");
-      }
-    } catch (error: any) {
-      console.error("Error generating image:", error);
-      toast({ variant: "destructive", title: "Image Generation Failed", description: error.message || "Could not generate image." });
-    } finally {
-      setIsGeneratingImage(false);
-    }
-  };
+  // Removed: handleGenerateImage function
 
   if (!isAuthenticated || !adminUser?.isAdmin) {
     return (<div className="flex flex-1 items-center justify-center p-4"><Card className="shadow-lg p-8 animate-fadeIn w-full max-w-md"><CardHeader><CardTitle>Access Denied</CardTitle><CardDescription>You do not have permission.</CardDescription></CardHeader></Card></div>);
@@ -299,7 +276,7 @@ export default function SendNotificationPage() {
     try {
         const scheduledDT = new Date(`${watchedScheduledDate}T${watchedScheduledTime}:00`);
         if (scheduledDT > new Date()) {
-            previewStatus = 'scheduled' as any; // Cast for preview type for AnnouncementItem
+            previewStatus = 'scheduled' as any;
         }
     } catch (e) { /* ignore parsing error for preview */ }
   }
@@ -309,14 +286,14 @@ export default function SendNotificationPage() {
     id: 'preview',
     title: watchedTitle || "Sample Title",
     content: watchedContent || "Sample content for the notification.",
-    date: new Date(), // For preview, current date is fine
+    date: new Date(),
     author: adminUser?.name || "Admin",
-    status: previewStatus, // This will be 'scheduled' if future, otherwise 'new'
+    status: previewStatus,
     imageUrl: watchedImageUrl || undefined,
     imageHint: watchedTitle ? watchedTitle.split(" ").slice(0,2).join(" ") : "preview image",
     category: watchedCategory || "General",
     scheduledAt: (watchedIsScheduled && watchedScheduledDate && watchedScheduledTime) ? new Date(`${watchedScheduledDate}T${watchedScheduledTime}:00`) : undefined,
-    internalStatus: (watchedIsScheduled && watchedScheduledDate && watchedScheduledTime) ? 'scheduled' : 'sent', // For preview
+    internalStatus: (watchedIsScheduled && watchedScheduledDate && watchedScheduledTime) ? 'scheduled' : 'sent',
   };
 
   return (
@@ -342,11 +319,7 @@ export default function SendNotificationPage() {
               <div>
                 <FormLabel className="text-base font-medium">Notification Image</FormLabel>
                 <FormField control={form.control} name="imageUrl" render={({ field }) => (<FormItem className="mt-2"><FormLabel className="flex items-center text-sm"><ImageIcon className="mr-2 h-4 w-4" /> Image URL (Optional)</FormLabel><FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <div className="mt-3 space-y-2">
-                  <FormLabel htmlFor="imagePrompt" className="flex items-center text-sm"><Sparkles className="mr-2 h-4 w-4 text-yellow-500" /> AI Image Prompt</FormLabel>
-                  <Textarea id="imagePrompt" placeholder="e.g., A beautiful mosque at sunset" value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} className="min-h-[80px]" />
-                  <Button type="button" variant="outline" onClick={handleGenerateImage} disabled={isGeneratingImage || isSubmitting}>{isGeneratingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />} {isGeneratingImage ? "Generating..." : "Generate Image"}</Button>
-                </div>
+                {/* AI Image Generation UI Removed */}
               </div>
 
               <Separator />
@@ -397,8 +370,8 @@ export default function SendNotificationPage() {
 
               <Separator />
               <div className="flex gap-2">
-                <Button type="submit" className="flex-grow" disabled={isSubmitting || isGeneratingImage}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingNotificationId ? <Pencil className="mr-2 h-4 w-4" /> : <MessageSquarePlus className="mr-2 h-4 w-4" />)} {isSubmitting ? (editingNotificationId ? "Updating..." : (watchedIsScheduled ? "Scheduling..." : "Sending...")) : (editingNotificationId ? "Update Notification" : (watchedIsScheduled ? "Schedule Notification" : "Send Now"))}</Button>
-                {editingNotificationId && (<Button type="button" variant="outline" onClick={handleCancelEdit} disabled={isSubmitting || isGeneratingImage}><XCircle className="mr-2 h-4 w-4" /> Cancel Edit</Button>)}
+                <Button type="submit" className="flex-grow" disabled={isSubmitting}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingNotificationId ? <Pencil className="mr-2 h-4 w-4" /> : <MessageSquarePlus className="mr-2 h-4 w-4" />)} {isSubmitting ? (editingNotificationId ? "Updating..." : (watchedIsScheduled ? "Scheduling..." : "Sending...")) : (editingNotificationId ? "Update Notification" : (watchedIsScheduled ? "Schedule Notification" : "Send Now"))}</Button>
+                {editingNotificationId && (<Button type="button" variant="outline" onClick={handleCancelEdit} disabled={isSubmitting}><XCircle className="mr-2 h-4 w-4" /> Cancel Edit</Button>)}
               </div>
             </form>
           </Form>
@@ -434,7 +407,7 @@ export default function SendNotificationPage() {
                           {notification.status === 'scheduled' && notification.scheduledAt && (
                               <span>Scheduled: {format(notification.scheduledAt, "MMM d, yyyy, h:mm a")} {isPastScheduled ? "(Now Active)" : ""}</span>
                           )}
-                           {notification.status === 'sent' && notification.scheduledAt && ( // If it was scheduled then sent (e.g. by editing)
+                           {notification.status === 'sent' && notification.scheduledAt && (
                               <span>Originally Scheduled: {format(notification.scheduledAt, "MMM d, yyyy, h:mm a")}</span>
                           )}
                         </div>
@@ -442,8 +415,8 @@ export default function SendNotificationPage() {
                         {notification.imageUrl && (<a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline break-all">View Image</a>)}
                       </div>
                       <div className="flex flex-col sm:flex-row gap-1 items-end sm:items-center shrink-0">
-                         <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10" onClick={() => handleEditNotification(notification)} disabled={isSubmitting || isDeleting === notification.id || isGeneratingImage}><Pencil className="h-4 w-4" /></Button>
-                         <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={isDeleting === notification.id || isSubmitting || isGeneratingImage}>{isDeleting === notification.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button></AlertDialogTrigger>
+                         <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10" onClick={() => handleEditNotification(notification)} disabled={isSubmitting || isDeleting === notification.id }><Pencil className="h-4 w-4" /></Button>
+                         <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={isDeleting === notification.id || isSubmitting }>{isDeleting === notification.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button></AlertDialogTrigger>
                           <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>Delete "{notification.title}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteNotification(notification.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                         </AlertDialog>
                       </div>
@@ -464,4 +437,3 @@ export default function SendNotificationPage() {
   );
 }
 
-    
