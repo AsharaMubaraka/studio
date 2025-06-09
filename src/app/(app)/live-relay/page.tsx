@@ -346,21 +346,6 @@ function UserLiveRelayViewer() {
         )}
         {eventHasEnded && (<CardContent><Alert><Youtube className="h-5 w-5" /><AlertTitle>Miqaat Ended</AlertTitle><AlertDescription>"{currentRelay.name}" has concluded.</AlertDescription></Alert></CardContent>)}
       
-        {isEventActive && (
-          <CardFooter className="pt-4 flex-col items-start gap-2">
-            <Separator />
-            <div className="text-sm">
-                <p className="font-semibold">{currentRelay.name}</p>
-                <p className="text-muted-foreground">
-                    Live from {format(currentRelay.startDate, "MMM d, h:mm a")} to {format(currentRelay.endDate, "MMM d, h:mm a")}
-                </p>
-            </div>
-            <div className="flex items-start text-xs text-muted-foreground gap-1.5">
-                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0"/>
-                <span>Ensure you have a stable internet connection for the best viewing experience. If you encounter issues, try refreshing the page.</span>
-            </div>
-          </CardFooter>
-        )}
       </Card>
       <AdPlaceholder />
     </div>
@@ -406,3 +391,4 @@ export default function LiveRelayPage() {
 
   return <PageComponentToRender />;
 }
+
