@@ -14,7 +14,7 @@ export default function WebViewPage() {
   const { settings, isLoading: isLoadingSettings, refreshAppSettings } = useAppSettings();
   const [configuredUrl, setConfiguredUrl] = useState<string | null | undefined>(undefined);
   const [iframeError, setIframeError] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user } = useAuth(); // User object from auth context
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function WebViewPage() {
       const urlToLoad = settings?.webViewUrl || null;
       setConfiguredUrl(urlToLoad);
       if (urlToLoad) {
-        setIframeError(null);
+        setIframeError(null); // Reset error if new URL is loaded
       }
     }
   }, [settings, isLoadingSettings]);
@@ -45,14 +45,14 @@ export default function WebViewPage() {
   const pageIsLoadingInitially = isLoadingSettings || configuredUrl === undefined;
 
   const showIframe = configuredUrl && !iframeError;
-  const showInitialLoader = pageIsLoadingInitially && !configuredUrl; // Only for the very first load state
+  const showInitialLoader = pageIsLoadingInitially && !configuredUrl; 
   const showErrorState = !pageIsLoadingInitially && iframeError && configuredUrl;
   const showNotConfiguredState = !pageIsLoadingInitially && !configuredUrl && !iframeError;
 
 
   let containerClasses = "flex-1 w-full";
   if (showIframe) {
-    containerClasses += " relative"; // For absolute positioning of iframe
+    containerClasses += " relative"; 
   } else {
     // For loading, error, or not configured states, center their Card content
     containerClasses += " flex flex-col items-center justify-center p-4";
@@ -61,8 +61,6 @@ export default function WebViewPage() {
   return (
     <div className={containerClasses}>
       {showInitialLoader && (
-        // This loader is for when settings are loading or URL isn't determined yet.
-        // It's directly centered by the parent's flex properties.
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       )}
 
@@ -83,7 +81,7 @@ export default function WebViewPage() {
             <p className="text-xs text-muted-foreground pt-2">
               Please ensure the URL is correct and the external website allows embedding. Some websites (like Google, Facebook) explicitly block being embedded in iframes.
             </p>
-            {user?.isAdmin && (
+            {user?.isAdmin && ( // Conditional rendering based on admin status
               <Button asChild variant="outline" className="mt-4">
                 <Link href="/settings">
                   <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
@@ -105,7 +103,7 @@ export default function WebViewPage() {
             <p className="text-muted-foreground">
               The URL for the web view has not been set up.
             </p>
-            {user?.isAdmin && (
+            {user?.isAdmin && ( // Conditional rendering based on admin status
               <Button asChild>
                 <Link href="/settings">
                   <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
@@ -120,11 +118,11 @@ export default function WebViewPage() {
         <iframe
           ref={iframeRef}
           key={configuredUrl} // Re-mount iframe if URL changes
-          src={configuredUrl}
+          src={configuredUrl} // Use the state variable
           title="Embedded Web View"
           className="absolute inset-0 w-full h-full border-0" // Fills parent
           onLoad={handleIframeLoad}
-          onError={handleIframeErrorEvent}
+          onError={handleIframeErrorEvent} // Handle iframe's specific error event
         />
       )}
     </div>
