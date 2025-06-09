@@ -1,7 +1,11 @@
 
 {
   "name": "Ashara Mubaraka",
+<<<<<<< HEAD
   "short_name": "AsharaApp",
+=======
+  "short_name": "AsharaMubaraka",
+>>>>>>> 406b24efe0f99d1cbd718a9f7d6c4939b80a2715
   "description": "Ashara Mubaraka: Get the latest updates on events and everything you need to know.",
   "start_url": "/",
   "display": "standalone",
