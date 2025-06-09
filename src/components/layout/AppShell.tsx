@@ -23,15 +23,19 @@ import { BottomNav } from "./BottomNav";
 import { UserProfileMenu } from "./UserProfileMenu";
 import { cn } from "@/lib/utils";
 import { useAdminMode } from "@/contexts/AdminModeContext";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useIsMobile } from "@/hooks/use-mobile"; 
 import { Loader2 } from "lucide-react";
-// import { AdPlaceholder } from "@/components/ads/AdPlaceholder"; // Removed: Ads will be placed on specific pages
+import { AdPlaceholder } from "@/components/ads/AdPlaceholder";
+import { NotificationPermissionDialog } from "./NotificationPermissionDialog"; // Import the new dialog
+import { useAuth } from "@/hooks/useAuth"; // Import useAuth
 
 interface AppShellProps {
   children: ReactNode;
 }
+
+const NOTIFICATION_DIALOG_DISMISS_KEY_PREFIX = `${siteConfig.name.toLowerCase().replace(/\s+/g, '_')}_notification_dialog_dismissed_until_v1_`;
 
 function SidebarLogo() {
   const { isMobile: isSidebarHookMobile } = useSidebar(); 
@@ -102,6 +106,7 @@ function MainNav({ currentNavItems }: { currentNavItems: NavItemConfig[] }) {
 
 function AppShellInternal({ children }: AppShellProps) {
   const pathname = usePathname();
+  const { user } = useAuth(); // Get user from auth context
   const { isAdminMode } = useAdminMode();
   const { settings: appSettings, isLoading: isLoadingSettings } = useAppSettings();
   const { isMobile: isSidebarHookMobile } = useSidebar(); 
@@ -109,9 +114,57 @@ function AppShellInternal({ children }: AppShellProps) {
   
   const displayMobileLayout = typeof actualIsMobile === 'boolean' ? actualIsMobile : isSidebarHookMobile;
 
+  const [showNotificationDialog, setShowNotificationDialog] = useState(false);
+  const NOTIFICATION_DIALOG_DISMISS_KEY = user ? `${NOTIFICATION_DIALOG_DISMISS_KEY_PREFIX}${user.username}` : '';
+
+
+  useEffect(() => {
+    if (user && NOTIFICATION_DIALOG_DISMISS_KEY && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      const dismissedUntilString = localStorage.getItem(NOTIFICATION_DIALOG_DISMISS_KEY);
+      const now = new Date().getTime();
+
+      if (dismissedUntilString) {
+        const dismissedUntil = parseInt(dismissedUntilString, 10);
+        if (dismissedUntil > now) {
+          setShowNotificationDialog(false);
+          return;
+        } else {
+          // Clean up expired dismissal
+          localStorage.removeItem(NOTIFICATION_DIALOG_DISMISS_KEY);
+        }
+      }
+      // If no valid dismissal or expired, show the dialog
+      setShowNotificationDialog(true);
+    } else {
+      setShowNotificationDialog(false);
+    }
+  }, [user, NOTIFICATION_DIALOG_DISMISS_KEY]);
+
+  const handleNotificationDialogClose = useCallback((permissionGranted: boolean, remindLater: boolean = false) => {
+    setShowNotificationDialog(false);
+    if (!NOTIFICATION_DIALOG_DISMISS_KEY) return;
+
+    let dismissalDuration;
+    if (remindLater) { // "Not Now" was clicked
+      dismissalDuration = 7 * 24 * 60 * 60 * 1000; // 7 days
+    } else if (permissionGranted || Notification.permission === 'denied') {
+      // Permission granted OR explicitly denied by user through browser prompt
+      dismissalDuration = 365 * 24 * 60 * 60 * 1000; // 1 year (effectively permanent for this version)
+    } else {
+        // Default case: User closed browser prompt without choosing, or some other scenario
+        // Treat as "remind later" to be less aggressive
+        dismissalDuration = 1 * 24 * 60 * 60 * 1000; // 1 day before trying again
+    }
+    
+    if (dismissalDuration) {
+        const dismissedUntil = new Date().getTime() + dismissalDuration;
+        localStorage.setItem(NOTIFICATION_DIALOG_DISMISS_KEY, dismissedUntil.toString());
+    }
+  }, [NOTIFICATION_DIALOG_DISMISS_KEY]);
+
+
   const currentNavItems = useMemo(() => {
     let baseItems = isAdminMode ? baseAdminNavItems : baseUserNavItems;
-    // Ensure appSettings is available and showLiveRelayPage is explicitly false before filtering
     if (appSettings && typeof appSettings.showLiveRelayPage === 'boolean' && !appSettings.showLiveRelayPage) {
       baseItems = baseItems.filter(item => item.href !== '/live-relay');
     }
@@ -140,7 +193,6 @@ function AppShellInternal({ children }: AppShellProps) {
     isWebViewPage ? "flex flex-col flex-1 p-0 min-h-0" : "flex-1 p-4 md:p-6 lg:p-8" 
   );
   
-  // Show loader if settings are loading for the first time (appSettings is null)
   if (isLoadingSettings && appSettings === null) { 
     return (
         <div className="flex min-h-screen items-center justify-center bg-background">
@@ -177,13 +229,20 @@ function AppShellInternal({ children }: AppShellProps) {
           <div className={contentWrapperClasses}>
             {children}
           </div>
-          {/* AdPlaceholder removed from here. It will be added to specific pages manually. */}
+          {/* AdPlaceholder is no longer globally here, added to specific pages */}
         </main>
         
         {displayMobileLayout && <div className="block md:hidden decorative-border-repeat decorative-border-repeat-h20 mt-auto" />}
 
         <BottomNav /> 
       </SidebarInset>
+      {user && ( /* Only attempt to render dialog if user is available */
+        <NotificationPermissionDialog
+          open={showNotificationDialog}
+          onOpenChange={setShowNotificationDialog}
+          onDialogClose={handleNotificationDialogClose}
+        />
+      )}
     </>
   );
 }
