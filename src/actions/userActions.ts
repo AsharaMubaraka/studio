@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import { doc, updateDoc, serverTimestamp, getDoc, deleteDoc } from "firebase/firestore";
 
 const updateUserDisplayNameSchema = z.object({
   userId: z.string().min(1, "User ID is required."),
@@ -120,5 +120,19 @@ export async function updateUserPushNotificationPreferenceAction(userId: string,
     }
     console.error("Error updating push notification preference (Server Action):", error);
     return { success: false, message: "Failed to update push notification preference. See server logs." };
+  }
+}
+
+export async function deleteUserAction(userId: string) {
+  if (!userId) {
+    return { success: false, message: "User ID is required." };
+  }
+  try {
+    const userDocRef = doc(db, "users", userId);
+    await deleteDoc(userDocRef);
+    return { success: true, message: "User deleted successfully." };
+  } catch (error: any) {
+    console.error("Error deleting user (Server Action):", error);
+    return { success: false, message: "Failed to delete user. See server logs." };
   }
 }

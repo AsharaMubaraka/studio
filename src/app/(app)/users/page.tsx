@@ -13,14 +13,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Users, AlertCircle, Loader2, ShieldOff, ShieldCheck, ChevronLeft, ChevronRight, Pencil, MapPin } from "lucide-react";
+import { Users, AlertCircle, Loader2, ShieldOff, ShieldCheck, ChevronLeft, ChevronRight, Pencil, MapPin, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { updateUserDisplayNameAction } from "@/actions/userActions";
+import { updateUserDisplayNameAction, deleteUserAction } from "@/actions/userActions";
 import { siteConfig } from "@/config/site";
+import { useAuth } from "@/hooks/useAuth";
 
 interface User {
   id: string;
@@ -67,11 +71,13 @@ async function fetchGeolocation(ipAddress: string): Promise<{ city: string | nul
 }
 
 export default function UserListPage() {
+  const { user: authUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-  const [actionType, setActionType] = useState<"admin" | "restriction" | "name" | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [actionType, setActionType] = useState<"admin" | "restriction" | "name" | "delete" | null>(null);
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -100,7 +106,6 @@ export default function UserListPage() {
         };
       });
 
-      // Fetch geolocation data for users with IP addresses
       const usersWithIP = fetchedUsers.filter(user => user.ipAddress);
       const geolocationPromises = usersWithIP.map(user => 
         fetchGeolocation(user.ipAddress!).then(geo => ({ ...user, ...geo }))
@@ -114,7 +119,6 @@ export default function UserListPage() {
         if (foundResult && foundResult.status === 'fulfilled') {
           return foundResult.value as User;
         }
-        // If geolocation failed or user not in results, return original user data (city/country will be undefined)
         return user;
       });
 
@@ -180,6 +184,21 @@ export default function UserListPage() {
     setUpdatingUserId(null); setActionType(null);
   };
 
+  const handleDeleteUser = async (userIdToDelete: string) => {
+    if (userIdToDelete === authUser?.username) {
+      toast({ variant: "destructive", title: "Action Forbidden", description: "You cannot delete your own account." });
+      return;
+    }
+    setDeletingUserId(userIdToDelete); setActionType("delete");
+    const result = await deleteUserAction(userIdToDelete);
+    if (result.success) {
+      toast({ title: "Success", description: result.message });
+      setUsers(prevUsers => prevUsers.filter(u => u.id !== userIdToDelete));
+    } else {
+      toast({ variant: "destructive", title: "Deletion Failed", description: result.message || "Could not delete user." });
+    }
+    setDeletingUserId(null); setActionType(null);
+  };
 
   const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE);
   const paginatedUsers = users.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -200,62 +219,87 @@ export default function UserListPage() {
         <CardContent>
           {users.length === 0 ? (<p className="text-muted-foreground text-center py-4">No users found.</p>) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]">#</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Username</TableHead>
-                    <TableHead>IP</TableHead>
-                    <TableHead className="min-w-[150px]">Location (City, Country)</TableHead>
-                    <TableHead className="text-center">Admin</TableHead>
-                    <TableHead className="text-center">Restricted</TableHead>
-                    <TableHead className="text-right w-[80px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedUsers.map((user, index) => (
-                    <TableRow key={user.id}>
-                      <TableCell>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</TableCell>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.username}</TableCell>
-                      <TableCell>{user.ipAddress || "N/A"}</TableCell>
-                      <TableCell>
-                        {user.ipAddress ? (
-                          user.city || user.country ? (
-                            <span className="flex items-center">
-                              <MapPin className="mr-1.5 h-4 w-4 text-muted-foreground shrink-0" />
-                              {`${user.city || "Unknown City"}, ${user.country || "Unknown Country"}`}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground italic">Resolving...</span>
-                          )
-                        ) : (
-                          "N/A"
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center">
-                          {updatingUserId === user.id && actionType === "admin" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          <Switch checked={user.isAdmin} onCheckedChange={() => handleAdminToggle(user.id, user.isAdmin)} disabled={updatingUserId === user.id} aria-label={`Toggle admin for ${user.name}`} />
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center">
-                          {updatingUserId === user.id && actionType === "restriction" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          <Switch checked={user.isRestricted} onCheckedChange={() => handleRestrictionToggle(user.id, user.isRestricted)} disabled={updatingUserId === user.id} aria-label={`Toggle restriction for ${user.name}`} className={user.isRestricted ? "data-[state=checked]:bg-destructive" : ""} />
-                          {user.isRestricted ? <ShieldOff className="ml-2 h-4 w-4 text-destructive shrink-0" /> : <ShieldCheck className="ml-2 h-4 w-4 text-green-600 shrink-0" />}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => openEditNameDialog(user)} disabled={updatingUserId === user.id && actionType === "name"} className="text-primary hover:bg-primary/10">
-                          {updatingUserId === user.id && actionType === "name" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
-                        </Button>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px] px-2 py-3">#</TableHead>
+                      <TableHead className="px-2 py-3">Name</TableHead>
+                      <TableHead className="px-2 py-3">Username</TableHead>
+                      <TableHead className="px-2 py-3">IP</TableHead>
+                      <TableHead className="min-w-[150px] px-2 py-3">Location (City, Country)</TableHead>
+                      <TableHead className="text-center px-2 py-3">Admin</TableHead>
+                      <TableHead className="text-center px-2 py-3">Restricted</TableHead>
+                      <TableHead className="text-right w-[120px] px-2 py-3">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedUsers.map((user, index) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="px-2 py-4">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</TableCell>
+                        <TableCell className="font-medium px-2 py-4">{user.name}</TableCell>
+                        <TableCell className="px-2 py-4">{user.username}</TableCell>
+                        <TableCell className="px-2 py-4">{user.ipAddress || "N/A"}</TableCell>
+                        <TableCell className="px-2 py-4">
+                          {user.ipAddress ? (
+                            user.city || user.country ? (
+                              <span className="flex items-center">
+                                <MapPin className="mr-1.5 h-4 w-4 text-muted-foreground shrink-0" />
+                                {`${user.city || "Unknown City"}, ${user.country || "Unknown Country"}`}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground italic">Resolving...</span>
+                            )
+                          ) : (
+                            "N/A"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center px-2 py-4">
+                          <div className="flex items-center justify-center">
+                            {updatingUserId === user.id && actionType === "admin" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Switch checked={user.isAdmin} onCheckedChange={() => handleAdminToggle(user.id, user.isAdmin)} disabled={updatingUserId === user.id || deletingUserId === user.id} aria-label={`Toggle admin for ${user.name}`} />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center px-2 py-4">
+                          <div className="flex items-center justify-center">
+                            {updatingUserId === user.id && actionType === "restriction" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Switch checked={user.isRestricted} onCheckedChange={() => handleRestrictionToggle(user.id, user.isRestricted)} disabled={updatingUserId === user.id || deletingUserId === user.id} aria-label={`Toggle restriction for ${user.name}`} className={user.isRestricted ? "data-[state=checked]:bg-destructive" : ""} />
+                            {user.isRestricted ? <ShieldOff className="ml-2 h-4 w-4 text-destructive shrink-0" /> : <ShieldCheck className="ml-2 h-4 w-4 text-green-600 shrink-0" />}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right px-2 py-4">
+                          <div className="flex gap-1 justify-end">
+                            <Button variant="ghost" size="icon" onClick={() => openEditNameDialog(user)} disabled={(updatingUserId === user.id && actionType === "name") || deletingUserId === user.id} className="text-primary hover:bg-primary/10">
+                              {(updatingUserId === user.id && actionType === "name") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" disabled={deletingUserId === user.id || updatingUserId === user.id || user.id === authUser?.username} className="text-destructive hover:bg-destructive/10">
+                                  {(deletingUserId === user.id && actionType === "delete") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the user account for "{user.name}" ({user.username}).
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteUser(user.id)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                                    Yes, delete user
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               {totalPages > 1 && (
                 <div className="flex items-center justify-end space-x-2 py-4">
                   <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}><ChevronLeft className="mr-1 h-4 w-4" />Prev</Button>
