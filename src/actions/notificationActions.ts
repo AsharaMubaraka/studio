@@ -3,54 +3,108 @@
 
 import { z } from "zod";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, doc, deleteDoc, updateDoc, arrayUnion, getDoc, setDoc, getDocs, query as firestoreQuery } from "firebase/firestore"; // Added getDocs and firestoreQuery
-import { notificationCategories, type NotificationCategory } from "@/config/site"; // Updated import
+import { collection, addDoc, serverTimestamp, doc, deleteDoc, updateDoc, arrayUnion, getDoc, setDoc, getDocs, query as firestoreQuery, Timestamp } from "firebase/firestore";
+import { notificationCategories, type NotificationCategory } from "@/config/site";
 
 // Schema for client-side form validation (used in send-notification page)
+// This schema is what the form on the page uses.
+// The actual data passed to saveNotificationAction will be slightly different.
 const notificationFormSchemaClient = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
   content: z.string().min(2, "Content must be at least 2 characters.").max(5000, "Content must be at most 5000 characters."),
   imageUrl: z.string().url("Must be a valid URL if provided, or leave empty.").optional().or(z.literal('')),
   category: z.enum(notificationCategories).default("General").describe("The category of the notification."),
+  isScheduled: z.boolean().optional().default(false),
+  scheduledDate: z.string().optional(), // YYYY-MM-DD
+  scheduledTime: z.string().optional(), // HH:MM
+}).superRefine((data, ctx) => {
+  if (data.isScheduled) {
+    if (!data.scheduledDate) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["scheduledDate"], message: "Scheduled date is required." });
+    }
+    if (!data.scheduledTime) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["scheduledTime"], message: "Scheduled time is required." });
+    }
+    if (data.scheduledDate && data.scheduledTime) {
+      try {
+        const scheduledDateTime = new Date(`${data.scheduledDate}T${data.scheduledTime}`);
+        if (scheduledDateTime < new Date()) {
+          // ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["scheduledDate"], message: "Scheduled date and time must be in the future." });
+          // Allowing past date for now for easier testing, can be re-enabled
+        }
+      } catch (e) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["scheduledDate"], message: "Invalid date/time format." });
+      }
+    }
+  }
 });
+
 
 export type NotificationFormValues = z.infer<typeof notificationFormSchemaClient>;
 
+// Type for data passed to saveNotificationAction
+interface SaveNotificationData {
+  title: string;
+  content: string;
+  imageUrl?: string;
+  category: NotificationCategory;
+  scheduledAt?: Date | null; // Date object or null
+}
+
+
 export async function saveNotificationAction(
-  data: { title: string; content: string; imageUrl?: string; category: NotificationCategory },
+  data: SaveNotificationData,
   author: {id: string; name: string | undefined},
-  notificationId?: string // Optional: ID for updating an existing notification
+  notificationId?: string
 ) {
   try {
-    const notificationData = {
+    // Validate core fields again, though client should have done it
+    const coreDataSchema = z.object({
+      title: z.string().min(2).max(100),
+      content: z.string().min(2).max(5000),
+      category: z.enum(notificationCategories),
+    });
+    coreDataSchema.parse({title: data.title, content: data.content, category: data.category});
+
+
+    const notificationPayload: any = {
       title: data.title,
       content: data.content,
-      authorId: author.id, // The ID of the admin performing the action
-      authorName: "Admin", // Consistent author name as per requirements
+      authorId: author.id,
+      authorName: author.name || "Admin",
       imageUrl: data.imageUrl || null,
-      category: data.category || "General", // Ensure category is saved
+      category: data.category || "General",
+      scheduledAt: data.scheduledAt ? Timestamp.fromDate(data.scheduledAt) : null,
+      status: data.scheduledAt ? 'scheduled' : 'sent',
       // readByUserIds will be preserved if updating, or initialized if new
     };
 
     if (notificationId) {
-      // Update existing notification
       const notificationRef = doc(db, "notifications", notificationId);
+      // Ensure createdAt is not overwritten on update, and readByUserIds is merged if already present
+      const existingDoc = await getDoc(notificationRef);
+      const existingData = existingDoc.data();
+      
       await setDoc(notificationRef, {
-        ...notificationData,
-      }, { merge: true });
+        ...notificationPayload,
+        createdAt: existingData?.createdAt || serverTimestamp(), // Preserve original createdAt
+        readByUserIds: existingData?.readByUserIds || [], // Preserve readByUserIds
+      }, { merge: true }); // Use merge:true to only update specified fields
       return { success: true, message: "Notification updated successfully!" };
     } else {
-      // Create new notification
       await addDoc(collection(db, "notifications"), {
-        ...notificationData,
+        ...notificationPayload,
         createdAt: serverTimestamp(),
-        readByUserIds: [], // Initialize for new notifications
+        readByUserIds: [],
       });
-      return { success: true, message: "Notification sent successfully!" };
+      return { success: true, message: "Notification sent/scheduled successfully!" };
     }
   } catch (error: any) {
     console.error("Error saving/updating notification (Server Action):", error);
-    const actionType = notificationId ? "update" : "send";
+    if (error instanceof z.ZodError) {
+      return { success: false, message: "Server validation failed.", errors: error.flatten().fieldErrors };
+    }
+    const actionType = notificationId ? "update" : (data.scheduledAt ? "schedule" : "send");
     return { success: false, message: `Failed to ${actionType} notification. See server logs.` };
   }
 }
@@ -99,7 +153,7 @@ export async function markAllNotificationsAsReadForUserAction(userId: string) {
   }
   try {
     const notificationsCollectionRef = collection(db, "notifications");
-    const q = firestoreQuery(notificationsCollectionRef); // Query all notifications
+    const q = firestoreQuery(notificationsCollectionRef); 
     const querySnapshot = await getDocs(q);
 
     const updates: Promise<void>[] = [];
@@ -119,7 +173,7 @@ export async function markAllNotificationsAsReadForUserAction(userId: string) {
     });
 
     if (updates.length > 0) {
-      await Promise.all(updates); // Wait for all updates to complete
+      await Promise.all(updates); 
       return { success: true, message: `${notificationsMarkedAsReadCount} notification(s) marked as read.` };
     } else {
       return { success: true, message: "All notifications were already marked as read." };

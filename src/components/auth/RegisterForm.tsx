@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -119,6 +120,7 @@ const RegisterForm = () => {
         ipAddress: ipAddress || null,
         isAdmin: false,
         isRestricted: false,
+        pushNotificationsEnabled: true, // Default to true for new users
         createdAt: Timestamp.now(),
       });
 

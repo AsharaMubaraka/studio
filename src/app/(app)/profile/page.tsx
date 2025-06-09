@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,13 +16,14 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, User, Hash, Save, KeyRound, ShieldAlert } from "lucide-react"; // Added KeyRound, ShieldAlert
-import { updateUserDisplayNameAction, updateUserPasswordAction } from "@/actions/userActions";
+import { Loader2, User, Hash, Save, KeyRound, ShieldAlert, BellRing } from "lucide-react";
+import { updateUserDisplayNameAction, updateUserPasswordAction, updateUserPushNotificationPreferenceAction } from "@/actions/userActions";
 import { siteConfig } from "@/config/site";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator"; // Added Separator
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Ensure Alert components are imported
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Name must be at least 2 characters.").max(100, "Name must be at most 100 characters."),
@@ -43,14 +43,18 @@ const passwordChangeFormSchema = z.object({
 type PasswordChangeFormValues = z.infer<typeof passwordChangeFormSchema>;
 
 export default function ProfilePage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, updateUserPushPreference } = useAuth();
   const { toast } = useToast();
   const [isSubmittingName, setIsSubmittingName] = useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  const [isSubmittingPushPrefs, setIsSubmittingPushPrefs] = useState(false);
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  
+  // Local state for push notification toggle, initialized from user context
+  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(user?.pushNotificationsEnabled ?? true);
 
   const nameForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -75,6 +79,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       nameForm.reset({ displayName: user.name });
+      setPushNotificationsEnabled(typeof user.pushNotificationsEnabled === 'boolean' ? user.pushNotificationsEnabled : true);
     }
   }, [user, nameForm]);
 
@@ -87,7 +92,7 @@ export default function ProfilePage() {
     const result = await updateUserDisplayNameAction(user.username, values.displayName);
     if (result.success) {
       toast({ title: "Success", description: "Your display name has been updated." });
-      // Potentially refresh user context or specific field if AuthContext supports it
+      // Note: AuthContext doesn't auto-update name, would require re-login or specific context update method
     } else {
       toast({ variant: "destructive", title: "Update Failed", description: result.message || "Could not update display name." });
     }
@@ -103,17 +108,36 @@ export default function ProfilePage() {
     const result = await updateUserPasswordAction(user.username, values.currentPassword, values.newPassword);
     if (result.success) {
       toast({ title: "Success", description: "Your password has been updated." });
-      passwordForm.reset(); // Clear password fields
+      passwordForm.reset(); 
     } else {
       toast({ variant: "destructive", title: "Update Failed", description: result.message || "Could not update password." });
       if (result.errors) {
-        // Example of setting form error, adjust based on actual error structure
         if (result.errors.currentPassword) passwordForm.setError("currentPassword", { message: result.errors.currentPassword[0]});
         if (result.errors.newPassword) passwordForm.setError("newPassword", { message: result.errors.newPassword[0]});
       }
     }
     setIsSubmittingPassword(false);
   }
+
+  const handlePushNotificationToggle = async (isEnabled: boolean) => {
+    if (!user?.username) {
+      toast({ variant: "destructive", title: "Error", description: "User not found." });
+      return;
+    }
+    setIsSubmittingPushPrefs(true);
+    setPushNotificationsEnabled(isEnabled); // Optimistic UI update
+
+    const result = await updateUserPushNotificationPreferenceAction(user.username, isEnabled);
+    if (result.success) {
+      toast({ title: "Success", description: result.message });
+      updateUserPushPreference(isEnabled); // Update AuthContext
+    } else {
+      toast({ variant: "destructive", title: "Update Failed", description: result.message || "Could not update preference." });
+      setPushNotificationsEnabled(!isEnabled); // Revert optimistic UI update
+    }
+    setIsSubmittingPushPrefs(false);
+  };
+
 
   if (authLoading) {
     return (
@@ -180,6 +204,33 @@ export default function ProfilePage() {
           </Form>
         </CardContent>
       </Card>
+      
+      <Card className="shadow-lg w-full max-w-lg mx-auto">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold tracking-tight flex items-center">
+            <BellRing className="mr-3 h-6 w-6 text-primary" />
+            Notification Preferences
+          </CardTitle>
+          <CardDescription>Manage how you receive notifications.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="flex items-center space-x-3">
+                <Switch
+                    id="push-notifications-toggle"
+                    checked={pushNotificationsEnabled}
+                    onCheckedChange={handlePushNotificationToggle}
+                    disabled={isSubmittingPushPrefs}
+                />
+                <Label htmlFor="push-notifications-toggle" className="flex-grow">
+                    Enable Push Notifications
+                </Label>
+                {isSubmittingPushPrefs && <Loader2 className="h-4 w-4 animate-spin" />}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+                Toggle this to enable or disable receiving push notifications from the app on this device. Browser-level permission may also be required.
+            </p>
+        </CardContent>
+      </Card>
 
       <Card className="shadow-lg w-full max-w-lg mx-auto">
         <CardHeader>
@@ -194,7 +245,7 @@ export default function ProfilePage() {
             <ShieldAlert className="h-4 w-4" />
             <AlertTitle>Security Reminder</AlertTitle>
             <AlertDescription>
-              For your security, please choose a strong and unique password that you don't use for other services.
+              For your security, please choose a strong and unique password that you don&apos;t use for other services.
             </AlertDescription>
           </Alert>
           <Form {...passwordForm}>
@@ -215,7 +266,6 @@ export default function ProfilePage() {
                           onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                         >
                           {showCurrentPassword ? <User className="h-4 w-4" /> : <User className="h-4 w-4 opacity-50" />} 
-                          {/* Using User icon as placeholder, replace with Eye/EyeOff if preferred */}
                         </Button>
                     </div>
                     <FormMessage />
@@ -280,7 +330,4 @@ export default function ProfilePage() {
       </Card>
     </div>
   );
-
-    
-
-    
+}

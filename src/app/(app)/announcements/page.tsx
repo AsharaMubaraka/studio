@@ -14,31 +14,46 @@ import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "fi
 import { useAuth } from "@/hooks/useAuth";
 import { markNotificationAsReadAction, markAllNotificationsAsReadForUserAction } from "@/actions/notificationActions";
 import { useToast } from "@/hooks/use-toast";
-import { siteConfig, notificationCategories } from "@/config/site"; // Updated import
+import { siteConfig, notificationCategories } from "@/config/site"; 
 import { Button } from "@/components/ui/button";
 
 const READ_NOTIFICATIONS_STORAGE_KEY_PREFIX = "ashara_mubaraka_read_notifications_";
 
 async function fetchFirestoreAnnouncements(): Promise<Omit<Announcement, 'status'>[]> {
   const notificationsCollectionRef = collection(db, "notifications");
+  // Order by createdAt initially, active filtering will happen client-side
   const q = query(notificationsCollectionRef, orderBy("createdAt", "desc"));
 
   try {
     const querySnapshot = await getDocs(q);
+    const now = new Date();
     const announcementsData = querySnapshot.docs.map((doc) => {
       const data = doc.data() as DocumentData;
       return {
         id: doc.id,
         title: data.title || "No Title",
         content: data.content || "No Content",
-        date: (data.createdAt as Timestamp)?.toDate() || new Date(),
+        date: (data.createdAt as Timestamp)?.toDate() || new Date(), // This is creation date
         author: data.authorName || "Unknown Author",
         imageUrl: data.imageUrl,
         imageHint: data.title ? data.title.split(" ").slice(0,2).join(" ") : "notification image",
         category: data.category || "General",
         readByUserIds: (data.readByUserIds as string[] | undefined) || [],
+        scheduledAt: (data.scheduledAt as Timestamp)?.toDate() || null,
+        internalStatus: data.status || 'sent', // Firestore status ('scheduled', 'sent', 'draft')
       };
+    })
+    .filter(ann => {
+        if (ann.internalStatus === 'sent') return true;
+        if (ann.internalStatus === 'scheduled' && ann.scheduledAt && ann.scheduledAt <= now) return true;
+        return false; // Don't show drafts or future-scheduled items
+    })
+    .sort((a,b) => { // Sort by effective date (scheduledAt if present and past, else createdAt)
+        const dateA = (a.internalStatus === 'scheduled' && a.scheduledAt && a.scheduledAt <= now) ? a.scheduledAt : a.date;
+        const dateB = (b.internalStatus === 'scheduled' && b.scheduledAt && b.scheduledAt <= now) ? b.scheduledAt : b.date;
+        return dateB.getTime() - dateA.getTime();
     });
+
     return announcementsData;
   } catch (error) {
     console.error("Error fetching notifications from Firestore:", error);
@@ -82,7 +97,13 @@ export default function AnnouncementsPage() {
     if (localStorageReadIds.has(ann.id)) {
         return 'read';
     }
-    return 'unread';
+    // If it's a past scheduled item and not read, consider it 'unread' (or 'new' if very recent)
+    // For simplicity, just 'unread' for now. 'new' status might need more complex logic based on effective post time.
+    if (ann.internalStatus === 'scheduled' && ann.scheduledAt && ann.scheduledAt <= new Date()) {
+        return 'unread';
+    }
+
+    return 'unread'; // Default to unread if not explicitly read
   }, [authUser, localStorageReadIds]);
 
   const loadAnnouncements = useCallback(async () => {
@@ -92,6 +113,8 @@ export default function AnnouncementsPage() {
       const baseData = await fetchFirestoreAnnouncements();
       const dataWithStatus: Announcement[] = baseData.map(ann => ({
         ...ann,
+        // Determine display date: if it was scheduled and that time is past, use scheduledAt, else createdAt
+        date: (ann.internalStatus === 'scheduled' && ann.scheduledAt && ann.scheduledAt <= new Date()) ? ann.scheduledAt : ann.date,
         status: determineStatus(ann),
       }));
       setAnnouncements(dataWithStatus);
@@ -110,7 +133,6 @@ export default function AnnouncementsPage() {
   const handleMarkAsRead = async (id: string) => {
     if (!authUser?.username) return;
 
-    // Optimistically update UI
     setLocalStorageReadIds(prevIds => {
       const newIds = new Set(prevIds);
       newIds.add(id);
@@ -132,9 +154,8 @@ export default function AnnouncementsPage() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to mark notification as read on server. Your local view is updated.",
+        description: "Failed to mark as read on server.",
       });
-      // Potentially revert optimistic update if server fails, or just notify user
     }
   };
 
@@ -145,12 +166,7 @@ export default function AnnouncementsPage() {
     const result = await markAllNotificationsAsReadForUserAction(authUser.username);
 
     if (result.success) {
-      toast({
-        title: "Success",
-        description: result.message,
-      });
-
-      // Update local storage
+      toast({ title: "Success", description: result.message });
       setLocalStorageReadIds(prevIds => {
         const newIds = new Set(prevIds);
         announcements.forEach(ann => newIds.add(ann.id));
@@ -158,13 +174,11 @@ export default function AnnouncementsPage() {
           try {
             localStorage.setItem(READ_NOTIFICATIONS_STORAGE_KEY, JSON.stringify(Array.from(newIds)));
           } catch (error) {
-            console.error("Error saving all read notifications to localStorage:", error);
+            console.error("Error saving all read to localStorage:", error);
           }
         }
         return newIds;
       });
-
-      // Update local announcements state
       setAnnouncements(prevAnns =>
         prevAnns.map(ann => ({
           ...ann,
@@ -173,11 +187,7 @@ export default function AnnouncementsPage() {
         }))
       );
     } else {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: result.message || "Failed to mark all notifications as read.",
-      });
+      toast({ variant: "destructive", title: "Error", description: result.message || "Failed to mark all as read." });
     }
     setIsMarkingAllRead(false);
   };
@@ -192,12 +202,12 @@ export default function AnnouncementsPage() {
         return b.date.getTime() - a.date.getTime();
       } else if (sortOrder === "oldest") {
         return a.date.getTime() - b.date.getTime();
-      } else {
-        const statusOrder = { new: 0, unread: 1, read: 2 };
+      } else { // status sort
+        const statusOrder = { new: 0, unread: 1, scheduled: 1, read: 2 }; // Treat 'new', 'unread', 'scheduled' (active) similarly for sort
         if (a.status !== b.status) {
              return statusOrder[a.status] - statusOrder[b.status];
         }
-        return b.date.getTime() - a.date.getTime();
+        return b.date.getTime() - a.date.getTime(); // Fallback to newest if status is same
       }
     });
 
@@ -282,7 +292,7 @@ export default function AnnouncementsPage() {
            <Bell className="h-5 w-5" />
            <AlertTitle>No Notifications Found</AlertTitle>
            <AlertDescription>
-             {searchTerm || selectedCategory !== "All" ? "No notifications match your search/filter criteria." : "There are no notifications at this time. Please check back later."}
+             {searchTerm || selectedCategory !== "All" ? "No notifications match your search/filter criteria." : "There are no notifications at this time."}
            </AlertDescription>
          </Alert>
       )}

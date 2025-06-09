@@ -98,3 +98,27 @@ export async function updateUserPasswordAction(userId: string, currentPasswordP:
     return { success: false, message: "Failed to update password. An unexpected error occurred." };
   }
 }
+
+const updateUserPushNotificationPreferenceSchema = z.object({
+  userId: z.string().min(1, "User ID is required."),
+  isEnabled: z.boolean(),
+});
+
+export async function updateUserPushNotificationPreferenceAction(userId: string, isEnabled: boolean) {
+  try {
+    const validatedData = updateUserPushNotificationPreferenceSchema.parse({ userId, isEnabled });
+
+    const userDocRef = doc(db, "users", validatedData.userId);
+    await updateDoc(userDocRef, {
+      pushNotificationsEnabled: validatedData.isEnabled,
+    });
+
+    return { success: true, message: "Push notification preference updated successfully." };
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return { success: false, message: "Validation failed.", errors: error.flatten().fieldErrors };
+    }
+    console.error("Error updating push notification preference (Server Action):", error);
+    return { success: false, message: "Failed to update push notification preference. See server logs." };
+  }
+}

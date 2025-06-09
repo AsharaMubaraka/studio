@@ -13,6 +13,7 @@ interface AuthUser {
   name: string;
   isAdmin?: boolean;
   isRestricted?: boolean;
+  pushNotificationsEnabled?: boolean; // Added field
 }
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -20,6 +21,7 @@ interface AuthContextType {
   login: (username: string, pass: string) => Promise<{ success: boolean; message?: string; user?: AuthUser | null }>;
   logout: () => void;
   isLoading: boolean;
+  updateUserPushPreference: (isEnabled: boolean) => void; // Method to update context
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,6 +42,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
       if (storedAuth) {
         const parsedUser = JSON.parse(storedAuth) as AuthUser;
+        // Ensure pushNotificationsEnabled has a default if missing from older storage
+        if (typeof parsedUser.pushNotificationsEnabled === 'undefined') {
+            parsedUser.pushNotificationsEnabled = true; 
+        }
         setUser(parsedUser);
       }
     } catch (error) {
@@ -58,7 +64,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (docSnap.exists()) {
         const userData = docSnap.data() as DocumentData;
 
-        // Direct plaintext password comparison (INSECURE)
         if (userData.password === passwordInput) {
           if (userData.isRestricted) {
             setIsLoading(false);
@@ -70,6 +75,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             name: userData.name,
             isAdmin: !!userData.isAdmin,
             isRestricted: !!userData.isRestricted,
+            pushNotificationsEnabled: typeof userData.pushNotificationsEnabled === 'boolean' ? userData.pushNotificationsEnabled : true, // Default to true if not set
           };
           setUser(loggedInUser);
           localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(loggedInUser));
@@ -96,8 +102,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     router.push('/login');
   }, [router]);
 
+  const updateUserPushPreference = useCallback((isEnabled: boolean) => {
+    setUser(currentUser => {
+      if (currentUser) {
+        const updatedUser = { ...currentUser, pushNotificationsEnabled: isEnabled };
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+      return null;
+    });
+  }, []);
+
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated: !!user, user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ isAuthenticated: !!user, user, login, logout, isLoading, updateUserPushPreference }}>
       {children}
     </AuthContext.Provider>
   );

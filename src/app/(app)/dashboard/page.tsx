@@ -1,19 +1,19 @@
-
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { User, Hash, CalendarDays, Loader2, Bell, Info } from "lucide-react";
+import { User, Hash, CalendarDays, Loader2, Bell, Info, Users2, BellDot, Wifi } from "lucide-react"; // Added Users2, BellDot, Wifi
 import Image from "next/image";
-import { useEffect, useState } from "react";
-import { format } from "date-fns";
+import { useEffect, useState, useCallback } from "react";
+import { format, isWithinInterval } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatWhatsAppTextToHtml } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
-// AdPlaceholder import removed
+import { useAdminMode } from "@/contexts/AdminModeContext";
+import { fetchRelays, type LiveRelay } from "@/actions/relayActions";
 
 interface DateInfo {
   monthYear: string;
@@ -54,6 +54,7 @@ const placeholderHijri = {
 
 export default function DashboardPage() {
   const { user: authUser } = useAuth();
+  const { isAdminMode } = useAdminMode();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [latestNotification, setLatestNotification] = useState<AppNotification | null>(null);
@@ -69,6 +70,43 @@ export default function DashboardPage() {
   });
   const [isDateLoading, setIsDateLoading] = useState(true);
   const [hijriJsonError, setHijriJsonError] = useState<string | null>(null);
+
+  // Admin Analytics State
+  const [totalUsers, setTotalUsers] = useState<number | null>(null);
+  const [totalNotificationsCount, setTotalNotificationsCount] = useState<number | null>(null); // Renamed to avoid conflict
+  const [activeRelaysCount, setActiveRelaysCount] = useState<number | null>(null);
+  const [isLoadingAdminStats, setIsLoadingAdminStats] = useState(false);
+
+  const fetchAdminStats = useCallback(async () => {
+    if (authUser?.isAdmin && isAdminMode) {
+      setIsLoadingAdminStats(true);
+      try {
+        const usersSnap = await getDocs(collection(db, "users"));
+        setTotalUsers(usersSnap.size);
+
+        const notifSnap = await getDocs(collection(db, "notifications"));
+        setTotalNotificationsCount(notifSnap.size);
+
+        const fetchedRelays = await fetchRelays();
+        const now = new Date();
+        const active = fetchedRelays.filter(r => 
+          isWithinInterval(now, { 
+            start: r.startDate, 
+            // Ensure end date is inclusive of the whole day
+            end: new Date(new Date(r.endDate).setHours(23, 59, 59, 999)) 
+          })
+        );
+        setActiveRelaysCount(active.length);
+
+      } catch (error) {
+        console.error("Error fetching admin stats:", error);
+        // Optionally set error state for admin stats
+      } finally {
+        setIsLoadingAdminStats(false);
+      }
+    }
+  }, [authUser, isAdminMode]);
+
 
   useEffect(() => {
     document.title = `Dashboard | ${siteConfig.name}`;
@@ -92,7 +130,7 @@ export default function DashboardPage() {
         );
 
         if (entryForToday) {
-          const entryGregorianDate = new Date(entryForToday.gregorian_date + "T00:00:00Z"); // Ensure UTC parsing
+          const entryGregorianDate = new Date(entryForToday.gregorian_date + "T00:00:00Z"); 
           setDateInfo({
             monthYear: format(entryGregorianDate, "MMMM yyyy"),
             dayOfMonth: format(entryGregorianDate, "dd"),
@@ -187,10 +225,50 @@ export default function DashboardPage() {
     fetchDashboardData();
     fetchUserProfile();
     fetchLatestNotification();
-  }, [authUser]);
+    fetchAdminStats(); // Fetch admin stats
+  }, [authUser, fetchAdminStats]); // Added fetchAdminStats dependency
 
   return (
     <div className="animate-fadeIn space-y-6">
+      {authUser?.isAdmin && isAdminMode && (
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold tracking-tight">Admin Overview</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                <Users2 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {isLoadingAdminStats ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalUsers ?? "N/A"}</div>}
+                <p className="text-xs text-muted-foreground">Registered users in the system</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Notifications</CardTitle>
+                <BellDot className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {isLoadingAdminStats ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalNotificationsCount ?? "N/A"}</div>}
+                <p className="text-xs text-muted-foreground">Notifications sent all time</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Live Relays</CardTitle>
+                <Wifi className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {isLoadingAdminStats ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{activeRelaysCount ?? "N/A"}</div>}
+                <p className="text-xs text-muted-foreground">Miqaats currently live or scheduled today</p>
+              </CardContent>
+            </Card>
+          </div>
+          <Separator />
+        </section>
+      )}
+
       <Card className="shadow-lg overflow-hidden relative">
         <CardContent className="p-0 h-64 md:h-72"> 
           <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0">
@@ -310,8 +388,6 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* AdPlaceholder component removed from here */}
     </div>
   );
 }
