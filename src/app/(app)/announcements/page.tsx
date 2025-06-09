@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { markNotificationAsReadAction } from "@/actions/notificationActions";
 import { useToast } from "@/hooks/use-toast";
 import { siteConfig } from "@/config/site";
-import { AdPlaceholder } from "@/components/ads/AdPlaceholder";
+// AdPlaceholder import removed
 
 const READ_NOTIFICATIONS_STORAGE_KEY_PREFIX = "ashara_mubaraka_read_notifications_"; // Updated prefix
 
@@ -212,7 +212,7 @@ export default function AnnouncementsPage() {
            </AlertDescription>
          </Alert>
       )}
-      <AdPlaceholder />
+      {/* AdPlaceholder component removed from here */}
     </div>
   );
 }

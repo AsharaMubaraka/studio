@@ -13,7 +13,7 @@ import { doc, getDoc, collection, query, orderBy, limit, getDocs, Timestamp } fr
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatWhatsAppTextToHtml } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
-import { AdPlaceholder } from "@/components/ads/AdPlaceholder";
+// AdPlaceholder import removed
 
 interface DateInfo {
   monthYear: string;
@@ -311,7 +311,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <AdPlaceholder />
+      {/* AdPlaceholder component removed from here */}
     </div>
   );
 }

@@ -29,7 +29,7 @@ import { doc, setDoc, deleteDoc, collection, onSnapshot, serverTimestamp, Unsubs
 import { siteConfig } from "@/config/site";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useRouter } from "next/navigation";
-import { AdPlaceholder } from "@/components/ads/AdPlaceholder";
+// AdPlaceholder import removed
 
 const PlyrPlayer = dynamic(() => import('@/components/live-relay/PlyrPlayer'), {
   loading: () => <Skeleton className="aspect-video w-full bg-muted" />, 
@@ -243,7 +243,7 @@ function AdminLiveRelayManager() {
             </ul>)}
         </CardContent>
       </Card>
-      <AdPlaceholder />
+      {/* AdPlaceholder component removed from here for Admin view */}
     </div>
   );
 }
@@ -308,9 +308,9 @@ function UserLiveRelayViewer() {
     return () => { if (unsubCount) unsubCount(); };
   }, [currentRelay]);
 
-  if (isLoading) return <div className="space-y-6 animate-fadeIn"><Skeleton className="h-12 w-3/4" /><Skeleton className="aspect-video w-full" /> <AdPlaceholder /></div>;
-  if (error) return <><Alert variant="destructive" className="shadow-md animate-fadeIn"><AlertCircle className="h-5 w-5" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> <AdPlaceholder /></>;
-  if (!currentRelay) return <><Alert variant="default" className="shadow-md animate-fadeIn"><Youtube className="h-5 w-5" /><AlertTitle>No Live Relay</AlertTitle><AlertDescription>No active or upcoming relays. Check back later.</AlertDescription></Alert> <AdPlaceholder /></>;
+  if (isLoading) return <div className="space-y-6 animate-fadeIn"><Skeleton className="h-12 w-3/4" /><Skeleton className="aspect-video w-full" /> {/* AdPlaceholder component removed from here for loading state */}</div>;
+  if (error) return <><Alert variant="destructive" className="shadow-md animate-fadeIn"><AlertCircle className="h-5 w-5" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> {/* AdPlaceholder component removed from here for error state */}</>;
+  if (!currentRelay) return <><Alert variant="default" className="shadow-md animate-fadeIn"><Youtube className="h-5 w-5" /><AlertTitle>No Live Relay</AlertTitle><AlertDescription>No active or upcoming relays. Check back later.</AlertDescription></Alert> {/* AdPlaceholder component removed from here for no relay state */}</>;
 
   const isEventUpcoming = !isEventActive && compareAsc(currentRelay.startDate, now) > 0;
   const eventHasEnded = !isEventActive && !isEventUpcoming && isPast(currentRelay.endDate);
@@ -347,7 +347,7 @@ function UserLiveRelayViewer() {
         {eventHasEnded && (<CardContent><Alert><Youtube className="h-5 w-5" /><AlertTitle>Miqaat Ended</AlertTitle><AlertDescription>"{currentRelay.name}" has concluded.</AlertDescription></Alert></CardContent>)}
       
       </Card>
-      <AdPlaceholder />
+      {/* AdPlaceholder component removed from here for User view */}
     </div>
   );
 }
