@@ -84,13 +84,13 @@ export function LoginForm() {
     <Card className="w-full max-w-md shadow-xl animate-fadeIn">
       <CardHeader className="items-center text-center">
         {isLoadingSettings && !displayLogoUrl ? (
-            <Loader2 className="h-20 w-20 animate-spin text-primary mb-4" />
+            <Loader2 className="h-24 w-24 animate-spin text-primary mb-4" />
         ) : (
             <Image
                 src={displayLogoUrl}
                 alt={siteConfig.name + " Logo"}
-                width={80}
-                height={80}
+                width={96}
+                height={96}
                 className="mb-4 rounded-full"
                 data-ai-hint="calligraphy logo"
                 unoptimized={!!displayLogoUrl?.includes('?') || !!displayLogoUrl?.includes('&')}

@@ -134,11 +134,11 @@ export function UserProfileMenu() {
       </Link>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-10 gap-2 px-2">
+          <Button variant="ghost" className="relative h-auto gap-2 px-2 py-1"> {/* Adjusted padding and height */}
             {isLoadingSettings ? (
-              <Loader2 className="h-10 w-10 animate-spin" /> 
+              <Loader2 className="h-12 w-12 animate-spin" /> 
             ) : (
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-12 w-12"> {/* Increased size */}
                 <AvatarImage src={displayAvatarUrl} alt={user.username} onError={() => setDisplayAvatarUrl(siteConfig.defaultLogoUrl)} />
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
