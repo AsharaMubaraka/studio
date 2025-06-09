@@ -61,8 +61,8 @@ export const adminNavItems: NavItemConfig[] = [
 ];
 
 export const siteConfig = {
-  name: "Anjuman Hub",
-  description: "Anjuman Hub: Your central point for announcements, live relays, and community information.",
+  name: "Ashara Mubaraka",
+  description: "Ashara Mubaraka: Get the latest updates on events and everything you need to know.",
   defaultLogoUrl: "https://ashara1447.udaem.site/transport/logo.png",
 };
 

@@ -1,35 +1,32 @@
+
 {
-  "name": "Anjuman Hub",
-  "short_name": "AnjumanHub",
-  "description": "Anjuman Hub: Your central point for announcements, live relays, and community information.",
+  "name": "Ashara Mubaraka",
+  "short_name": "AsharaApp",
+  "description": "Ashara Mubaraka: Get the latest updates on events and everything you need to know.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F5F5F5",
-  "theme_color": "#3F51B5",
+  "background_color": "#F0F0F0",
+  "theme_color": "#0A2463",
   "icons": [
     {
       "src": "https://ashara1447.udaem.site/transport/logo.png",
       "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
       "src": "https://ashara1447.udaem.site/transport/logo.png",
       "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
       "src": "https://ashara1447.udaem.site/transport/logo.png",
       "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
       "src": "https://ashara1447.udaem.site/transport/logo.png",
       "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
       "src": "https://ashara1447.udaem.site/transport/logo.png",
@@ -40,8 +37,7 @@
     {
       "src": "https://ashara1447.udaem.site/transport/logo.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     }
   ],
   "badge": "https://ashara1447.udaem.site/transport/logo.png"
