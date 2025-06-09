@@ -4,14 +4,19 @@
 import type { ReactNode } from "react";
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { siteConfig } from '@/config/site'; // Import siteConfig
+// Removed direct Firestore imports as login logic moves to API
+import { siteConfig } from '@/config/site'; 
 
+interface AuthUser {
+  username: string;
+  name: string;
+  isAdmin?: boolean;
+  isRestricted?: boolean;
+}
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: { username: string; name: string; isAdmin?: boolean; isRestricted?: boolean } | null;
-  login: (username: string, pass: string) => Promise<boolean>;
+  user: AuthUser | null;
+  login: (username: string, pass: string) => Promise<{ success: boolean; message?: string; user?: AuthUser | null }>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -22,10 +27,10 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-const AUTH_STORAGE_KEY = `${siteConfig.name.toLowerCase().replace(/\s+/g, '_')}_auth`; // Dynamic key
+const AUTH_STORAGE_KEY = `${siteConfig.name.toLowerCase().replace(/\s+/g, '_')}_auth`;
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<{ username: string; name: string; isAdmin?: boolean; isRestricted?: boolean } | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -33,12 +38,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
       if (storedAuth) {
-        const parsedUser = JSON.parse(storedAuth);
-        setUser({
-          ...parsedUser,
-          isAdmin: !!parsedUser.isAdmin,
-          isRestricted: !!parsedUser.isRestricted,
-        });
+        const parsedUser = JSON.parse(storedAuth) as AuthUser;
+        setUser(parsedUser);
       }
     } catch (error) {
       console.error("Failed to load auth state from localStorage", error);
@@ -47,48 +48,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  const login = useCallback(async (username: string, pass: string): Promise<boolean> => {
+  const login = useCallback(async (usernameInput: string, passwordInput: string): Promise<{ success: boolean; message?: string; user?: AuthUser | null }> => {
     setIsLoading(true);
     try {
-      const userRef = doc(db, "users", username);
-      const docSnap = await getDoc(userRef);
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: usernameInput, password: passwordInput }),
+      });
 
-      if (docSnap.exists()) {
-        const userData = docSnap.data();
-        if (userData.password !== pass) {
-             setIsLoading(false);
-             return false;
-        }
-        if (userData.isRestricted) {
-            setIsLoading(false);
-            return false;
-        }
+      const data = await response.json();
 
-        const loggedInUser = {
-          username: username,
-          name: userData?.name || "Unknown User",
-          isAdmin: !!userData?.isAdmin,
-          isRestricted: !!userData?.isRestricted,
+      if (response.ok && data.user) {
+        const loggedInUser: AuthUser = {
+          username: data.user.username,
+          name: data.user.name,
+          isAdmin: !!data.user.isAdmin,
+          isRestricted: !!data.user.isRestricted,
         };
         setUser(loggedInUser);
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(loggedInUser));
         setIsLoading(false);
-        return true;
+        return { success: true, user: loggedInUser };
       } else {
-        console.warn("AuthContext.login: User not found or initial checks failed:", username);
         setIsLoading(false);
-        return false;
+        return { success: false, message: data.error || "Login failed", user: null };
       }
     } catch (error) {
-      console.error("Error fetching user data during login:", error);
+      console.error("Error calling login API:", error);
       setIsLoading(false);
-      return false;
+      return { success: false, message: "An unexpected error occurred during login.", user: null };
     }
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
+    // Optionally, could call an /api/logout route if server-side session cleanup is needed
     router.push('/login');
   }, [router]);
 

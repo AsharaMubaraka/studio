@@ -1,7 +1,8 @@
 
 import { NextResponse } from 'next/server';
-import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { firestoreAdmin } from "@/lib/firebaseAdmin"; // Use Admin SDK
+import bcrypt from 'bcryptjs';
+import admin from 'firebase-admin'; // Import admin for Timestamp
 
 export async function POST(request: Request) {
   let requestBody;
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, username, password, ipAddress } = requestBody; // Removed isAdmin
+    const { name, username, password, ipAddress } = requestBody;
 
     if (!name || !username || !password) {
       return NextResponse.json({ error: "Name, username, and password are required" }, { status: 400 });
@@ -28,21 +29,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
     }
 
-    const userDocRef = doc(db, "users", username);
-    const docSnap = await getDoc(userDocRef);
+    const userDocRef = firestoreAdmin.collection("users").doc(username);
+    const docSnap = await userDocRef.get();
 
-    if (docSnap.exists()) {
+    if (docSnap.exists) {
       return NextResponse.json({ error: "Username already exists" }, { status: 400 });
     }
 
-    await setDoc(userDocRef, {
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    await userDocRef.set({
       name,
       username,
-      password, // Storing password in plaintext is highly insecure. This should be hashed.
+      password: hashedPassword,
       ipAddress: ipAddress || null,
-      isAdmin: false, // Default new users to not be admin
+      isAdmin: false,
       isRestricted: false,
-      createdAt: new Date().toISOString(),
+      createdAt: admin.firestore.Timestamp.now(), // Use Firestore Timestamp
     });
 
     return NextResponse.json({ message: "Registration successful" }, { status: 201 });
@@ -52,7 +56,8 @@ export async function POST(request: Request) {
     if (error.stack) {
       console.error("Stack trace:", error.stack);
     }
-    console.error("Request body that led to error:", requestBody);
+    // Avoid logging potentially sensitive requestBody directly in production if it contains password
+    // console.error("Request body that led to error:", requestBody); 
     return NextResponse.json({ error: "Registration failed due to an internal server error." }, { status: 500 });
   }
 }

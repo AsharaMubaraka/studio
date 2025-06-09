@@ -21,8 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
-import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+// Removed direct db import as login logic is now in AuthContext calling an API
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -36,7 +35,7 @@ export function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false); // Renamed isLoading to isSubmitting for clarity
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
   const { settings: appSettings, isLoading: isLoadingSettings } = useAppSettings();
@@ -62,67 +61,22 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    try {
-      const userDocRef = doc(db, "users", values.username);
-      const userDocSnap = await getDoc(userDocRef);
+    const result = await login(values.username, values.password);
+    setIsSubmitting(false);
 
-      if (!userDocSnap.exists()) {
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: "Invalid username or password.",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      const user = userDocSnap.data();
-
-      if (user.password !== values.password) {
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: "Invalid username or password.",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (user.isRestricted) {
-        toast({
-          variant: "destructive",
-          title: "Login Restricted",
-          description: "Your account is currently restricted. Please contact support.",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      const success = await login(values.username, values.password);
-      setIsSubmitting(false);
-      if (success) {
-         toast({
-            title: "Login Successful",
-            description: "Welcome back!",
-        });
-        router.push(`/dashboard?name=${user.name}&username=${user.username}`);
-      } else {
-        // Specific error for failed login (e.g. restricted) already handled by login function or above checks
-        // If login() itself returns false for other reasons (should be rare if checks pass):
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: "An unexpected error occurred during login. Please check credentials or contact support if restriction persists.",
-        });
-      }
-    } catch (error) {
-      console.error("Error logging in:", error);
+    if (result.success && result.user) {
+       toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+      });
+      // Use user data from login result for redirection query params
+      router.push(`/dashboard?name=${encodeURIComponent(result.user.name)}&username=${encodeURIComponent(result.user.username)}`);
+    } else {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Something went wrong. Please try again.",
+        description: result.message || "Invalid username or password.",
       });
-      setIsSubmitting(false);
     }
   }
 
@@ -141,7 +95,7 @@ export function LoginForm() {
                 data-ai-hint="calligraphy logo"
                 unoptimized={!!displayLogoUrl?.includes('?') || !!displayLogoUrl?.includes('&')}
                 onError={() => setDisplayLogoUrl(siteConfig.defaultLogoUrl)}
-                priority // Preload logo on login page
+                priority 
             />
         )}
         <CardTitle className="text-3xl font-bold">{siteConfig.name}</CardTitle>
