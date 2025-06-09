@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, UserCircle, ChevronDown, Settings, ShieldCheck, BellRing as BellRingIconLucide, Loader2 } from "lucide-react"; // Added Loader2
+import { LogOut, UserCircle, ChevronDown, Settings, ShieldCheck, BellRing as BellRingIconLucide, Loader2, User } from "lucide-react"; // Added User icon
 import { ThemeToggleMenuItem } from "./ThemeToggle";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -160,7 +160,12 @@ export function UserProfileMenu() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link href="/profile">
+              <User className="mr-2 h-4 w-4" />
+              <span>Your Profile</span>
+            </Link>
+          </DropdownMenuItem>
           <ThemeToggleMenuItem />
           <DropdownMenuItem onClick={handleEnableNotifications}>
             <BellRingIconLucide className="mr-2 h-4 w-4" />
