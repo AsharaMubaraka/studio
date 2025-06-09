@@ -23,6 +23,7 @@ import { updateUserDisplayNameAction, updateUserPasswordAction } from "@/actions
 import { siteConfig } from "@/config/site";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator"; // Added Separator
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Ensure Alert components are imported
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Name must be at least 2 characters.").max(100, "Name must be at most 100 characters."),
@@ -279,4 +280,5 @@ export default function ProfilePage() {
       </Card>
     </div>
   );
-}
+
+    
