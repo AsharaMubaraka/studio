@@ -61,9 +61,9 @@ export const adminNavItems: NavItemConfig[] = [
 ];
 
 export const siteConfig = {
-  name: "Ashara Mubaraka",
-  description: "Ashara Mubaraka Official application for communication and better view",
-  defaultLogoUrl: "https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png",
+  name: "Anjuman Hub",
+  description: "Anjuman Hub: Your central point for announcements, live relays, and community information.",
+  defaultLogoUrl: "https://ashara1447.udaem.site/transport/logo.png",
 };
 
 // Moved from notificationActions.ts
