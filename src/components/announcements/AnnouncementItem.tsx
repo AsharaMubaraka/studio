@@ -10,7 +10,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { formatWhatsAppTextToHtml } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge"; // Added Badge
-import type { notificationCategories } from "@/actions/notificationActions"; // Import categories type
+import type { NotificationCategory } from "@/config/site"; // Updated import
 
 export interface Announcement {
   id: string;
@@ -21,7 +21,7 @@ export interface Announcement {
   status: 'new' | 'unread' | 'read';
   imageUrl?: string;
   imageHint?: string;
-  category?: typeof notificationCategories[number];
+  category?: NotificationCategory;
   readByUserIds?: string[];
 }
 

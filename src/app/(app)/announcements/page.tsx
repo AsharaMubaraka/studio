@@ -12,9 +12,9 @@ import { Bell, CheckCheck, Loader2, Tag } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
-import { markNotificationAsReadAction, markAllNotificationsAsReadForUserAction, notificationCategories } from "@/actions/notificationActions";
+import { markNotificationAsReadAction, markAllNotificationsAsReadForUserAction } from "@/actions/notificationActions";
 import { useToast } from "@/hooks/use-toast";
-import { siteConfig } from "@/config/site";
+import { siteConfig, notificationCategories } from "@/config/site"; // Updated import
 import { Button } from "@/components/ui/button";
 
 const READ_NOTIFICATIONS_STORAGE_KEY_PREFIX = "ashara_mubaraka_read_notifications_";

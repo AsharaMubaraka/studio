@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
 import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon, Pencil, XCircle, Sparkles, Tag } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { saveNotificationAction, deleteNotificationAction, notificationCategories } from "@/actions/notificationActions";
+import { saveNotificationAction, deleteNotificationAction } from "@/actions/notificationActions";
 import type { NotificationFormValues } from "@/actions/notificationActions";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
 import { formatWhatsAppTextToHtml } from "@/lib/utils";
-import { siteConfig } from "@/config/site";
+import { siteConfig, notificationCategories, type NotificationCategory } from "@/config/site"; // Updated import
 import { generateNotificationImage } from "@/ai/flows/generate-notification-image-flow";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added Select
 
@@ -60,7 +60,7 @@ interface PostedNotification {
   authorName?: string;
   authorId?: string;
   imageUrl?: string;
-  category?: typeof notificationCategories[number];
+  category?: NotificationCategory;
   readByUserIds?: string[];
 }
 
@@ -414,7 +414,7 @@ export default function SendNotificationPage() {
       <Card className="shadow-lg w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="text-xl font-semibold tracking-tight flex items-center"><ListChecks className="mr-3 h-7 w-7 text-primary" /> Posted Notifications Log</CardTitle>
-          <CardDescription>List of all active notifications. Newest first. Category: {notification.category}</CardDescription>
+          <CardDescription>List of all active notifications. Newest first.</CardDescription> {/* Removed category from desc as it's per item now */}
         </CardHeader>
         <CardContent>
           {isLoadingLog ? (

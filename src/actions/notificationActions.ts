@@ -4,9 +4,7 @@
 import { z } from "zod";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, doc, deleteDoc, updateDoc, arrayUnion, getDoc, setDoc, getDocs, query as firestoreQuery } from "firebase/firestore"; // Added getDocs and firestoreQuery
-
-// Predefined categories
-export const notificationCategories = ["General", "Important", "Event", "Update"] as const;
+import { notificationCategories, type NotificationCategory } from "@/config/site"; // Updated import
 
 // Schema for client-side form validation (used in send-notification page)
 const notificationFormSchemaClient = z.object({
@@ -19,7 +17,7 @@ const notificationFormSchemaClient = z.object({
 export type NotificationFormValues = z.infer<typeof notificationFormSchemaClient>;
 
 export async function saveNotificationAction(
-  data: { title: string; content: string; imageUrl?: string; category: typeof notificationCategories[number] },
+  data: { title: string; content: string; imageUrl?: string; category: NotificationCategory },
   author: {id: string; name: string | undefined},
   notificationId?: string // Optional: ID for updating an existing notification
 ) {

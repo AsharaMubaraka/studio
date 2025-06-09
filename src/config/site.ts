@@ -65,3 +65,7 @@ export const siteConfig = {
   description: "Ashara Mubaraka Official application for communication and better view",
   defaultLogoUrl: "https://live.lunawadajamaat.org/wp-content/uploads/2025/05/Picsart_25-05-19_18-32-50-677.png",
 };
+
+// Moved from notificationActions.ts
+export const notificationCategories = ["General", "Important", "Event", "Update"] as const;
+export type NotificationCategory = typeof notificationCategories[number];
