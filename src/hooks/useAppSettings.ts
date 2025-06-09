@@ -19,13 +19,13 @@ let appSettingsCache: CachedSettings = { data: null, timestamp: null, promise: n
 export function useAppSettings() {
   const [settings, setSettings] = useState<AppSettings | null>(appSettingsCache.data);
   const [isLoading, setIsLoading] = useState<boolean>(() => {
-    if (appSettingsCache.data) return false; // Already have data
-    if (appSettingsCache.promise) return true; // Fetch in progress
+    if (appSettingsCache.data) return false;
+    if (appSettingsCache.promise) return true;
     const now = Date.now();
-    return !appSettingsCache.timestamp || (now - appSettingsCache.timestamp >= CACHE_DURATION); // Need to fetch
+    return !appSettingsCache.timestamp || (now - appSettingsCache.timestamp >= CACHE_DURATION);
   });
+  const [error, setError] = useState<Error | null>(null); // New error state
 
-  // Use a ref to track if the component is mounted to avoid state updates on unmounted components
   const isMountedRef = useRef(true);
   useEffect(() => {
     isMountedRef.current = true;
@@ -44,21 +44,24 @@ export function useAppSettings() {
     }
 
     if (appSettingsCache.promise && !forceRefresh) {
-      // If a fetch is already in progress, await that promise
-      // and ensure loading state is true until it resolves.
       if (isMountedRef.current && !isLoading) setIsLoading(true);
       try {
         const newSettings = await appSettingsCache.promise;
         if (isMountedRef.current) setSettings(newSettings);
-      } catch (error) {
-         // Error handled by the original promise, just ensure loading state is correct
+      } catch (e: any) {
+        // Error is handled by the original promise's catch block
+        if (isMountedRef.current) setError(e instanceof Error ? e : new Error('Previously failed to fetch settings'));
       } finally {
         if (isMountedRef.current) setIsLoading(false);
       }
-      return settings; // return current state, will update on promise resolution
+      return settings;
     }
     
-    if (isMountedRef.current && !isLoading) setIsLoading(true);
+    if (isMountedRef.current) {
+        if(!isLoading) setIsLoading(true);
+        if(error) setError(null); // Reset error on new load attempt
+    }
+    
 
     appSettingsCache.promise = fetchAppSettingsAction();
 
@@ -66,54 +69,68 @@ export function useAppSettings() {
       const fetchedSettings = await appSettingsCache.promise;
       appSettingsCache.data = fetchedSettings;
       appSettingsCache.timestamp = Date.now();
-      if (isMountedRef.current) setSettings(fetchedSettings);
-      return fetchedSettings;
-    } catch (error) {
-      console.error("useAppSettings: Error fetching app settings:", error);
       if (isMountedRef.current) {
-        // Decide error handling: keep stale data or clear? For now, keep stale if available.
-        // setSettings(null); 
+        setSettings(fetchedSettings);
+        setError(null); // Clear error on success
       }
-      throw error; // Re-throw so callers can handle if needed
+      return fetchedSettings;
+    } catch (e: any) {
+      console.error("useAppSettings: Error fetching app settings:", e);
+      if (isMountedRef.current) {
+        setError(e instanceof Error ? e : new Error('Failed to fetch settings'));
+        // Optionally, decide if you want to clear settings or keep stale ones:
+        // setSettings(null); // To clear settings on error
+      }
+      return appSettingsCache.data; // Return stale data or null if no stale data
     } finally {
-      appSettingsCache.promise = null; // Clear the promise once resolved
+      appSettingsCache.promise = null;
       if (isMountedRef.current) setIsLoading(false);
     }
-  }, [settings, isLoading]); // Added isLoading
+  }, [settings, isLoading, error]);
 
   useEffect(() => {
-    // This effect handles initial load or cache refresh if needed when component mounts or dependencies change.
-    // It ensures that if cached data exists and is valid, it's used.
-    // If not, or if cache is stale, it initiates a load.
     const now = Date.now();
-    if (forceRefreshNeededOnMount()) {
-      loadSettings();
+    let needsLoad = false;
+
+    const shouldForceRefresh = () => {
+        if (!appSettingsCache.data) return true;
+        if (!appSettingsCache.timestamp) return true;
+        return (now - appSettingsCache.timestamp >= CACHE_DURATION);
+    };
+
+    if (error) { // If there's an error, don't attempt to autoload unless cache is forced invalid
+        if (shouldForceRefresh()) { // Allow re-fetch if cache expired despite error
+            needsLoad = true;
+        }
+    } else if (shouldForceRefresh()) {
+        needsLoad = true;
     } else if (appSettingsCache.data && JSON.stringify(settings) !== JSON.stringify(appSettingsCache.data)) {
-      // If global cache was updated by another hook instance
-      setSettings(appSettingsCache.data);
-      setIsLoading(false);
+        // Sync with global cache if it was updated by another instance
+        if (isMountedRef.current) {
+            setSettings(appSettingsCache.data);
+            setIsLoading(false);
+            setError(null);
+        }
     } else if (!appSettingsCache.data && !appSettingsCache.promise) {
-      // If no data and no fetch in progress (e.g. cache invalidated)
-      loadSettings();
+        // Initial load if no data, no promise, and no error
+        needsLoad = true;
     }
 
-    function forceRefreshNeededOnMount() {
-        if (!appSettingsCache.data) return true; // No data
-        if (!appSettingsCache.timestamp) return true; // No timestamp
-        return (now - appSettingsCache.timestamp >= CACHE_DURATION); // Stale
+    if (needsLoad) {
+        loadSettings();
     }
-
-  }, [loadSettings, settings]); // Effect will re-run if loadSettings identity changes or local settings state changes.
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings, error]); // Intentionally excluding loadSettings from deps to control its invocation more manually
 
   const refreshAppSettings = useCallback(() => {
+    if (isMountedRef.current) setError(null); // Clear previous error on manual refresh
     return loadSettings(true);
   }, [loadSettings]);
 
-  return { settings, isLoading, refreshAppSettings };
+  return { settings, isLoading, error, refreshAppSettings };
 }
 
 export function invalidateAppSettingsCache() {
   console.log("useAppSettings: Invalidating app settings cache.");
   appSettingsCache = { data: null, timestamp: null, promise: null };
-  // Active components using useAppSettings will see isLoading become true and will refetch.
 }
