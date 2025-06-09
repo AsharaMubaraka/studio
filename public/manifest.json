@@ -1,7 +1,7 @@
 {
-  "name": "Anjuman Hub",
-  "short_name": "AnjumanHub",
-  "description": "Anjuman Hub: Your central point for announcements, live relays, and community information.",
+  "name": "Ashara Mubaraka",
+  "short_name": "AsharaMubaraka",
+  "description": "Ashara Mubaraka: Get the latest updates on events and everything you need to know.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F5F5",
