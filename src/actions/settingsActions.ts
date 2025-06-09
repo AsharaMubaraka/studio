@@ -52,26 +52,13 @@ export async function fetchAppSettings(): Promise<AppSettings | null> {
       };
       return settings;
     }
-    // Default settings if the document doesn't exist
-    return { 
-        webViewUrl: null, 
-        logoUrl: null, 
-        updateLogoOnLogin: false, 
-        updateLogoOnSidebar: false, 
-        updateLogoOnProfileAvatar: false,
-        showLiveRelayPage: true 
-    }; 
+    // Document doesn't exist
+    console.warn(`App settings document (${SETTINGS_COLLECTION}/${GLOBAL_CONFIG_DOC_ID}) not found in Firestore. Returning null from action.`);
+    return null;
   } catch (error) {
-    console.error("Error fetching app settings:", error);
-    // Return default settings on error as well
-    return { 
-        webViewUrl: null, 
-        logoUrl: null, 
-        updateLogoOnLogin: false, 
-        updateLogoOnSidebar: false, 
-        updateLogoOnProfileAvatar: false,
-        showLiveRelayPage: true 
-    }; 
+    console.error("Error fetching app settings from Firestore inside action:", error);
+    // Return null on error; the client-side hook will handle this.
+    return null;
   }
 }
 
