@@ -1,6 +1,8 @@
-
 name = "ashara-mubaraka"
 compatibility_date = "2024-06-10" # Use a recent, valid date.
+
+# Enable Node.js compatibility
+compatibility_flags = ["nodejs_compat"]
 
 # main specifies the entry point to your Worker.
 # @cloudflare/next-on-pages generates this file in the .cloudflare directory.
