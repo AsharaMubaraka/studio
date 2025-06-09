@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Users, AlertCircle, Loader2, ShieldOff, ShieldCheck, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
+import { Users, AlertCircle, Loader2, ShieldOff, ShieldCheck, ChevronLeft, ChevronRight, Pencil, MapPin } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
 } from "@/components/ui/dialog";
@@ -29,9 +29,42 @@ interface User {
   isAdmin: boolean;
   isRestricted: boolean;
   ipAddress?: string | null;
+  city?: string | null;
+  country?: string | null;
 }
 
 const ITEMS_PER_PAGE = 10;
+
+async function fetchGeolocation(ipAddress: string): Promise<{ city: string | null; country: string | null }> {
+  if (!ipAddress) return { city: null, country: null };
+  try {
+    // Using a timeout to prevent hanging indefinitely
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
+
+    const response = await fetch(`https://ipapi.co/${ipAddress}/json/`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      // Don't throw an error for individual failures, just return nulls
+      console.warn(`Geolocation lookup failed for ${ipAddress}: ${response.status}`);
+      return { city: null, country: null };
+    }
+    const data = await response.json();
+    if (data.error) {
+        console.warn(`Geolocation API error for ${ipAddress}: ${data.reason}`);
+        return { city: null, country: null };
+    }
+    return { city: data.city || null, country: data.country_name || null };
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+        console.warn(`Geolocation lookup timed out for ${ipAddress}`);
+    } else {
+        console.error(`Error fetching geolocation for ${ipAddress}:`, error);
+    }
+    return { city: null, country: null };
+  }
+}
 
 export default function UserListPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -54,7 +87,8 @@ export default function UserListPage() {
       const usersCollectionRef = collection(db, "users");
       const q = query(usersCollectionRef, orderBy("name"));
       const querySnapshot = await getDocs(q);
-      const fetchedUsers: User[] = querySnapshot.docs.map((docSnap) => {
+      
+      let fetchedUsers: User[] = querySnapshot.docs.map((docSnap) => {
         const data = docSnap.data() as DocumentData;
         return {
           id: docSnap.id,
@@ -65,7 +99,27 @@ export default function UserListPage() {
           ipAddress: data.ipAddress || null,
         };
       });
-      setUsers(fetchedUsers);
+
+      // Fetch geolocation data for users with IP addresses
+      const usersWithIP = fetchedUsers.filter(user => user.ipAddress);
+      const geolocationPromises = usersWithIP.map(user => 
+        fetchGeolocation(user.ipAddress!).then(geo => ({ ...user, ...geo }))
+      );
+      
+      const results = await Promise.allSettled(geolocationPromises);
+
+      const usersWithGeoData: User[] = fetchedUsers.map(user => {
+        if (!user.ipAddress) return user;
+        const foundResult = results.find(r => r.status === 'fulfilled' && (r.value as User).id === user.id);
+        if (foundResult && foundResult.status === 'fulfilled') {
+          return foundResult.value as User;
+        }
+        // If geolocation failed or user not in results, return original user data (city/country will be undefined)
+        return user;
+      });
+
+      setUsers(usersWithGeoData);
+
     } catch (err: any) {
       console.error("Error fetching users:", err);
       setError("Failed to load users. Please try again.");
@@ -142,12 +196,23 @@ export default function UserListPage() {
   return (
     <div className="space-y-8 animate-fadeIn">
       <Card className="shadow-lg">
-        <CardHeader><CardTitle className="text-3xl font-bold tracking-tight flex items-center"><Users className="mr-3 h-8 w-8 text-primary" /> User List</CardTitle><CardDescription>Manage user accounts, permissions, and login restrictions.</CardDescription></CardHeader>
+        <CardHeader><CardTitle className="text-3xl font-bold tracking-tight flex items-center"><Users className="mr-3 h-8 w-8 text-primary" /> User List</CardTitle><CardDescription>Manage user accounts, permissions, and login restrictions. IP-based location is approximate.</CardDescription></CardHeader>
         <CardContent>
           {users.length === 0 ? (<p className="text-muted-foreground text-center py-4">No users found.</p>) : (
             <>
               <Table>
-                <TableHeader><TableRow><TableHead className="w-[50px]">#</TableHead><TableHead>Name</TableHead><TableHead>Username</TableHead><TableHead>IP</TableHead><TableHead className="text-center">Admin</TableHead><TableHead className="text-center">Restricted</TableHead><TableHead className="text-right w-[80px]">Actions</TableHead></TableRow></TableHeader>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40px]">#</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>IP</TableHead>
+                    <TableHead className="min-w-[150px]">Location (City, Country)</TableHead>
+                    <TableHead className="text-center">Admin</TableHead>
+                    <TableHead className="text-center">Restricted</TableHead>
+                    <TableHead className="text-right w-[80px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
                 <TableBody>
                   {paginatedUsers.map((user, index) => (
                     <TableRow key={user.id}>
@@ -155,6 +220,20 @@ export default function UserListPage() {
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.username}</TableCell>
                       <TableCell>{user.ipAddress || "N/A"}</TableCell>
+                      <TableCell>
+                        {user.ipAddress ? (
+                          user.city || user.country ? (
+                            <span className="flex items-center">
+                              <MapPin className="mr-1.5 h-4 w-4 text-muted-foreground shrink-0" />
+                              {`${user.city || "Unknown City"}, ${user.country || "Unknown Country"}`}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground italic">Resolving...</span>
+                          )
+                        ) : (
+                          "N/A"
+                        )}
+                      </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center">
                           {updatingUserId === user.id && actionType === "admin" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -213,3 +292,4 @@ export default function UserListPage() {
     </div>
   );
 }
+
