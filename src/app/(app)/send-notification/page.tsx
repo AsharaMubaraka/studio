@@ -95,7 +95,7 @@ interface PostedNotification {
   category?: NotificationCategory;
   readByUserIds?: string[];
   scheduledAt?: Date | null;
-  status?: 'draft' | 'scheduled' | 'sent';
+  status?: 'draft' | 'scheduled' | 'sent'; // This is the status from Firestore
 }
 
 export default function SendNotificationPage() {
@@ -164,7 +164,7 @@ export default function SendNotificationPage() {
           category: data.category || "General",
           readByUserIds: (data.readByUserIds as string[] | undefined) || [],
           scheduledAt: (data.scheduledAt as Timestamp)?.toDate() || null,
-          status: data.status || 'sent',
+          status: data.status || 'sent', // Firestore status
         };
       });
       setPostedNotifications(fetchedNotifications);
@@ -192,7 +192,7 @@ export default function SendNotificationPage() {
       scheduledDate: notification.scheduledAt ? format(notification.scheduledAt, "yyyy-MM-dd") : undefined,
       scheduledTime: notification.scheduledAt ? format(notification.scheduledAt, "HH:mm") : undefined,
     });
-    setImagePrompt(""); 
+    setImagePrompt("");
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -223,10 +223,10 @@ export default function SendNotificationPage() {
 
     try {
       const result = await saveNotificationAction(
-        { 
-          title: values.title, 
-          content: values.content, 
-          imageUrl: values.imageUrl || undefined, 
+        {
+          title: values.title,
+          content: values.content,
+          imageUrl: values.imageUrl || undefined,
           category: values.category,
           scheduledAt: scheduledAtDateTime // Pass Date object or null
         },
@@ -293,13 +293,13 @@ export default function SendNotificationPage() {
   if (!isAuthenticated || !adminUser?.isAdmin) {
     return (<div className="flex flex-1 items-center justify-center p-4"><Card className="shadow-lg p-8 animate-fadeIn w-full max-w-md"><CardHeader><CardTitle>Access Denied</CardTitle><CardDescription>You do not have permission.</CardDescription></CardHeader></Card></div>);
   }
-  
+
   let previewStatus: Announcement['status'] = 'new';
   if (watchedIsScheduled && watchedScheduledDate && watchedScheduledTime) {
     try {
         const scheduledDT = new Date(`${watchedScheduledDate}T${watchedScheduledTime}:00`);
         if (scheduledDT > new Date()) {
-            previewStatus = 'scheduled' as any; // Cast for preview type
+            previewStatus = 'scheduled' as any; // Cast for preview type for AnnouncementItem
         }
     } catch (e) { /* ignore parsing error for preview */ }
   }
@@ -309,13 +309,14 @@ export default function SendNotificationPage() {
     id: 'preview',
     title: watchedTitle || "Sample Title",
     content: watchedContent || "Sample content for the notification.",
-    date: new Date(),
+    date: new Date(), // For preview, current date is fine
     author: adminUser?.name || "Admin",
-    status: previewStatus,
+    status: previewStatus, // This will be 'scheduled' if future, otherwise 'new'
     imageUrl: watchedImageUrl || undefined,
     imageHint: watchedTitle ? watchedTitle.split(" ").slice(0,2).join(" ") : "preview image",
     category: watchedCategory || "General",
     scheduledAt: (watchedIsScheduled && watchedScheduledDate && watchedScheduledTime) ? new Date(`${watchedScheduledDate}T${watchedScheduledTime}:00`) : undefined,
+    internalStatus: (watchedIsScheduled && watchedScheduledDate && watchedScheduledTime) ? 'scheduled' : 'sent', // For preview
   };
 
   return (
@@ -336,7 +337,7 @@ export default function SendNotificationPage() {
               <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="Notification title" {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="content" render={({ field }) => (<FormItem><FormLabel>Content</FormLabel><FormControl><Textarea placeholder="Notification content..." className="min-h-[150px]" {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="category" render={({ field }) => (<FormItem><FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4" /> Category</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger></FormControl><SelectContent>{notificationCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-              
+
               <Separator />
               <div>
                 <FormLabel className="text-base font-medium">Notification Image</FormLabel>
@@ -393,7 +394,7 @@ export default function SendNotificationPage() {
                     </div>
                 )}
               </div>
-              
+
               <Separator />
               <div className="flex gap-2">
                 <Button type="submit" className="flex-grow" disabled={isSubmitting || isGeneratingImage}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingNotificationId ? <Pencil className="mr-2 h-4 w-4" /> : <MessageSquarePlus className="mr-2 h-4 w-4" />)} {isSubmitting ? (editingNotificationId ? "Updating..." : (watchedIsScheduled ? "Scheduling..." : "Sending...")) : (editingNotificationId ? "Update Notification" : (watchedIsScheduled ? "Schedule Notification" : "Send Now"))}</Button>
@@ -416,35 +417,45 @@ export default function SendNotificationPage() {
            : logError ? (<div className="p-4 border rounded-md bg-destructive/10 text-destructive"><h4 className="font-semibold mb-1">Error</h4><p className="text-sm">{logError}</p></div>)
            : postedNotifications.length === 0 ? (<p className="text-muted-foreground text-center py-4">No notifications yet.</p>)
            : (<div className="space-y-6">
-              {postedNotifications.map((notification) => (
-                <div key={notification.id} className="p-4 border rounded-lg shadow-sm bg-card">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="flex-grow">
-                      <h3 className="font-semibold text-lg mb-1" dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(notification.title) }} />
-                      <div className="text-xs text-muted-foreground mb-1 space-x-2">
-                        <span>Category: <span className="font-medium text-primary">{notification.category || "General"}</span></span>
-                        <span>Status: <span className="font-medium" style={{color: notification.status === 'scheduled' ? 'orange' : (notification.status === 'sent' ? 'green' : 'gray')}}>{notification.status}</span></span>
-                        {notification.status === 'scheduled' && notification.scheduledAt && (
-                            <span>Scheduled: {format(notification.scheduledAt, "MMM d, yyyy, h:mm a")}</span>
-                        )}
+              {postedNotifications.map((notification) => {
+                const nowAdmin = new Date();
+                const isPastScheduled = notification.status === 'scheduled' && notification.scheduledAt && notification.scheduledAt <= nowAdmin;
+                const displayStatus = isPastScheduled ? 'sent' : notification.status;
+                const displayStatusText = isPastScheduled ? 'Sent (Scheduled)' : notification.status;
+
+                return (
+                  <div key={notification.id} className="p-4 border rounded-lg shadow-sm bg-card">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-grow">
+                        <h3 className="font-semibold text-lg mb-1" dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(notification.title) }} />
+                        <div className="text-xs text-muted-foreground mb-1 space-x-2">
+                          <span>Category: <span className="font-medium text-primary">{notification.category || "General"}</span></span>
+                          <span>Status: <span className="font-medium" style={{color: displayStatus === 'scheduled' ? 'orange' : (displayStatus === 'sent' ? 'green' : 'gray')}}>{displayStatusText}</span></span>
+                          {notification.status === 'scheduled' && notification.scheduledAt && (
+                              <span>Scheduled: {format(notification.scheduledAt, "MMM d, yyyy, h:mm a")} {isPastScheduled ? "(Now Active)" : ""}</span>
+                          )}
+                           {notification.status === 'sent' && notification.scheduledAt && ( // If it was scheduled then sent (e.g. by editing)
+                              <span>Originally Scheduled: {format(notification.scheduledAt, "MMM d, yyyy, h:mm a")}</span>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground whitespace-pre-line mb-2" dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(notification.content) }} />
+                        {notification.imageUrl && (<a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline break-all">View Image</a>)}
                       </div>
-                      <div className="text-sm text-muted-foreground whitespace-pre-line mb-2" dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(notification.content) }} />
-                      {notification.imageUrl && (<a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline break-all">View Image</a>)}
+                      <div className="flex flex-col sm:flex-row gap-1 items-end sm:items-center shrink-0">
+                         <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10" onClick={() => handleEditNotification(notification)} disabled={isSubmitting || isDeleting === notification.id || isGeneratingImage}><Pencil className="h-4 w-4" /></Button>
+                         <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={isDeleting === notification.id || isSubmitting || isGeneratingImage}>{isDeleting === notification.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button></AlertDialogTrigger>
+                          <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>Delete "{notification.title}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteNotification(notification.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-1 items-end sm:items-center shrink-0">
-                       <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10" onClick={() => handleEditNotification(notification)} disabled={isSubmitting || isDeleting === notification.id || isGeneratingImage}><Pencil className="h-4 w-4" /></Button>
-                       <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={isDeleting === notification.id || isSubmitting || isGeneratingImage}>{isDeleting === notification.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button></AlertDialogTrigger>
-                        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>Delete "{notification.title}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteNotification(notification.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                      </AlertDialog>
+                    <Separator className="my-2"/>
+                    <div className="flex justify-between items-center text-xs text-muted-foreground">
+                      <div className="flex items-center"><CalendarClock className="mr-1.5 h-3.5 w-3.5" /> Created: {format(notification.createdAt, "MMM d, yyyy, h:mm a")} by {notification.authorName || 'Admin'}</div>
+                      <span className="italic">Read by: {notification.readByUserIds?.length || 0} user(s)</span>
                     </div>
                   </div>
-                  <Separator className="my-2"/>
-                  <div className="flex justify-between items-center text-xs text-muted-foreground">
-                    <div className="flex items-center"><CalendarClock className="mr-1.5 h-3.5 w-3.5" /> Created: {format(notification.createdAt, "MMM d, yyyy, h:mm a")} by {notification.authorName || 'Admin'}</div>
-                    <span className="italic">Read by: {notification.readByUserIds?.length || 0} user(s)</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -452,3 +463,5 @@ export default function SendNotificationPage() {
     </div>
   );
 }
+
+    
