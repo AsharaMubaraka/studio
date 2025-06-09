@@ -24,7 +24,7 @@ export function useAppSettings() {
     const now = Date.now();
     return !appSettingsCache.timestamp || (now - appSettingsCache.timestamp >= CACHE_DURATION);
   });
-  const [error, setError] = useState<Error | null>(null); // New error state
+  const [error, setError] = useState<Error | null>(null);
 
   const isMountedRef = useRef(true);
   useEffect(() => {
@@ -49,20 +49,18 @@ export function useAppSettings() {
         const newSettings = await appSettingsCache.promise;
         if (isMountedRef.current) setSettings(newSettings);
       } catch (e: any) {
-        // Error is handled by the original promise's catch block
         if (isMountedRef.current) setError(e instanceof Error ? e : new Error('Previously failed to fetch settings'));
       } finally {
         if (isMountedRef.current) setIsLoading(false);
       }
-      return settings;
+      return settings; 
     }
     
     if (isMountedRef.current) {
         if(!isLoading) setIsLoading(true);
-        if(error) setError(null); // Reset error on new load attempt
+        if(error) setError(null); 
     }
     
-
     appSettingsCache.promise = fetchAppSettingsAction();
 
     try {
@@ -71,59 +69,56 @@ export function useAppSettings() {
       appSettingsCache.timestamp = Date.now();
       if (isMountedRef.current) {
         setSettings(fetchedSettings);
-        setError(null); // Clear error on success
+        setError(null); 
       }
       return fetchedSettings;
     } catch (e: any) {
       console.error("useAppSettings: Error fetching app settings:", e);
       if (isMountedRef.current) {
         setError(e instanceof Error ? e : new Error('Failed to fetch settings'));
-        // Optionally, decide if you want to clear settings or keep stale ones:
-        // setSettings(null); // To clear settings on error
       }
-      return appSettingsCache.data; // Return stale data or null if no stale data
+      return appSettingsCache.data; 
     } finally {
       appSettingsCache.promise = null;
       if (isMountedRef.current) setIsLoading(false);
     }
-  }, [settings, isLoading, error]);
+  }, [settings, isLoading, error]); // Include error and isLoading in deps for loadSettings
 
   useEffect(() => {
     const now = Date.now();
     let needsLoad = false;
 
-    const shouldForceRefresh = () => {
-        if (!appSettingsCache.data) return true;
-        if (!appSettingsCache.timestamp) return true;
-        return (now - appSettingsCache.timestamp >= CACHE_DURATION);
-    };
+    const cacheInvalidOrExpired = !appSettingsCache.data || !appSettingsCache.timestamp || (now - appSettingsCache.timestamp >= CACHE_DURATION);
 
-    if (error) { // If there's an error, don't attempt to autoload unless cache is forced invalid
-        if (shouldForceRefresh()) { // Allow re-fetch if cache expired despite error
-            needsLoad = true;
-        }
-    } else if (shouldForceRefresh()) {
+    if (error && cacheInvalidOrExpired) {
+        needsLoad = true;
+    } else if (!error && cacheInvalidOrExpired) {
         needsLoad = true;
     } else if (appSettingsCache.data && JSON.stringify(settings) !== JSON.stringify(appSettingsCache.data)) {
-        // Sync with global cache if it was updated by another instance
         if (isMountedRef.current) {
             setSettings(appSettingsCache.data);
             setIsLoading(false);
             setError(null);
         }
-    } else if (!appSettingsCache.data && !appSettingsCache.promise) {
-        // Initial load if no data, no promise, and no error
+    } else if (!appSettingsCache.data && !appSettingsCache.promise && !error) {
         needsLoad = true;
     }
 
     if (needsLoad) {
-        loadSettings();
+        loadSettings().catch(err => {
+            // This catch is a safety net for the promise returned by loadSettings.
+            // loadSettings() itself should handle setting the error state.
+            if (isMountedRef.current) {
+                console.error("useAppSettings: Error caught from loadSettings() call in useEffect:", err);
+                // setError(err instanceof Error ? err : new Error('Load settings failed in effect hook'));
+            }
+        });
     }
- // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings, error]); // Intentionally excluding loadSettings from deps to control its invocation more manually
+  // eslint-disable-next-line react-hooks/exhaustive-deps 
+  }, [settings, error, loadSettings]); // loadSettings is now a dependency
 
   const refreshAppSettings = useCallback(() => {
-    if (isMountedRef.current) setError(null); // Clear previous error on manual refresh
+    if (isMountedRef.current) setError(null); 
     return loadSettings(true);
   }, [loadSettings]);
 
