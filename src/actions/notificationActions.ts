@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, doc, deleteDoc, updateDoc, arrayUnion, getDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, deleteDoc, updateDoc, arrayUnion, getDoc, setDoc, getDocs, query as firestoreQuery } from "firebase/firestore"; // Added getDocs and firestoreQuery
 
 // Schema for client-side form validation (used in send-notification page)
 const notificationFormSchemaClient = z.object({
@@ -32,14 +32,9 @@ export async function saveNotificationAction(
     if (notificationId) {
       // Update existing notification
       const notificationRef = doc(db, "notifications", notificationId);
-      // To preserve readByUserIds and createdAt, we merge the new data
-      // If you want to update 'updatedAt', add it here: updatedAt: serverTimestamp()
       await setDoc(notificationRef, {
         ...notificationData,
-        // createdAt should not be overwritten on update. If doc doesn't exist, setDoc creates it.
-        // If you want an "updatedAt" field, you would add:
-        // updatedAt: serverTimestamp(),
-      }, { merge: true }); // Merge to avoid overwriting fields like readByUserIds
+      }, { merge: true }); 
       return { success: true, message: "Notification updated successfully!" };
     } else {
       // Create new notification
@@ -92,5 +87,42 @@ export async function markNotificationAsReadAction(notificationId: string, userI
   } catch (error: any) {
     console.error("Error marking notification as read (Server Action):", error);
     return { success: false, message: "Failed to mark notification as read. See server logs." };
+  }
+}
+
+export async function markAllNotificationsAsReadForUserAction(userId: string) {
+  if (!userId) {
+    return { success: false, message: "User ID is required." };
+  }
+  try {
+    const notificationsCollectionRef = collection(db, "notifications");
+    const q = firestoreQuery(notificationsCollectionRef); // Query all notifications
+    const querySnapshot = await getDocs(q);
+
+    const updates: Promise<void>[] = [];
+    let notificationsMarkedAsReadCount = 0;
+
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const readBy = (data.readByUserIds as string[] | undefined) || [];
+      if (!readBy.includes(userId)) {
+        updates.push(
+          updateDoc(doc(db, "notifications", docSnap.id), {
+            readByUserIds: arrayUnion(userId),
+          })
+        );
+        notificationsMarkedAsReadCount++;
+      }
+    });
+
+    if (updates.length > 0) {
+      await Promise.all(updates); // Wait for all updates to complete
+      return { success: true, message: `${notificationsMarkedAsReadCount} notification(s) marked as read.` };
+    } else {
+      return { success: true, message: "All notifications were already marked as read." };
+    }
+  } catch (error: any) {
+    console.error("Error marking all notifications as read (Server Action):", error);
+    return { success: false, message: "Failed to mark all notifications as read. See server logs." };
   }
 }

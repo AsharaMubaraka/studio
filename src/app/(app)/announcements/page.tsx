@@ -8,16 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
-import { Bell } from "lucide-react";
+import { Bell, CheckCheck, Loader2 } from "lucide-react"; // Added CheckCheck, Loader2
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
-import { markNotificationAsReadAction } from "@/actions/notificationActions";
+import { markNotificationAsReadAction, markAllNotificationsAsReadForUserAction } from "@/actions/notificationActions"; // Added markAllNotificationsAsReadForUserAction
 import { useToast } from "@/hooks/use-toast";
 import { siteConfig } from "@/config/site";
-// AdPlaceholder import removed
+import { Button } from "@/components/ui/button"; // Added Button
 
-const READ_NOTIFICATIONS_STORAGE_KEY_PREFIX = "ashara_mubaraka_read_notifications_"; // Updated prefix
+const READ_NOTIFICATIONS_STORAGE_KEY_PREFIX = "ashara_mubaraka_read_notifications_";
 
 async function fetchFirestoreAnnouncements(): Promise<Omit<Announcement, 'status'>[]> {
   const notificationsCollectionRef = collection(db, "notifications");
@@ -33,7 +33,7 @@ async function fetchFirestoreAnnouncements(): Promise<Omit<Announcement, 'status
         content: data.content || "No Content",
         date: (data.createdAt as Timestamp)?.toDate() || new Date(),
         author: data.authorName || "Unknown Author",
-        imageUrl: data.imageUrl, 
+        imageUrl: data.imageUrl,
         imageHint: data.title ? data.title.split(" ").slice(0,2).join(" ") : "notification image",
         readByUserIds: (data.readByUserIds as string[] | undefined) || [],
       };
@@ -53,6 +53,7 @@ export default function AnnouncementsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"status" | "newest" | "oldest">("status");
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   
   const [localStorageReadIds, setLocalStorageReadIds] = useState<Set<string>>(new Set());
   const READ_NOTIFICATIONS_STORAGE_KEY = authUser ? `${READ_NOTIFICATIONS_STORAGE_KEY_PREFIX}${authUser.username}` : '';
@@ -107,6 +108,7 @@ export default function AnnouncementsPage() {
   const handleMarkAsRead = async (id: string) => {
     if (!authUser?.username) return;
 
+    // Optimistically update UI
     setLocalStorageReadIds(prevIds => {
       const newIds = new Set(prevIds);
       newIds.add(id);
@@ -119,7 +121,7 @@ export default function AnnouncementsPage() {
       }
       return newIds;
     });
-    setAnnouncements(prevAnns => 
+    setAnnouncements(prevAnns =>
       prevAnns.map(ann => ann.id === id ? { ...ann, status: 'read', readByUserIds: [...(ann.readByUserIds || []), authUser.username] } : ann)
     );
 
@@ -130,7 +132,52 @@ export default function AnnouncementsPage() {
         title: "Error",
         description: "Failed to mark notification as read on server. Your local view is updated.",
       });
+      // Potentially revert optimistic update if server fails, or just notify user
     }
+  };
+
+  const handleMarkAllRead = async () => {
+    if (!authUser?.username) return;
+    setIsMarkingAllRead(true);
+
+    const result = await markAllNotificationsAsReadForUserAction(authUser.username);
+
+    if (result.success) {
+      toast({
+        title: "Success",
+        description: result.message,
+      });
+      
+      // Update local storage
+      setLocalStorageReadIds(prevIds => {
+        const newIds = new Set(prevIds);
+        announcements.forEach(ann => newIds.add(ann.id));
+        if (READ_NOTIFICATIONS_STORAGE_KEY) {
+          try {
+            localStorage.setItem(READ_NOTIFICATIONS_STORAGE_KEY, JSON.stringify(Array.from(newIds)));
+          } catch (error) {
+            console.error("Error saving all read notifications to localStorage:", error);
+          }
+        }
+        return newIds;
+      });
+
+      // Update local announcements state
+      setAnnouncements(prevAnns =>
+        prevAnns.map(ann => ({
+          ...ann,
+          status: 'read',
+          readByUserIds: Array.from(new Set([...(ann.readByUserIds || []), authUser.username]))
+        }))
+      );
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: result.message || "Failed to mark all notifications as read.",
+      });
+    }
+    setIsMarkingAllRead(false);
   };
 
   const filteredAndSortedAnnouncements = announcements
@@ -141,27 +188,30 @@ export default function AnnouncementsPage() {
       } else if (sortOrder === "oldest") {
         return a.date.getTime() - b.date.getTime();
       } else { 
-        const statusOrder = { new: 0, unread: 1, read: 2 };
+        const statusOrder = { new: 0, unread: 1, read: 2 }; // 'new' could be treated same as 'unread' for sorting logic
         if (a.status !== b.status) {
              return statusOrder[a.status] - statusOrder[b.status];
         }
+        // If status is the same, sort by newest first (secondary sort)
         return b.date.getTime() - a.date.getTime();
       }
     });
+
+  const allNotificationsRead = announcements.length > 0 && announcements.every(ann => ann.status === 'read');
 
   return (
     <div className="space-y-8 animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 bg-card rounded-lg shadow-lg">
         <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
-        <div className="flex gap-4 w-full md:w-auto">
+        <div className="flex flex-wrap gap-2 w-full md:w-auto justify-center">
           <Input
             placeholder="Search notifications..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-xs"
+            className="max-w-xs flex-grow sm:flex-grow-0"
           />
           <Select value={sortOrder} onValueChange={(value: "status" | "newest" | "oldest") => setSortOrder(value)}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px] flex-grow sm:flex-grow-0">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -170,6 +220,15 @@ export default function AnnouncementsPage() {
               <SelectItem value="oldest">Oldest First</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            onClick={handleMarkAllRead}
+            disabled={isMarkingAllRead || announcements.length === 0 || allNotificationsRead}
+            variant="outline"
+            className="w-full sm:w-auto flex-grow sm:flex-grow-0"
+          >
+            {isMarkingAllRead ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCheck className="mr-2 h-4 w-4" />}
+            Mark All Read
+          </Button>
         </div>
       </div>
 
@@ -212,7 +271,6 @@ export default function AnnouncementsPage() {
            </AlertDescription>
          </Alert>
       )}
-      {/* AdPlaceholder component removed from here */}
     </div>
   );
 }
