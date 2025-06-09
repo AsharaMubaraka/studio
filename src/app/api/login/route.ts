@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { firestoreAdmin } from "@/lib/firebaseAdmin";
+import { firestoreAdmin } from "../../../lib/firebaseAdmin"; // Changed to relative path
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
@@ -28,10 +28,15 @@ export async function POST(request: Request) {
 
     const userData = docSnap.data();
     if (!userData) {
-        // Should not happen if docSnap.exists is true, but as a safeguard
         return NextResponse.json({ error: "User data not found" }, { status: 401 });
     }
     
+    // Ensure userData.password exists and is a string
+    if (typeof userData.password !== 'string') {
+        console.error(`User ${username} does not have a valid password hash in Firestore.`);
+        return NextResponse.json({ error: "Authentication configuration error." }, { status: 500 });
+    }
+
     const passwordMatch = await bcrypt.compare(password, userData.password);
 
     if (!passwordMatch) {
@@ -43,10 +48,10 @@ export async function POST(request: Request) {
     }
 
     // Return user data (excluding password)
-    const { password: _, ...userToReturn } = userData;
+    const { password: _, ...userToReturn } = userData; // Ensure 'password' is destructured out
     return NextResponse.json({ 
         message: "Login successful", 
-        user: {
+        user: { // Ensure this structure matches what AuthContext expects
             username: userToReturn.username,
             name: userToReturn.name,
             isAdmin: !!userToReturn.isAdmin,
@@ -56,6 +61,7 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Error during login process:", error);
+    // Ensure a JSON response even for unexpected errors
     return NextResponse.json({ error: "Login failed due to an internal server error." }, { status: 500 });
   }
 }

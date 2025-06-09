@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { firestoreAdmin } from "@/lib/firebaseAdmin"; // Use Admin SDK
+import { firestoreAdmin } from "../../../lib/firebaseAdmin"; // Changed to relative path
 import bcrypt from 'bcryptjs';
 import admin from 'firebase-admin'; // Import admin for Timestamp
 
@@ -39,6 +39,10 @@ export async function POST(request: Request) {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+    // Ensure admin.firestore.Timestamp.now() is available
+    // It should be if firestoreAdmin is correctly initialized
+    const nowTimestamp = admin.firestore.Timestamp.now();
+
     await userDocRef.set({
       name,
       username,
@@ -46,7 +50,7 @@ export async function POST(request: Request) {
       ipAddress: ipAddress || null,
       isAdmin: false,
       isRestricted: false,
-      createdAt: admin.firestore.Timestamp.now(), // Use Firestore Timestamp
+      createdAt: nowTimestamp, 
     });
 
     return NextResponse.json({ message: "Registration successful" }, { status: 201 });
@@ -56,8 +60,6 @@ export async function POST(request: Request) {
     if (error.stack) {
       console.error("Stack trace:", error.stack);
     }
-    // Avoid logging potentially sensitive requestBody directly in production if it contains password
-    // console.error("Request body that led to error:", requestBody); 
     return NextResponse.json({ error: "Registration failed due to an internal server error." }, { status: 500 });
   }
 }
