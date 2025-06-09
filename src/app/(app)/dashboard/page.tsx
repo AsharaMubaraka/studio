@@ -299,6 +299,47 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
+      {authUser?.isAdmin && isAdminMode && (
+        <>
+          <Separator />
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight">Admin Overview</h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                  <Users2 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  {isLoadingAdminStats ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalUsers ?? "N/A"}</div>}
+                  <p className="text-xs text-muted-foreground">Registered users in the system</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Notifications</CardTitle>
+                  <BellDot className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  {isLoadingAdminStats ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalNotificationsCount ?? "N/A"}</div>}
+                  <p className="text-xs text-muted-foreground">Notifications sent all time</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Live Relays</CardTitle>
+                  <Wifi className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  {isLoadingAdminStats ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{activeRelaysCount ?? "N/A"}</div>}
+                  <p className="text-xs text-muted-foreground">Miqaats currently live or scheduled today</p>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+        </>
+      )}
+
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
@@ -351,46 +392,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {authUser?.isAdmin && isAdminMode && (
-        <>
-          <Separator />
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold tracking-tight">Admin Overview</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <Users2 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  {isLoadingAdminStats ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalUsers ?? "N/A"}</div>}
-                  <p className="text-xs text-muted-foreground">Registered users in the system</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Notifications</CardTitle>
-                  <BellDot className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  {isLoadingAdminStats ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalNotificationsCount ?? "N/A"}</div>}
-                  <p className="text-xs text-muted-foreground">Notifications sent all time</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Live Relays</CardTitle>
-                  <Wifi className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  {isLoadingAdminStats ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{activeRelaysCount ?? "N/A"}</div>}
-                  <p className="text-xs text-muted-foreground">Miqaats currently live or scheduled today</p>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
-        </>
-      )}
     </div>
   );
 }
