@@ -1,12 +1,12 @@
+
 name = "ashara-mubaraka"
 compatibility_date = "2024-06-10" # Use a recent, valid date.
 
-# For Cloudflare Pages, the [site] configuration for bucket/entry-point is typically not needed
-# as the platform infers this from the build output of @cloudflare/next-on-pages.
-# The next-on-pages adapter outputs to a .cloudflare/ directory by default,
-# which Pages is designed to pick up when the "Next.js" preset is used.
+# main specifies the entry point to your Worker.
+# @cloudflare/next-on-pages generates this file in the .cloudflare directory.
+main = ".cloudflare/_worker.js"
 
-# If you were deploying a Worker directly (not a Pages site), you might have:
-# main = ".cloudflare/_worker.js" # or your worker entry point
-# [site]
-# bucket = ".cloudflare/static" # or your assets directory
+[site]
+# bucket specifies the directory of static assets to upload.
+# @cloudflare/next-on-pages places static assets here.
+bucket = ".cloudflare/static"
