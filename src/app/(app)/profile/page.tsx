@@ -18,10 +18,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, User, Hash, Save } from "lucide-react";
-import { updateUserDisplayNameAction } from "@/actions/userActions";
+import { Loader2, User, Hash, Save, KeyRound, ShieldAlert } from "lucide-react"; // Added KeyRound, ShieldAlert
+import { updateUserDisplayNameAction, updateUserPasswordAction } from "@/actions/userActions";
 import { siteConfig } from "@/config/site";
-import { Label } from "@/components/ui/label"; // Added import
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator"; // Added Separator
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Name must be at least 2 characters.").max(100, "Name must be at most 100 characters."),
@@ -29,15 +30,40 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-export default function ProfilePage() {
-  const { user, isLoading: authLoading, login } = useAuth(); // Assuming login might refresh user state
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const passwordChangeFormSchema = z.object({
+  currentPassword: z.string().min(1, "Current password cannot be empty."),
+  newPassword: z.string().min(6, "New password must be at least 6 characters."),
+  confirmNewPassword: z.string().min(6, "Confirm password must be at least 6 characters."),
+}).refine((data) => data.newPassword === data.confirmNewPassword, {
+  message: "New passwords do not match.",
+  path: ["confirmNewPassword"],
+});
 
-  const form = useForm<ProfileFormValues>({
+type PasswordChangeFormValues = z.infer<typeof passwordChangeFormSchema>;
+
+export default function ProfilePage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const [isSubmittingName, setIsSubmittingName] = useState(false);
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+
+  const nameForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       displayName: "",
+    },
+  });
+
+  const passwordForm = useForm<PasswordChangeFormValues>({
+    resolver: zodResolver(passwordChangeFormSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
     },
   });
 
@@ -47,34 +73,45 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      form.reset({ displayName: user.name });
+      nameForm.reset({ displayName: user.name });
     }
-  }, [user, form]);
+  }, [user, nameForm]);
 
-  async function onSubmit(values: ProfileFormValues) {
+  async function onSubmitName(values: ProfileFormValues) {
     if (!user?.username) {
       toast({ variant: "destructive", title: "Error", description: "User not found." });
       return;
     }
-    setIsSubmitting(true);
+    setIsSubmittingName(true);
     const result = await updateUserDisplayNameAction(user.username, values.displayName);
     if (result.success) {
       toast({ title: "Success", description: "Your display name has been updated." });
-      // To reflect the change in the UI immediately (e.g., in the header),
-      // we might need to re-fetch or update the user object in AuthContext.
-      // For now, a full page reload or re-login would show the change.
-      // A more sophisticated solution would involve updating AuthContext's user.
-      // Let's try to update user state more directly if login function can also serve to refresh
-      if (user.username && typeof user.password === 'string') { // This is a placeholder for actual refresh logic
-           // This is a conceptual example. `login` expects a password.
-           // A dedicated `refreshUser` function in AuthContext would be better.
-           // For now, this line is problematic and should be replaced with a proper refresh mechanism.
-           // We'll rely on the toast and user can manually refresh or see update on next login.
-      }
+      // Potentially refresh user context or specific field if AuthContext supports it
     } else {
       toast({ variant: "destructive", title: "Update Failed", description: result.message || "Could not update display name." });
     }
-    setIsSubmitting(false);
+    setIsSubmittingName(false);
+  }
+
+  async function onSubmitPassword(values: PasswordChangeFormValues) {
+    if (!user?.username) {
+      toast({ variant: "destructive", title: "Error", description: "User not found." });
+      return;
+    }
+    setIsSubmittingPassword(true);
+    const result = await updateUserPasswordAction(user.username, values.currentPassword, values.newPassword);
+    if (result.success) {
+      toast({ title: "Success", description: "Your password has been updated." });
+      passwordForm.reset(); // Clear password fields
+    } else {
+      toast({ variant: "destructive", title: "Update Failed", description: result.message || "Could not update password." });
+      if (result.errors) {
+        // Example of setting form error, adjust based on actual error structure
+        if (result.errors.currentPassword) passwordForm.setError("currentPassword", { message: result.errors.currentPassword[0]});
+        if (result.errors.newPassword) passwordForm.setError("newPassword", { message: result.errors.newPassword[0]});
+      }
+    }
+    setIsSubmittingPassword(false);
   }
 
   if (authLoading) {
@@ -115,10 +152,10 @@ export default function ProfilePage() {
             <p className="text-xs text-muted-foreground">Your username cannot be changed.</p>
           </div>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <Form {...nameForm}>
+            <form onSubmit={nameForm.handleSubmit(onSubmitName)} className="space-y-4">
               <FormField
-                control={form.control}
+                control={nameForm.control}
                 name="displayName"
                 render={({ field }) => (
                   <FormItem>
@@ -130,13 +167,111 @@ export default function ProfilePage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting || !form.formState.isDirty}>
-                {isSubmitting ? (
+              <Button type="submit" className="w-full sm:w-auto" disabled={isSubmittingName || !nameForm.formState.isDirty}>
+                {isSubmittingName ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Save className="mr-2 h-4 w-4" />
                 )}
-                {isSubmitting ? "Saving..." : "Save Changes"}
+                {isSubmittingName ? "Saving..." : "Save Display Name"}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-lg w-full max-w-lg mx-auto">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold tracking-tight flex items-center">
+            <KeyRound className="mr-3 h-6 w-6 text-primary" />
+            Change Password
+          </CardTitle>
+          <CardDescription>Update your account password.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive" className="mb-6">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>Security Notice</AlertTitle>
+            <AlertDescription>
+              Passwords are currently stored in a simplified manner. Please choose a unique password.
+            </AlertDescription>
+          </Alert>
+          <Form {...passwordForm}>
+            <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-4">
+              <FormField
+                control={passwordForm.control}
+                name="currentPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Current Password</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input type={showCurrentPassword ? "text" : "password"} placeholder="Enter your current password" {...field} />
+                      </FormControl>
+                       <Button 
+                          type="button" variant="ghost" size="icon" 
+                          className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground" 
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        >
+                          {showCurrentPassword ? <User className="h-4 w-4" /> : <User className="h-4 w-4 opacity-50" />} 
+                          {/* Using User icon as placeholder, replace with Eye/EyeOff if preferred */}
+                        </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={passwordForm.control}
+                name="newPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Password</FormLabel>
+                     <div className="relative">
+                      <FormControl>
+                        <Input type={showNewPassword ? "text" : "password"} placeholder="Enter new password (min. 6 characters)" {...field} />
+                      </FormControl>
+                      <Button 
+                          type="button" variant="ghost" size="icon" 
+                          className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground" 
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                        >
+                          {showNewPassword ? <User className="h-4 w-4" /> : <User className="h-4 w-4 opacity-50" />}
+                        </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={passwordForm.control}
+                name="confirmNewPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm New Password</FormLabel>
+                    <div className="relative">
+                    <FormControl>
+                      <Input type={showConfirmNewPassword ? "text" : "password"} placeholder="Confirm your new password" {...field} />
+                    </FormControl>
+                     <Button 
+                          type="button" variant="ghost" size="icon" 
+                          className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground" 
+                          onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                        >
+                          {showConfirmNewPassword ? <User className="h-4 w-4" /> : <User className="h-4 w-4 opacity-50" />}
+                        </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full sm:w-auto" disabled={isSubmittingPassword}>
+                {isSubmittingPassword ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                {isSubmittingPassword ? "Updating..." : "Update Password"}
               </Button>
             </form>
           </Form>
