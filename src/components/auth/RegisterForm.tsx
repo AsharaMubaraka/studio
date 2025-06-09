@@ -1,11 +1,9 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
-// Removed axios as IP fetching logic will be simple fetch
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -24,8 +22,8 @@ import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { db } from "@/lib/firebase"; // Import client-side db
-import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore"; // Import Firestore functions
+import { db } from "@/lib/firebase"; 
+import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore"; 
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
@@ -84,16 +82,21 @@ const RegisterForm = () => {
     const getIpAddress = async () => {
       try {
         const response = await fetch('https://api.ipify.org?format=json');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch IP: ${response.status}`);
+        }
         const data = await response.json();
         setIpAddress(data.ip);
       } catch (error) {
         console.error('Error fetching IP address:', error);
+        // Optionally set a fallback or leave ipAddress as ''
+        // setIpAddress('IP_FETCH_ERROR'); 
       }
     };
     getIpAddress();
   }, []);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
       const userDocRef = doc(db, "users", values.username);
@@ -103,7 +106,7 @@ const RegisterForm = () => {
         toast({
           variant: "destructive",
           title: "Registration Failed",
-          description: "Username already exists.",
+          description: "Username already exists. Please choose a different one or try logging in.",
         });
         setIsSubmitting(false);
         return;
@@ -112,11 +115,11 @@ const RegisterForm = () => {
       await setDoc(userDocRef, {
         name: values.name,
         username: values.username,
-        password: values.password, // Storing password in PLAINTEXT (INSECURE)
+        password: values.password, // Storing password in PLAINTEXT
         ipAddress: ipAddress || null,
         isAdmin: false,
         isRestricted: false,
-        createdAt: Timestamp.now(), // Using Firestore Timestamp
+        createdAt: Timestamp.now(),
       });
 
       toast({
