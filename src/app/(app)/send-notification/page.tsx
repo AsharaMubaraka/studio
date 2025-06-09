@@ -22,10 +22,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon, Pencil, XCircle, Tag, CalendarIcon, Clock } from "lucide-react"; // Removed Sparkles
+import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon, Pencil, XCircle, Tag, CalendarIcon, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { saveNotificationAction, deleteNotificationAction } from "@/actions/notificationActions";
-import type { NotificationFormValues as ClientNotificationFormValues } from "@/actions/notificationActions"; // Renamed to avoid conflict
+// type NotificationFormValues from actions is for client-side form, not direct submission
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, Timestamp, DocumentData } from "firebase/firestore";
 import { format, parseISO } from "date-fns";
@@ -45,7 +45,6 @@ import {
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
 import { formatWhatsAppTextToHtml, cn } from "@/lib/utils";
 import { siteConfig, notificationCategories, type NotificationCategory } from "@/config/site";
-// Removed: import { generateNotificationImage } from "@/ai/flows/generate-notification-image-flow";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const notificationFormSchema = z.object({
@@ -105,9 +104,6 @@ export default function SendNotificationPage() {
   const [logError, setLogError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  // Removed AI Image generation state
-  // const [imagePrompt, setImagePrompt] = useState("");
-  // const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(notificationFormSchema),
@@ -189,14 +185,12 @@ export default function SendNotificationPage() {
       scheduledDate: notification.scheduledAt ? format(notification.scheduledAt, "yyyy-MM-dd") : undefined,
       scheduledTime: notification.scheduledAt ? format(notification.scheduledAt, "HH:mm") : undefined,
     });
-    // Removed: setImagePrompt("");
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancelEdit = () => {
     setEditingNotificationId(null);
     form.reset({ title: "", content: "", imageUrl: "", category: "General", isScheduled: false, scheduledDate: undefined, scheduledTime: undefined });
-    // Removed: setImagePrompt("");
   };
 
   async function onSubmit(values: FormValues) {
@@ -227,13 +221,13 @@ export default function SendNotificationPage() {
           category: values.category,
           scheduledAt: scheduledAtDateTime
         },
-        {id: adminUser.username, name: adminUser.name},
+        // Ensure authorName is "Admin" if sent from this page (which requires admin)
+        {id: adminUser.username, name: "Admin"},
         editingNotificationId || undefined
       );
       if (result.success) {
           toast({ title: "Success", description: result.message });
           form.reset({ title: "", content: "", imageUrl: "", category: "General", isScheduled: false, scheduledDate: undefined, scheduledTime: undefined });
-          // Removed: setImagePrompt("");
           setEditingNotificationId(null);
           fetchPostedNotifications();
       } else {
@@ -265,7 +259,6 @@ export default function SendNotificationPage() {
     }
   }
 
-  // Removed: handleGenerateImage function
 
   if (!isAuthenticated || !adminUser?.isAdmin) {
     return (<div className="flex flex-1 items-center justify-center p-4"><Card className="shadow-lg p-8 animate-fadeIn w-full max-w-md"><CardHeader><CardTitle>Access Denied</CardTitle><CardDescription>You do not have permission.</CardDescription></CardHeader></Card></div>);
@@ -287,7 +280,7 @@ export default function SendNotificationPage() {
     title: watchedTitle || "Sample Title",
     content: watchedContent || "Sample content for the notification.",
     date: new Date(),
-    author: adminUser?.name || "Admin",
+    author: "Admin", // Preview will always show Admin as author
     status: previewStatus,
     imageUrl: watchedImageUrl || undefined,
     imageHint: watchedTitle ? watchedTitle.split(" ").slice(0,2).join(" ") : "preview image",
@@ -319,7 +312,6 @@ export default function SendNotificationPage() {
               <div>
                 <FormLabel className="text-base font-medium">Notification Image</FormLabel>
                 <FormField control={form.control} name="imageUrl" render={({ field }) => (<FormItem className="mt-2"><FormLabel className="flex items-center text-sm"><ImageIcon className="mr-2 h-4 w-4" /> Image URL (Optional)</FormLabel><FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                {/* AI Image Generation UI Removed */}
               </div>
 
               <Separator />
@@ -394,7 +386,9 @@ export default function SendNotificationPage() {
                 const nowAdmin = new Date();
                 const isPastScheduled = notification.status === 'scheduled' && notification.scheduledAt && notification.scheduledAt <= nowAdmin;
                 const displayStatus = isPastScheduled ? 'sent' : notification.status;
-                const displayStatusText = isPastScheduled ? 'Sent (Scheduled)' : notification.status;
+                let displayStatusText = notification.status ? notification.status.charAt(0).toUpperCase() + notification.status.slice(1) : 'Sent';
+                if (isPastScheduled) displayStatusText = 'Sent (from Scheduled)';
+
 
                 return (
                   <div key={notification.id} className="p-4 border rounded-lg shadow-sm bg-card">
