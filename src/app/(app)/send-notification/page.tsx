@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon, Pencil, XCircle } from "lucide-react";
+import { Loader2, MessageSquarePlus, ListChecks, CalendarClock, Trash2, Eye, ImageIcon, Pencil, XCircle, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { saveNotificationAction, deleteNotificationAction } from "@/actions/notificationActions";
 import type { NotificationFormValues } from "@/actions/notificationActions";
@@ -42,11 +42,12 @@ import {
 import { AnnouncementItem, type Announcement } from "@/components/announcements/AnnouncementItem";
 import { formatWhatsAppTextToHtml } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
+import { generateNotificationImage } from "@/ai/flows/generate-notification-image-flow"; // New import
 
 const notificationFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100, "Title must be at most 100 characters."),
   content: z.string().min(2, "Content must be at least 2 characters.").max(5000, "Content must be at most 5000 characters."),
-  imageUrl: z.string().url("Must be a valid URL if provided, or leave empty.").optional().or(z.literal('')),
+  imageUrl: z.string().url("Must be a valid URL if provided, or leave empty.").or(z.literal('')).optional(),
 });
 
 interface PostedNotification {
@@ -70,6 +71,9 @@ export default function SendNotificationPage() {
   const [isLoadingLog, setIsLoadingLog] = useState(true);
   const [logError, setLogError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  const [imagePrompt, setImagePrompt] = useState("");
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   const form = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
@@ -142,12 +146,14 @@ export default function SendNotificationPage() {
       content: notification.content,
       imageUrl: notification.imageUrl || "",
     });
+    setImagePrompt(""); // Clear image prompt when editing
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancelEdit = () => {
     setEditingNotificationId(null);
     form.reset({ title: "", content: "", imageUrl: "" });
+    setImagePrompt("");
   };
 
   async function onSubmit(values: NotificationFormValues) {
@@ -173,6 +179,7 @@ export default function SendNotificationPage() {
               description: result.message,
           });
           form.reset({ title: "", content: "", imageUrl: "" });
+          setImagePrompt("");
           setEditingNotificationId(null);
           fetchPostedNotifications(); 
       } else {
@@ -222,6 +229,39 @@ export default function SendNotificationPage() {
       setIsDeleting(null);
     }
   }
+
+  const handleGenerateImage = async () => {
+    if (!imagePrompt.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Prompt Required",
+        description: "Please enter a prompt to generate an image.",
+      });
+      return;
+    }
+    setIsGeneratingImage(true);
+    try {
+      const result = await generateNotificationImage({ prompt: imagePrompt });
+      if (result.imageUrl) {
+        form.setValue("imageUrl", result.imageUrl, { shouldValidate: true, shouldDirty: true });
+        toast({
+          title: "Image Generated",
+          description: "The image has been generated and added to the notification.",
+        });
+      } else {
+        throw new Error("Image generation did not return a URL.");
+      }
+    } catch (error: any) {
+      console.error("Error generating image:", error);
+      toast({
+        variant: "destructive",
+        title: "Image Generation Failed",
+        description: error.message || "Could not generate image. Please try again.",
+      });
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
   
   if (!isAuthenticated || !adminUser?.isAdmin) {
     return (
@@ -256,7 +296,7 @@ export default function SendNotificationPage() {
             {editingNotificationId ? "Edit Notification" : "Send Notification"}
           </CardTitle>
           <CardDescription>
-            {editingNotificationId ? "Modify the details of the existing notification." : "Compose and send a new notification. You can include an image by providing its URL."}
+            {editingNotificationId ? "Modify the details of the existing notification." : "Compose and send a new notification. You can include an image by providing its URL or generating one with AI."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -276,21 +316,47 @@ export default function SendNotificationPage() {
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="imageUrl" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4" /> Image URL (Optional)</FormLabel>
-                  <FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
               
+              <Separator />
+
+              <div className="space-y-3">
+                <FormLabel className="text-base font-medium">Notification Image</FormLabel>
+                <FormField control={form.control} name="imageUrl" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center text-sm"><ImageIcon className="mr-2 h-4 w-4" /> Image URL (Optional)</FormLabel>
+                    <FormControl><Input placeholder="https://example.com/image.png or use AI below" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <div className="space-y-2">
+                  <FormLabel htmlFor="imagePrompt" className="flex items-center text-sm"><Sparkles className="mr-2 h-4 w-4 text-yellow-500" /> AI Image Prompt</FormLabel>
+                  <Textarea 
+                    id="imagePrompt"
+                    placeholder="e.g., A beautiful mosque at sunset with intricate details" 
+                    value={imagePrompt}
+                    onChange={(e) => setImagePrompt(e.target.value)}
+                    className="min-h-[80px]"
+                  />
+                  <Button type="button" variant="outline" onClick={handleGenerateImage} disabled={isGeneratingImage || isSubmitting}>
+                    {isGeneratingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                    {isGeneratingImage ? "Generating Image..." : "Generate Image with AI"}
+                  </Button>
+                  <FormDescription className="text-xs">
+                    Describe the image you want. The generated image URL will populate the field above.
+                  </FormDescription>
+                </div>
+              </div>
+              
+              <Separator />
+
               <div className="flex gap-2">
-                <Button type="submit" className="flex-grow" disabled={isSubmitting}>
+                <Button type="submit" className="flex-grow" disabled={isSubmitting || isGeneratingImage}>
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingNotificationId ? <Pencil className="mr-2 h-4 w-4" /> : <MessageSquarePlus className="mr-2 h-4 w-4" />)}
                   {isSubmitting ? (editingNotificationId ? "Updating..." : "Sending...") : (editingNotificationId ? "Update Notification" : "Send Notification")}
                 </Button>
                 {editingNotificationId && (
-                  <Button type="button" variant="outline" onClick={handleCancelEdit} disabled={isSubmitting}>
+                  <Button type="button" variant="outline" onClick={handleCancelEdit} disabled={isSubmitting || isGeneratingImage}>
                     <XCircle className="mr-2 h-4 w-4" /> Cancel Edit
                   </Button>
                 )}
@@ -332,15 +398,15 @@ export default function SendNotificationPage() {
                         dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(notification.title) }} 
                       />
                       <div className="text-sm text-muted-foreground whitespace-pre-line mb-2" dangerouslySetInnerHTML={{ __html: formatWhatsAppTextToHtml(notification.content) }} />
-                      {notification.imageUrl && (<a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">View Image</a>)}
+                      {notification.imageUrl && (<a href={notification.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline break-all">View Image/File</a>)}
                     </div>
                     <div className="flex flex-col sm:flex-row gap-1 items-end sm:items-center shrink-0">
-                       <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10" onClick={() => handleEditNotification(notification)} disabled={isSubmitting || isDeleting === notification.id}>
+                       <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10" onClick={() => handleEditNotification(notification)} disabled={isSubmitting || isDeleting === notification.id || isGeneratingImage}>
                          <Pencil className="h-4 w-4" />
                        </Button>
                        <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={isDeleting === notification.id || isSubmitting}>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={isDeleting === notification.id || isSubmitting || isGeneratingImage}>
                             {isDeleting === notification.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                           </Button>
                         </AlertDialogTrigger>
