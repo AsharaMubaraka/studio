@@ -192,9 +192,9 @@ export default function ProfilePage() {
         <CardContent>
           <Alert variant="destructive" className="mb-6">
             <ShieldAlert className="h-4 w-4" />
-            <AlertTitle>Security Notice</AlertTitle>
+            <AlertTitle>Security Reminder</AlertTitle>
             <AlertDescription>
-              Passwords are currently stored in a simplified manner. Please choose a unique password.
+              For your security, please choose a strong and unique password that you don't use for other services.
             </AlertDescription>
           </Alert>
           <Form {...passwordForm}>
@@ -280,5 +280,7 @@ export default function ProfilePage() {
       </Card>
     </div>
   );
+
+    
 
     
