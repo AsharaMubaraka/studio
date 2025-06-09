@@ -68,25 +68,32 @@ export default function WebViewPage() {
         <Card className="shadow-md w-full max-w-lg">
           <CardHeader>
             <CardTitle className="flex items-center justify-center text-xl">
-              <AlertCircle className="mr-2 h-6 w-6 text-destructive" /> Error Loading Content
+              <AlertCircle className="mr-2 h-6 w-6 text-destructive" /> 
+              {user?.isAdmin ? "Error Loading Content" : "Content Unavailable"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <p className="text-muted-foreground">
-              Could not load the page from:
-              <br />
-              <code className="text-sm bg-muted p-1 rounded">{configuredUrl}</code>
-            </p>
-            <p className="text-sm text-destructive">{iframeError}</p>
-            <p className="text-xs text-muted-foreground pt-2">
-              Please ensure the URL is correct and the external website allows embedding. Some websites (like Google, Facebook) explicitly block being embedded in iframes.
-            </p>
-            {user?.isAdmin && ( // Conditional rendering based on admin status
-              <Button asChild variant="outline" className="mt-4">
-                <Link href="/settings">
-                  <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
-                </Link>
-              </Button>
+            {user?.isAdmin ? (
+              <>
+                <p className="text-muted-foreground">
+                  Could not load the page from:
+                  <br />
+                  <code className="text-sm bg-muted p-1 rounded">{configuredUrl}</code>
+                </p>
+                <p className="text-sm text-destructive">{iframeError}</p>
+                <p className="text-xs text-muted-foreground pt-2">
+                  Please ensure the URL is correct and the external website allows embedding. Some websites (like Google, Facebook) explicitly block being embedded in iframes.
+                </p>
+                <Button asChild variant="outline" className="mt-4">
+                  <Link href="/settings">
+                    <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <p className="text-muted-foreground text-center">
+                The requested content could not be loaded or is currently unavailable. Please try again later.
+              </p>
             )}
           </CardContent>
         </Card>
@@ -96,19 +103,26 @@ export default function WebViewPage() {
         <Card className="shadow-lg w-full max-w-lg text-center">
           <CardHeader>
             <CardTitle className="flex items-center justify-center text-xl">
-              <Globe className="mr-2 h-6 w-6 text-primary" /> Web View Not Configured
+              <Globe className="mr-2 h-6 w-6 text-primary" /> 
+              {user?.isAdmin ? "Web View Not Configured" : "Web View"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              The URL for the web view has not been set up.
-            </p>
-            {user?.isAdmin && ( // Conditional rendering based on admin status
-              <Button asChild>
-                <Link href="/settings">
-                  <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
-                </Link>
-              </Button>
+            {user?.isAdmin ? (
+              <>
+                <p className="text-muted-foreground">
+                  The URL for the web view has not been set up.
+                </p>
+                <Button asChild>
+                  <Link href="/settings">
+                    <LinkIcon className="mr-2 h-4 w-4" /> Configure Web View URL
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <p className="text-muted-foreground">
+                This section is not currently available.
+              </p>
             )}
           </CardContent>
         </Card>
