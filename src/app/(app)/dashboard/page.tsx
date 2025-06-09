@@ -226,8 +226,8 @@ export default function DashboardPage() {
     fetchDashboardData();
     fetchUserProfile();
     fetchLatestNotification();
-    fetchAdminStats(); // Fetch admin stats
-  }, [authUser, fetchAdminStats]); // Added fetchAdminStats dependency
+    fetchAdminStats(); 
+  }, [authUser, fetchAdminStats]); 
 
   return (
     <div className="animate-fadeIn space-y-6">
@@ -300,10 +300,14 @@ export default function DashboardPage() {
       </Card>
 
       {authUser?.isAdmin && isAdminMode && (
-        <>
-          <Separator />
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold tracking-tight">Admin Overview</h2>
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-2xl font-semibold tracking-tight">Admin Overview</CardTitle>
+            {/* Optional: Add a CardDescription here if needed, e.g.,
+            <CardDescription>Key metrics for the application.</CardDescription> 
+            */}
+          </CardHeader>
+          <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -336,8 +340,8 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
-          </section>
-        </>
+          </CardContent>
+        </Card>
       )}
 
       <Card className="shadow-lg">
