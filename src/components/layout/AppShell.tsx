@@ -27,6 +27,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useIsMobile } from "@/hooks/use-mobile"; 
 import { Loader2 } from "lucide-react";
+// import { AdPlaceholder } from "@/components/ads/AdPlaceholder"; // Removed: Ads will be placed on specific pages
 
 interface AppShellProps {
   children: ReactNode;
@@ -176,6 +177,7 @@ function AppShellInternal({ children }: AppShellProps) {
           <div className={contentWrapperClasses}>
             {children}
           </div>
+          {/* AdPlaceholder removed from here. It will be added to specific pages manually. */}
         </main>
         
         {displayMobileLayout && <div className="block md:hidden decorative-border-repeat decorative-border-repeat-h20 mt-auto" />}

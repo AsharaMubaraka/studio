@@ -13,7 +13,7 @@ import { doc, getDoc, collection, query, orderBy, limit, getDocs, Timestamp } fr
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatWhatsAppTextToHtml } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
-import { AdPlaceholder } from "@/components/ads/AdPlaceholder"; // Added AdPlaceholder import
+import { AdPlaceholder } from "@/components/ads/AdPlaceholder";
 
 interface DateInfo {
   monthYear: string;

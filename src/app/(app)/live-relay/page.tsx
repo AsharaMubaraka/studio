@@ -15,12 +15,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format, parseISO, isWithinInterval, compareAsc, isPast } from "date-fns";
-import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2, Users, Pencil, XCircle, Ban } from "lucide-react";
+import { Youtube, PlayCircle, AlertCircle, ListVideo, PlusCircle, Trash2, CalendarDays, Loader2, Users, Pencil, XCircle, Ban, Info } from "lucide-react";
 import { saveRelayAction, deleteRelayAction, fetchRelays, type LiveRelay, type RelayFormValues } from "@/actions/relayActions";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Separator } from "@/components/ui/separator";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import dynamic from 'next/dynamic'; 
 import { db } from "@/lib/firebase";
@@ -28,6 +29,7 @@ import { doc, setDoc, deleteDoc, collection, onSnapshot, serverTimestamp, Unsubs
 import { siteConfig } from "@/config/site";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useRouter } from "next/navigation";
+import { AdPlaceholder } from "@/components/ads/AdPlaceholder";
 
 const PlyrPlayer = dynamic(() => import('@/components/live-relay/PlyrPlayer'), {
   loading: () => <Skeleton className="aspect-video w-full bg-muted" />, 
@@ -241,6 +243,7 @@ function AdminLiveRelayManager() {
             </ul>)}
         </CardContent>
       </Card>
+      <AdPlaceholder />
     </div>
   );
 }
@@ -305,9 +308,9 @@ function UserLiveRelayViewer() {
     return () => { if (unsubCount) unsubCount(); };
   }, [currentRelay]);
 
-  if (isLoading) return <div className="space-y-6 animate-fadeIn"><Skeleton className="h-12 w-3/4" /><Skeleton className="aspect-video w-full" /></div>;
-  if (error) return <Alert variant="destructive" className="shadow-md animate-fadeIn"><AlertCircle className="h-5 w-5" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
-  if (!currentRelay) return <Alert variant="default" className="shadow-md animate-fadeIn"><Youtube className="h-5 w-5" /><AlertTitle>No Live Relay</AlertTitle><AlertDescription>No active or upcoming relays. Check back later.</AlertDescription></Alert>;
+  if (isLoading) return <div className="space-y-6 animate-fadeIn"><Skeleton className="h-12 w-3/4" /><Skeleton className="aspect-video w-full" /> <AdPlaceholder /></div>;
+  if (error) return <><Alert variant="destructive" className="shadow-md animate-fadeIn"><AlertCircle className="h-5 w-5" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> <AdPlaceholder /></>;
+  if (!currentRelay) return <><Alert variant="default" className="shadow-md animate-fadeIn"><Youtube className="h-5 w-5" /><AlertTitle>No Live Relay</AlertTitle><AlertDescription>No active or upcoming relays. Check back later.</AlertDescription></Alert> <AdPlaceholder /></>;
 
   const isEventUpcoming = !isEventActive && compareAsc(currentRelay.startDate, now) > 0;
   const eventHasEnded = !isEventActive && !isEventUpcoming && isPast(currentRelay.endDate);
@@ -342,7 +345,24 @@ function UserLiveRelayViewer() {
           </CardContent>
         )}
         {eventHasEnded && (<CardContent><Alert><Youtube className="h-5 w-5" /><AlertTitle>Miqaat Ended</AlertTitle><AlertDescription>"{currentRelay.name}" has concluded.</AlertDescription></Alert></CardContent>)}
+      
+        {isEventActive && (
+          <CardFooter className="pt-4 flex-col items-start gap-2">
+            <Separator />
+            <div className="text-sm">
+                <p className="font-semibold">{currentRelay.name}</p>
+                <p className="text-muted-foreground">
+                    Live from {format(currentRelay.startDate, "MMM d, h:mm a")} to {format(currentRelay.endDate, "MMM d, h:mm a")}
+                </p>
+            </div>
+            <div className="flex items-start text-xs text-muted-foreground gap-1.5">
+                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0"/>
+                <span>Ensure you have a stable internet connection for the best viewing experience. If you encounter issues, try refreshing the page.</span>
+            </div>
+          </CardFooter>
+        )}
       </Card>
+      <AdPlaceholder />
     </div>
   );
 }
@@ -382,6 +402,7 @@ export default function LiveRelayPage() {
     );
   }
 
-  return user?.isAdmin && isAdminMode ? <AdminLiveRelayManager /> : <UserLiveRelayViewer />;
-}
+  const PageComponentToRender = user?.isAdmin && isAdminMode ? AdminLiveRelayManager : UserLiveRelayViewer;
 
+  return <PageComponentToRender />;
+}
