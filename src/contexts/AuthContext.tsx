@@ -4,7 +4,8 @@
 import type { ReactNode } from "react";
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-// Removed direct Firestore imports as login logic moves to API
+import { db } from "@/lib/firebase"; // Import client-side db
+import { doc, getDoc, DocumentData } from "firebase/firestore"; // Import Firestore functions
 import { siteConfig } from '@/config/site'; 
 
 interface AuthUser {
@@ -51,33 +52,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = useCallback(async (usernameInput: string, passwordInput: string): Promise<{ success: boolean; message?: string; user?: AuthUser | null }> => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username: usernameInput, password: passwordInput }),
-      });
+      const userDocRef = doc(db, "users", usernameInput);
+      const docSnap = await getDoc(userDocRef);
 
-      const data = await response.json();
+      if (docSnap.exists()) {
+        const userData = docSnap.data() as DocumentData;
 
-      if (response.ok && data.user) {
-        const loggedInUser: AuthUser = {
-          username: data.user.username,
-          name: data.user.name,
-          isAdmin: !!data.user.isAdmin,
-          isRestricted: !!data.user.isRestricted,
-        };
-        setUser(loggedInUser);
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(loggedInUser));
-        setIsLoading(false);
-        return { success: true, user: loggedInUser };
+        // Direct plaintext password comparison (INSECURE)
+        if (userData.password === passwordInput) {
+          if (userData.isRestricted) {
+            setIsLoading(false);
+            return { success: false, message: "Account is restricted. Please contact support.", user: null };
+          }
+
+          const loggedInUser: AuthUser = {
+            username: userData.username,
+            name: userData.name,
+            isAdmin: !!userData.isAdmin,
+            isRestricted: !!userData.isRestricted,
+          };
+          setUser(loggedInUser);
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(loggedInUser));
+          setIsLoading(false);
+          return { success: true, user: loggedInUser };
+        } else {
+          setIsLoading(false);
+          return { success: false, message: "Invalid username or password.", user: null };
+        }
       } else {
         setIsLoading(false);
-        return { success: false, message: data.error || "Login failed", user: null };
+        return { success: false, message: "Invalid username or password.", user: null };
       }
     } catch (error) {
-      console.error("Error calling login API:", error);
+      console.error("Error during client-side login:", error);
       setIsLoading(false);
       return { success: false, message: "An unexpected error occurred during login.", user: null };
     }
@@ -86,7 +93,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
-    // Optionally, could call an /api/logout route if server-side session cleanup is needed
     router.push('/login');
   }, [router]);
 

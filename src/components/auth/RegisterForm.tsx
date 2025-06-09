@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
-import axios from 'axios';
+// Removed axios as IP fetching logic will be simple fetch
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { db } from "@/lib/firebase"; // Import client-side db
+import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore"; // Import Firestore functions
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
@@ -36,14 +38,14 @@ const RegisterForm = () => {
   const { toast } = useToast();
   const [ipAddress, setIpAddress] = useState('');
   const [autoGenerateUsername, setAutoGenerateUsername] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Renamed isLoading to isSubmitting
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { settings: appSettings, isLoading: isLoadingSettings } = useAppSettings();
   const [displayLogoUrl, setDisplayLogoUrl] = useState(siteConfig.defaultLogoUrl);
 
   useEffect(() => {
     if (!isLoadingSettings) {
-      if (appSettings?.logoUrl && appSettings.updateLogoOnLogin) { // Assuming register page uses same logo logic
+      if (appSettings?.logoUrl && appSettings.updateLogoOnLogin) {
         setDisplayLogoUrl(appSettings.logoUrl);
       } else {
         setDisplayLogoUrl(siteConfig.defaultLogoUrl);
@@ -64,7 +66,7 @@ const RegisterForm = () => {
     const nameValue = form.getValues("name");
     if (nameValue) {
       const firstName = nameValue.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/gi, ''); 
-      const randomNumber = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+      const randomNumber = Math.floor(1000 + Math.random() * 9000);
       form.setValue("username", `${firstName}${randomNumber}`, { shouldValidate: true });
     } else {
       form.setValue("username", "", { shouldValidate: true });
@@ -81,8 +83,9 @@ const RegisterForm = () => {
   useEffect(() => {
     const getIpAddress = async () => {
       try {
-        const response = await axios.get('https://api.ipify.org?format=json');
-        setIpAddress(response.data.ip);
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        setIpAddress(data.ip);
       } catch (error) {
         console.error('Error fetching IP address:', error);
       }
@@ -90,34 +93,44 @@ const RegisterForm = () => {
     getIpAddress();
   }, []);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>>) => {
     setIsSubmitting(true);
     try {
-      const response = await axios.post('/api/register', {
-        ...values,
-        ipAddress,
-        isAdmin: false, 
-      });
+      const userDocRef = doc(db, "users", values.username);
+      const docSnap = await getDoc(userDocRef);
 
-      if (response.status === 201) {
-        toast({
-          title: "Registration Successful",
-          description: "You have successfully registered.",
-        });
-        router.push('/login');
-      } else {
+      if (docSnap.exists()) {
         toast({
           variant: "destructive",
           title: "Registration Failed",
-          description: response.data.error || "Something went wrong. Please try again.",
+          description: "Username already exists.",
         });
+        setIsSubmitting(false);
+        return;
       }
+
+      await setDoc(userDocRef, {
+        name: values.name,
+        username: values.username,
+        password: values.password, // Storing password in PLAINTEXT (INSECURE)
+        ipAddress: ipAddress || null,
+        isAdmin: false,
+        isRestricted: false,
+        createdAt: Timestamp.now(), // Using Firestore Timestamp
+      });
+
+      toast({
+        title: "Registration Successful",
+        description: "You have successfully registered. Please login.",
+      });
+      router.push('/login');
+
     } catch (error: any) {
       console.error('Error registering:', error);
       toast({
         variant: "destructive",
         title: "Registration Failed",
-        description: error.response?.data?.error || "Something went wrong. Please try again.",
+        description: error.message || "Something went wrong. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
