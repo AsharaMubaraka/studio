@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { siteConfig } from "@/config/site";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase"; 
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, onSnapshot, Unsubscribe } from "firebase/firestore"; // Added onSnapshot, Unsubscribe
 import { incrementDownloadCountAction } from "@/actions/imageActions";
 
 interface SimpleMediaItem {
@@ -24,7 +24,6 @@ interface SimpleMediaItem {
   downloadCount: number;
 }
 
-// Reordered as requested: Wallpapers first, then DPs
 const initialHardcodedImages: Omit<SimpleMediaItem, 'downloadCount'>[] = [
   {
     id: "wallpaper-01",
@@ -100,7 +99,9 @@ const initialHardcodedImages: Omit<SimpleMediaItem, 'downloadCount'>[] = [
 
 
 export default function DownloadsPage() {
-  const [images, setImages] = useState<SimpleMediaItem[]>([]);
+  const [images, setImages] = useState<SimpleMediaItem[]>(
+    initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 }))
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<SimpleMediaItem | null>(null);
@@ -110,81 +111,94 @@ export default function DownloadsPage() {
   useEffect(() => {
     document.title = `Media Downloads | ${siteConfig.name}`;
 
-    const fetchAndInitializeCounts = async () => {
-      if (!db) {
-        setError("Database connection not available. Cannot fetch download counts.");
-        setIsLoading(false);
-        setImages(Array.isArray(initialHardcodedImages) ? initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 })) : []);
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const updatedImagesPromises = Array.isArray(initialHardcodedImages) ? initialHardcodedImages.map(async (hardcodedImg) => {
-          const docRef = doc(db, "media_gallery", hardcodedImg.id);
-          const docSnap = await getDoc(docRef);
-          let count = 0;
-          
-          if (docSnap.exists()) {
-            const firestoreData = docSnap.data();
-            count = firestoreData?.downloadCount || 0;
-            // Ensure Firestore has the correct (i.ibb.co) URL
-            if (firestoreData?.imageUrl !== hardcodedImg.imageUrl || 
-                firestoreData?.title !== hardcodedImg.title ||
-                firestoreData?.description !== (hardcodedImg.description || null)) {
-              try {
-                await setDoc(docRef, { 
-                  imageUrl: hardcodedImg.imageUrl,
-                  title: hardcodedImg.title,
-                  description: hardcodedImg.description || null,
-                  // Preserve other fields like createdAt, uploaderId if they exist
-                  filePath: firestoreData?.filePath || `hardcoded/${hardcodedImg.id}`, 
-                  uploaderId: firestoreData?.uploaderId || "system",
-                  uploaderName: firestoreData?.uploaderName || "System (Hardcoded)",
-                  createdAt: firestoreData?.createdAt || serverTimestamp(), 
-                  downloadCount: count, // Preserve existing count
-                }, { merge: true });
-                console.log(`Updated/Verified Firestore doc for ${hardcodedImg.id} with imageUrl ${hardcodedImg.imageUrl}`);
-              } catch (updateError) {
-                console.warn(`Failed to update/verify Firestore for ${hardcodedImg.id}:`, updateError);
-              }
-            }
-          } else {
-            // Document doesn't exist, create it with the hardcoded details
-            try {
-              const newDocData = {
-                title: hardcodedImg.title,
-                description: hardcodedImg.description || null,
-                imageUrl: hardcodedImg.imageUrl,
-                filePath: `hardcoded/${hardcodedImg.id}`, 
-                uploaderId: "system",
-                uploaderName: "System (Hardcoded)",
-                createdAt: serverTimestamp(), 
-                downloadCount: 0,
-              };
-              await setDoc(docRef, newDocData);
-              console.log(`Created Firestore doc for ${hardcodedImg.id} with imageUrl ${hardcodedImg.imageUrl}`);
-            } catch (setDocError) {
-                console.warn(`Failed to create Firestore doc for ${hardcodedImg.id}:`, setDocError);
-            }
+    if (!db) {
+      setError("Database connection not available. Cannot fetch download counts.");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    const unsubscribers: Unsubscribe[] = [];
+    let initialLoadsPending = initialHardcodedImages.length;
+
+    initialHardcodedImages.forEach((hardcodedImg) => {
+      const docRef = doc(db, "media_gallery", hardcodedImg.id);
+      
+      const unsubscribe = onSnapshot(docRef, async (docSnap) => {
+        let currentCount = 0;
+        let updateFirestore = false;
+        let firestoreDataToSet: any = {
+          // Fields from hardcodedImg always take precedence for core info
+          title: hardcodedImg.title,
+          description: hardcodedImg.description || null,
+          imageUrl: hardcodedImg.imageUrl, 
+          // Default fields for new documents or if missing
+          filePath: `hardcoded/${hardcodedImg.id}`,
+          uploaderId: "system",
+          uploaderName: "System (Hardcoded)",
+        };
+
+        if (docSnap.exists()) {
+          const firestoreData = docSnap.data();
+          currentCount = firestoreData?.downloadCount || 0;
+          firestoreDataToSet = { ...firestoreData, ...firestoreDataToSet, downloadCount: currentCount }; // Merge existing with hardcoded, ensuring hardcoded URL wins
+
+          // Check if Firestore needs update (e.g., URL changed in code)
+          if (firestoreData?.imageUrl !== hardcodedImg.imageUrl ||
+              firestoreData?.title !== hardcodedImg.title ||
+              firestoreData?.description !== (hardcodedImg.description || null)) {
+            updateFirestore = true;
           }
-          return { 
-            ...hardcodedImg, 
-            downloadCount: count 
-          };
-        }) : [];
+        } else {
+          // Document doesn't exist, will be created
+          updateFirestore = true;
+          firestoreDataToSet.createdAt = serverTimestamp();
+          firestoreDataToSet.downloadCount = 0; // New doc, so count is 0
+        }
 
-        const resolvedImages = await Promise.all(updatedImagesPromises);
-        setImages(resolvedImages);
-      } catch (fetchError: any) {
-        console.error("Error fetching/initializing download counts:", fetchError);
-        setError("Failed to load download counts. Displaying images without live counts.");
-        setImages(Array.isArray(initialHardcodedImages) ? initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 })) : []);
-      } finally {
+        if (updateFirestore) {
+          try {
+            await setDoc(docRef, firestoreDataToSet, { merge: !docSnap.exists() }); // Merge if exists, overwrite if new
+            console.log(`${docSnap.exists() ? 'Updated' : 'Created'} Firestore doc for ${hardcodedImg.id} with imageUrl ${hardcodedImg.imageUrl}`);
+          } catch (setDocError) {
+            console.warn(`Failed to ${docSnap.exists() ? 'update' : 'create'} Firestore doc for ${hardcodedImg.id}:`, setDocError);
+          }
+        }
+        
+        setImages(prevImages =>
+          prevImages.map(img =>
+            img.id === hardcodedImg.id ? { ...img, downloadCount: currentCount, imageUrl: hardcodedImg.imageUrl } : img
+          )
+        );
+
+        if (initialLoadsPending > 0) {
+          initialLoadsPending--;
+          if (initialLoadsPending === 0) {
+            setIsLoading(false);
+          }
+        }
+
+      }, (err) => {
+        console.error(`Error listening to image ${hardcodedImg.id}:`, err);
+        setError(`Failed to load real-time data for ${hardcodedImg.title}.`);
+        if (initialLoadsPending > 0) {
+          initialLoadsPending--;
+          if (initialLoadsPending === 0) {
+            setIsLoading(false);
+          }
+        }
+      });
+      unsubscribers.push(unsubscribe);
+    });
+
+    // If there are no hardcoded images, set loading to false immediately
+    if (initialHardcodedImages.length === 0) {
         setIsLoading(false);
-      }
-    };
+    }
 
-    fetchAndInitializeCounts();
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
   }, []);
 
   const handleDownload = async (imageToDownload: SimpleMediaItem | null) => {
@@ -202,16 +216,8 @@ export default function DownloadsPage() {
         const proxyUrl = `/api/download?url=${encodeURIComponent(imageToDownload.imageUrl)}`;
         window.location.href = proxyUrl;
         
-        const result = await incrementDownloadCountAction(imageToDownload.id);
-        if (result.success) {
-            setImages(prevImages =>
-                prevImages.map(img =>
-                    img.id === imageToDownload.id ? { ...img, downloadCount: (img.downloadCount || 0) + 1 } : img
-                )
-            );
-        } else {
-            console.warn(`Failed to update download count for ${imageToDownload.id}: ${result.message}`);
-        }
+        // Server action will increment count, Firestore listener will update UI
+        await incrementDownloadCountAction(imageToDownload.id); 
         
         toast({
             title: "Shukran!",
@@ -232,10 +238,10 @@ export default function DownloadsPage() {
   const totalDownloads = images.reduce((acc, img) => acc + (img.downloadCount || 0), 0);
 
   const renderContent = () => {
-    if (isLoading && images.length === 0) {
+    if (isLoading && images.every(img => img.downloadCount === 0)) { // Show skeleton only if all counts are 0 during initial load
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {(Array.isArray(initialHardcodedImages) ? initialHardcodedImages : []).map((_, i) => (
+          {initialHardcodedImages.map((img, i) => (
             <Card key={i} className="overflow-hidden">
               <Skeleton className="aspect-video w-full" />
               <CardContent className="p-4 space-y-2">
@@ -296,7 +302,7 @@ export default function DownloadsPage() {
               </p>
               <p className="text-xs text-muted-foreground mt-2 flex items-center">
                 <TrendingUp className="mr-1.5 h-4 w-4 text-primary/70" />
-                Downloads: {(image.downloadCount || 0).toLocaleString()}
+                Downloads: {isLoading && image.downloadCount === 0 ? <Loader2 className="h-3 w-3 animate-spin inline-block ml-1" /> : (image.downloadCount || 0).toLocaleString()}
               </p>
             </CardContent>
             <CardFooter className="p-4 border-t mt-auto">
@@ -318,30 +324,19 @@ export default function DownloadsPage() {
         <p className="text-lg text-muted-foreground mt-2">Browse and download from our gallery.</p>
       </div>
 
-      {isLoading && images.length === 0 ? (
-        <div className="mt-6 mb-8">
-          <Card className="max-w-sm mx-auto shadow-md">
-            <CardContent className="p-4 text-center">
-              <Skeleton className="h-6 w-48 mx-auto" />
-              <Skeleton className="h-10 w-24 mx-auto mt-2" />
-            </CardContent>
-          </Card>
-        </div>
-      ) : images.length > 0 ? (
-        <Card className="mt-6 mb-8 max-w-sm mx-auto shadow-md bg-card">
-          <CardContent className="p-4 text-center">
-            <div className="flex items-center justify-center text-xl font-semibold text-card-foreground">
-              <TrendingUp className="mr-2 h-6 w-6 text-primary" />
-              Total Gallery Downloads
-            </div>
-            <p className="text-3xl font-bold text-primary mt-1">
-              {totalDownloads.toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-      ) : null}
+      <Card className="mt-6 mb-8 max-w-sm mx-auto shadow-md bg-card">
+        <CardContent className="p-4 text-center">
+          <div className="flex items-center justify-center text-xl font-semibold text-card-foreground">
+            <TrendingUp className="mr-2 h-6 w-6 text-primary" />
+            Total Gallery Downloads
+          </div>
+          <p className="text-3xl font-bold text-primary mt-1">
+            {isLoading && totalDownloads === 0 ? <Loader2 className="h-7 w-7 animate-spin inline-block" /> : totalDownloads.toLocaleString()}
+          </p>
+        </CardContent>
+      </Card>
       
-      {error && images.length === 0 && (
+      {error && ( // Display general error if any, but still try to render content if images array has data
         <Alert variant="destructive" className="mb-4 max-w-md mx-auto">
           <AlertTriangle className="h-5 w-5" />
           <AlertDescription>{error}</AlertDescription>
@@ -350,8 +345,8 @@ export default function DownloadsPage() {
       
       {renderContent()}
 
-      <Dialog open={!!selectedImage} onOpenChange={(open) => { if (!open) setSelectedImage(null); }}>
-        {selectedImage && selectedImage.imageUrl && (
+      {selectedImage && (
+        <Dialog open={!!selectedImage} onOpenChange={(open) => { if (!open) setSelectedImage(null); }}>
           <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0">
             <DialogHeader className="p-4 border-b">
               <DialogTitle>Image Preview: {selectedImage.title}</DialogTitle>
@@ -386,8 +381,8 @@ export default function DownloadsPage() {
                 <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
             </DialogFooter>
           </DialogContent>
-        )}
-      </Dialog>
+        </Dialog>
+      )}
     </div>
   );
 }
