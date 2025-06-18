@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Bell, Globe, Youtube, Users, MessageSquarePlus, Settings, Image as ImageIconLucide, DownloadCloud } from 'lucide-react'; // Added ImageIconLucide, DownloadCloud
+import { LayoutDashboard, Bell, Globe, Youtube, Users, MessageSquarePlus, Settings, Image as ImageIconLucide, DownloadCloud } from 'lucide-react';
 
 export type NavItemConfig = {
   title: string;
@@ -30,11 +30,11 @@ export const userNavItems: NavItemConfig[] = [
     href: '/live-relay',
     icon: Youtube,
   },
-  {
-    title: 'Media Downloads', // New Public Page
-    href: '/downloads',
-    icon: DownloadCloud,
-  },
+  // { // Removed Media Downloads from user navigation
+  //   title: 'Media Downloads',
+  //   href: '/downloads',
+  //   icon: DownloadCloud,
+  // },
 ];
 
 export const adminNavItems: NavItemConfig[] = [
@@ -53,11 +53,11 @@ export const adminNavItems: NavItemConfig[] = [
     href: '/users',
     icon: Users,
   },
-  {
-    title: 'Manage Media', // New Admin Page
-    href: '/manage-media',
-    icon: ImageIconLucide,
-  },
+  // { // Removed Manage Media from admin navigation
+  //   title: 'Manage Media',
+  //   href: '/manage-media',
+  //   icon: ImageIconLucide,
+  // },
   {
     title: 'Live Relay',
     href: '/live-relay',
