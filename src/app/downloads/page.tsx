@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { siteConfig } from "@/config/site";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase"; 
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore"; // Added Timestamp
 import { incrementDownloadCountAction } from "@/actions/imageActions";
 
 interface SimpleMediaItem {
@@ -112,21 +112,23 @@ export default function DownloadsPage() {
       if (!db) {
         setError("Database connection not available. Cannot fetch download counts.");
         setIsLoading(false);
-        setImages(initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 })))
+        // Ensure initialHardcodedImages is treated as an array before mapping
+        setImages(Array.isArray(initialHardcodedImages) ? initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 })) : []);
         return;
       }
       setIsLoading(true);
       try {
-        const updatedImagesPromises = initialHardcodedImages.map(async (hardcodedImg) => {
+        const updatedImagesPromises = Array.isArray(initialHardcodedImages) ? initialHardcodedImages.map(async (hardcodedImg) => {
           const docRef = doc(db, "media_gallery", hardcodedImg.id);
           const docSnap = await getDoc(docRef);
           let count = 0;
+          let firestoreData: any = {};
           if (docSnap.exists()) {
-            count = docSnap.data()?.downloadCount || 0;
+            firestoreData = docSnap.data();
+            count = firestoreData?.downloadCount || 0;
           } else {
-            // Document doesn't exist, create it with count 0 and basic info
             try {
-              await setDoc(docRef, {
+              const newDocData = {
                 title: hardcodedImg.title,
                 description: hardcodedImg.description || null,
                 imageUrl: hardcodedImg.imageUrl,
@@ -135,19 +137,27 @@ export default function DownloadsPage() {
                 uploaderName: "System (Hardcoded)",
                 createdAt: serverTimestamp(), 
                 downloadCount: 0,
-              });
+              };
+              await setDoc(docRef, newDocData);
+              firestoreData = newDocData; // Use this for the item
             } catch (setDocError) {
                 console.warn(`Failed to create Firestore doc for ${hardcodedImg.id}:`, setDocError);
             }
           }
-          return { ...hardcodedImg, downloadCount: count };
-        });
+          return { 
+            ...hardcodedImg, 
+            title: firestoreData?.title || hardcodedImg.title,
+            description: firestoreData?.description || hardcodedImg.description,
+            imageUrl: firestoreData?.imageUrl || hardcodedImg.imageUrl,
+            downloadCount: count 
+          };
+        }) : [];
         const resolvedImages = await Promise.all(updatedImagesPromises);
         setImages(resolvedImages);
       } catch (fetchError: any) {
         console.error("Error fetching/initializing download counts:", fetchError);
         setError("Failed to load download counts. Displaying images without live counts.");
-        setImages(initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 })));
+        setImages(Array.isArray(initialHardcodedImages) ? initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 })) : []);
       } finally {
         setIsLoading(false);
       }
@@ -160,35 +170,37 @@ export default function DownloadsPage() {
   const handleDownload = async (image: SimpleMediaItem) => {
     setIsDownloading(image.id);
     try {
-      const response = await fetch(image.imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      const link = document.createElement('a');
+      link.href = image.imageUrl;
+  
+      // Extract filename from URL more robustly
+      let filename = "download"; // Default filename
+      try {
+          const url = new URL(image.imageUrl);
+          const pathname = url.pathname; // e.g., /v0/b/bucket/o/filename.png
+          const parts = pathname.split('/');
+          const encodedNameWithQuery = parts.pop() || "download"; // Get last segment: filename.png?alt=media&token=...
+          const nameWithoutQuery = encodedNameWithQuery.split('?')[0]; // Remove query params: filename.png
+          if (nameWithoutQuery) {
+              filename = decodeURIComponent(nameWithoutQuery); // Decode URI components like %2F
+          } else {
+             // Fallback to title if parsing failed badly
+             filename = `${image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') || 'download'}.png`;
+          }
+      } catch (e) {
+          console.warn("Could not parse URL for filename, using title-based fallback.", e);
+          const extensionMatch = image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i);
+          if (extensionMatch && extensionMatch[1]) {
+             filename = `${image.title.replace(/[^a-zA-Z0-9_.-]/g, '_')}.${extensionMatch[1]}`;
+          } else {
+             filename = `${image.title.replace(/[^a-zA-Z0-9_.-]/g, '_')}.png`;
+          }
       }
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      
-      let filename = image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') || "download";
-      const extensionMatch = image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i);
-      if (extensionMatch && extensionMatch[1]) {
-        filename += `.${extensionMatch[1]}`;
-      } else {
-        // Fallback to blob type if extension is not in URL
-        const typeParts = blob.type.split('/');
-        if (typeParts[0] === 'image' && typeParts[1]) {
-            filename += `.${typeParts[1]}`;
-        } else {
-            filename += '.png'; // Default if type is unknown
-        }
-      }
+  
       link.setAttribute('download', filename);
-      
-      document.body.appendChild(link);
+      document.body.appendChild(link); // Append to body to ensure it's clickable
       link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(objectUrl);
+      document.body.removeChild(link); // Clean up
       
       toast({ title: "Download Initiated", description: `Downloading ${filename}...`});
 
@@ -215,7 +227,7 @@ export default function DownloadsPage() {
     if (isLoading && (!images || images.length === 0)) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {(initialHardcodedImages && Array.isArray(initialHardcodedImages) ? initialHardcodedImages : []).map((_, i) => (
+          {(Array.isArray(initialHardcodedImages) ? initialHardcodedImages : []).map((_, i) => (
             <Card key={i} className="overflow-hidden">
               <Skeleton className="aspect-video w-full" />
               <CardContent className="p-4 space-y-2">
@@ -240,7 +252,7 @@ export default function DownloadsPage() {
       );
     }
 
-    if (!images || images.length === 0) {
+    if (!Array.isArray(images) || images.length === 0) { // Added check for images being an array
       return (
          <Alert className="max-w-md mx-auto text-center">
             <ImageOff className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
@@ -266,6 +278,7 @@ export default function DownloadsPage() {
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     data-ai-hint={image.dataAiHint || "wallpaper image"}
+                    unoptimized={!!image.imageUrl?.includes('?') || !!image.imageUrl?.includes('&')}
                   />
                 </div>
               </DialogTrigger>
@@ -284,6 +297,7 @@ export default function DownloadsPage() {
                               height={800}
                               className="max-w-full max-h-[65vh] object-contain rounded"
                               data-ai-hint={selectedImage.dataAiHint || "wallpaper image"}
+                              unoptimized={!!selectedImage.imageUrl?.includes('?') || !!selectedImage.imageUrl?.includes('&')}
                           />
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                               <span 
@@ -335,7 +349,7 @@ export default function DownloadsPage() {
         <h1 className="text-4xl font-bold tracking-tight text-primary">Media Downloads</h1>
         <p className="text-lg text-muted-foreground mt-2">Browse and download from our gallery.</p>
       </div>
-      {error && !isLoading && (!images || images.length === 0) && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
+      {error && !isLoading && (!Array.isArray(images) || images.length === 0) && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
       {renderContent()}
     </div>
   );
