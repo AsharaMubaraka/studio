@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, UploadCloud, List, Trash2, Image as ImageIconLucide, Eye, Download } from "lucide-react";
@@ -251,13 +251,9 @@ export default function ManageMediaPage() {
                     <p className="text-xs text-muted-foreground flex items-center"><Download className="mr-1 h-3 w-3"/>Downloads: {image.downloadCount || 0}</p>
                   </CardContent>
                   <CardFooter className="p-2 border-t flex gap-1">
-                    <Dialog onOpenChange={(open) => !open && setSelectedImageForAdminView(null)}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedImageForAdminView(image)}>
-                          <Eye className="mr-1.5 h-3.5 w-3.5"/>View
-                        </Button>
-                      </DialogTrigger>
-                    </Dialog>
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedImageForAdminView(image)}>
+                      <Eye className="mr-1.5 h-3.5 w-3.5"/>View
+                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="destructive" size="sm" className="flex-1" disabled={isDeleting === image.id}>
@@ -288,36 +284,38 @@ export default function ManageMediaPage() {
         </CardContent>
       </Card>
       
-      {selectedImageForAdminView && (
-        <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
-            <DialogHeader className="p-4 border-b">
-                <DialogTitle>Image Preview: {selectedImageForAdminView.title}</DialogTitle>
-                {selectedImageForAdminView.description && <DialogDescription>{selectedImageForAdminView.description}</DialogDescription>}
-            </DialogHeader>
-            <div className="p-4 relative max-h-[70vh] overflow-y-auto flex justify-center items-center bg-black/5">
-                <div className="relative inline-block">
-                    <Image
-                        src={selectedImageForAdminView.imageUrl}
-                        alt={selectedImageForAdminView.title}
-                        width={1200}
-                        height={800}
-                        className="max-w-full max-h-[65vh] object-contain rounded"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span 
-                            className="text-6xl md:text-8xl font-bold text-white/20 transform -rotate-12 select-none"
-                            style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)'}}
-                        >
-                            deeniakhbar
-                        </span>
-                    </div>
-                </div>
-            </div>
-            <DialogFooter className="p-4 border-t">
-                <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
-            </DialogFooter>
-        </DialogContent>
-      )}
+      <Dialog open={!!selectedImageForAdminView} onOpenChange={(isOpen) => { if (!isOpen) setSelectedImageForAdminView(null); }}>
+        {selectedImageForAdminView && (
+          <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+              <DialogHeader className="p-4 border-b">
+                  <DialogTitle>Image Preview: {selectedImageForAdminView.title}</DialogTitle>
+                  {selectedImageForAdminView.description && <DialogDescription>{selectedImageForAdminView.description}</DialogDescription>}
+              </DialogHeader>
+              <div className="p-4 relative max-h-[70vh] overflow-y-auto flex justify-center items-center bg-black/5">
+                  <div className="relative inline-block">
+                      <Image
+                          src={selectedImageForAdminView.imageUrl}
+                          alt={selectedImageForAdminView.title}
+                          width={1200}
+                          height={800}
+                          className="max-w-full max-h-[65vh] object-contain rounded"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span 
+                              className="text-6xl md:text-8xl font-bold text-white/20 transform -rotate-12 select-none"
+                              style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)'}}
+                          >
+                              deeniakhbar
+                          </span>
+                      </div>
+                  </div>
+              </div>
+              <DialogFooter className="p-4 border-t">
+                  <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
+              </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
 
     </div>
   );
