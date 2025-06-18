@@ -26,70 +26,70 @@ interface SimpleMediaItem {
 
 const initialHardcodedImages: Omit<SimpleMediaItem, 'downloadCount'>[] = [
   {
-    id: "dp-01", // Matched with DP-1.png
+    id: "dp-01",
     title: "DP 01",
     imageUrl: "https://i.ibb.co/8FWdWST/DP-1.png",
     description: "Ashara Mubaraka Display Picture - Design 1",
     dataAiHint: "profile picture"
   },
   {
-    id: "dp-02", // Matched with DP-2.png
+    id: "dp-02",
     title: "DP 02",
     imageUrl: "https://i.ibb.co/wrjdhTMZ/DP-2.png",
     description: "Ashara Mubaraka Display Picture - Design 2",
     dataAiHint: "avatar graphic"
   },
   {
-    id: "dp-03", // Matched with DP-3.png
+    id: "dp-03",
     title: "DP 03",
     imageUrl: "https://i.ibb.co/V0twts6z/DP-3.png",
     description: "Ashara Mubaraka Display Picture - Design 3",
     dataAiHint: "icon design"
   },
   {
-    id: "dp-04", // Matched with DP-4.png
+    id: "dp-04",
     title: "DP 04",
     imageUrl: "https://i.ibb.co/gZLCrmwL/DP-4.png",
     description: "Ashara Mubaraka Display Picture - Design 4",
     dataAiHint: "abstract art"
   },
   {
-    id: "dp-05", // Matched with DP-5.png
+    id: "dp-05",
     title: "DP 05",
     imageUrl: "https://i.ibb.co/vCq9fkZj/DP-5.png",
     description: "Ashara Mubaraka Display Picture - Design 5",
     dataAiHint: "modern design"
   },
   {
-    id: "dp-06", // Matched with DP-6.png
+    id: "dp-06",
     title: "DP 06",
     imageUrl: "https://i.ibb.co/s9gJ0jhY/DP-6.png",
     description: "Ashara Mubaraka Display Picture - Design 6",
     dataAiHint: "artistic design"
   },
   {
-    id: "dp-07", // Matched with DP-7.png
+    id: "dp-07",
     title: "DP 07",
     imageUrl: "https://i.ibb.co/Dg51QVjY/DP-7.png",
     description: "Ashara Mubaraka Display Picture - Design 7",
     dataAiHint: "creative avatar"
   },
   {
-    id: "wallpaper-01", // Matched with Wallpaper-1.png
+    id: "wallpaper-01",
     title: "Wallpaper 01",
     imageUrl: "https://i.ibb.co/Z6y3BsNj/Wallpaper-1.png",
     description: "Ashara Mubaraka Wallpaper & DP Series - Design 1",
     dataAiHint: "abstract spiritual"
   },
   {
-    id: "wallpaper-02", // Matched with Wallpaper-2.png
+    id: "wallpaper-02",
     title: "Wallpaper 02",
     imageUrl: "https://i.ibb.co/1tCdMhWk/Wallpaper-2.png",
     description: "Ashara Mubaraka Wallpaper & DP Series - Design 2",
     dataAiHint: "geometric patterns"
   },
   {
-    id: "wallpaper-03", // Matched with Wallpaper-3.png
+    id: "wallpaper-03",
     title: "Wallpaper 03",
     imageUrl: "https://i.ibb.co/Tftx8jn/Wallpaper-3.png",
     description: "Ashara Mubaraka Wallpaper & DP Series - Design 3",
@@ -139,7 +139,7 @@ export default function DownloadsPage() {
                 downloadCount: 0,
               };
               await setDoc(docRef, newDocData);
-              firestoreData = newDocData; // Use this for title/desc if doc was just created
+              firestoreData = newDocData;
             } catch (setDocError) {
                 console.warn(`Failed to create Firestore doc for ${hardcodedImg.id}:`, setDocError);
             }
@@ -148,7 +148,7 @@ export default function DownloadsPage() {
             ...hardcodedImg, 
             title: firestoreData?.title || hardcodedImg.title,
             description: firestoreData?.description || hardcodedImg.description,
-            imageUrl: firestoreData?.imageUrl || hardcodedImg.imageUrl, // Ensure imageUrl from DB is used if available
+            imageUrl: firestoreData?.imageUrl || hardcodedImg.imageUrl,
             downloadCount: count 
           };
         }) : [];
@@ -180,9 +180,8 @@ export default function DownloadsPage() {
     try {
         const proxyUrl = `/api/download?url=${encodeURIComponent(imageToDownload.imageUrl)}`;
         
-        // This will navigate to the API route, which should then force a download.
-        // Opening in a new tab (_blank) is often better UX for downloads.
-        window.open(proxyUrl, '_self'); // Use _self to attempt download in same tab flow
+        // Navigate current window to the proxy URL
+        window.location.href = proxyUrl;
         
         const result = await incrementDownloadCountAction(imageToDownload.id);
         if (result.success) {
@@ -205,7 +204,12 @@ export default function DownloadsPage() {
         console.error("Download error:", err);
         toast({ variant: "destructive", title: "Download Error", description: err.message || "Could not download the file."});
     } finally {
-        setIsDownloading(null);
+        // Important: Set a timeout before resetting isDownloading to allow navigation to occur.
+        // If reset too quickly, the UI might re-enable button before download fully starts, 
+        // especially if navigation to proxy is slow or there's an issue.
+        setTimeout(() => {
+            setIsDownloading(null);
+        }, 2000); // 2 seconds delay, adjust if needed
     }
 };
 
@@ -253,7 +257,7 @@ export default function DownloadsPage() {
           <Card key={image.id} className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 group flex flex-col">
             <div 
               className="aspect-video w-full relative bg-muted cursor-pointer overflow-hidden"
-              onClick={() => setSelectedImage(image)} // Sets selected image for the single dialog
+              onClick={() => setSelectedImage(image)}
             >
               <Image
                 src={image.imageUrl}
@@ -299,7 +303,6 @@ export default function DownloadsPage() {
       
       {renderContent()}
 
-      {/* Single Dialog for Preview */}
       <Dialog open={!!selectedImage} onOpenChange={(open) => { if (!open) setSelectedImage(null); }}>
         {selectedImage && (
           <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0">
@@ -341,3 +344,5 @@ export default function DownloadsPage() {
     </div>
   );
 }
+
+    
