@@ -53,11 +53,11 @@ export const adminNavItems: NavItemConfig[] = [
     href: '/users',
     icon: Users,
   },
-  { 
-    title: 'Manage Media',
-    href: '/manage-media',
-    icon: ImageIconLucide,
-  },
+  // { 
+  //   title: 'Manage Media', // Removed this item
+  //   href: '/manage-media',
+  //   icon: ImageIconLucide,
+  // },
   {
     title: 'Live Relay',
     href: '/live-relay',

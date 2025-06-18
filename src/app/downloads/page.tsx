@@ -1,9 +1,10 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { getGalleryImagesAction, type MediaItem, incrementDownloadCountAction } from "@/actions/imageActions";
+// MediaItem and actions from imageActions are no longer needed here for fetching
+// import { type MediaItem, incrementDownloadCountAction } from "@/actions/imageActions"; 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Eye, Loader2, ImageOff, AlertTriangle } from "lucide-react";
@@ -13,59 +14,71 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { siteConfig } from "@/config/site";
 import { useToast } from "@/hooks/use-toast";
 
+// Simplified interface for hardcoded images
+interface SimpleMediaItem {
+  id: string;
+  title: string;
+  imageUrl: string;
+  description?: string;
+  dataAiHint?: string; // Optional AI hint for next/image
+}
+
+const hardcodedImages: SimpleMediaItem[] = [
+  {
+    id: "wallpaper-01",
+    title: "Wallpaper 01",
+    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/4_20250617_221801_0000.png?alt=media&token=0040f824-5016-4f5e-b651-b053ba371ca1",
+    description: "Ashara Mubaraka Wallpaper & DP Series - Design 1",
+    dataAiHint: "abstract spiritual"
+  },
+  {
+    id: "wallpaper-02",
+    title: "Wallpaper 02",
+    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/5_20250617_221801_0001.png?alt=media&token=004b31b6-3c45-4031-be3a-009c575e25a1",
+    description: "Ashara Mubaraka Wallpaper & DP Series - Design 2",
+    dataAiHint: "geometric patterns"
+  },
+  {
+    id: "wallpaper-03",
+    title: "Wallpaper 03",
+    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/6_20250617_221802_0002.png?alt=media&token=50000005-c8ca-4e29-850e-02c213edfa83",
+    description: "Ashara Mubaraka Wallpaper & DP Series - Design 3",
+    dataAiHint: "calligraphy design"
+  },
+  // Add more images here if needed, following the same structure
+];
+
 export default function DownloadsPage() {
-  const [images, setImages] = useState<MediaItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<MediaItem | null>(null);
+  const [images, setImages] = useState<SimpleMediaItem[]>(hardcodedImages);
+  const [isLoading, setIsLoading] = useState(false); // No initial loading from server
+  const [error, setError] = useState<string | null>(null); // For potential download errors
+  const [selectedImage, setSelectedImage] = useState<SimpleMediaItem | null>(null);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchImages = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const fetchedImages = await getGalleryImagesAction(); // Not admin view
-      setImages(fetchedImages);
-    } catch (err) {
-      console.error("Error fetching images for gallery:", err);
-      setError("Failed to load images. Please try again later.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     document.title = `Media Downloads | ${siteConfig.name}`;
-    fetchImages();
-  }, [fetchImages]);
+  }, []);
 
-  const handleDownload = async (image: MediaItem) => {
-    setIsDownloading(image.id); // Use image.id which is now consistently docId or sanitized filePath
+  const handleDownload = async (image: SimpleMediaItem) => {
+    setIsDownloading(image.id);
     try {
-      const response = await fetch(image.imageUrl);
-      if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
-      const blob = await response.blob();
+      // For direct Firebase URLs with tokens, fetching via a link is simplest
       const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      const nameParts = image.filePath.split('/'); // Use filePath for a more reliable original name basis
-      const defaultName = nameParts[nameParts.length -1];
-      link.download = image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') + `.${defaultName.split('.').pop() || 'jpg'}`;
+      link.href = image.imageUrl;
+      // Extract a filename or use a default one
+      const urlParts = image.imageUrl.split('?')[0].split('/');
+      const firebasePath = urlParts[urlParts.length - 1];
+      const decodedFirebasePath = decodeURIComponent(firebasePath);
+      const filename = decodedFirebasePath.substring(decodedFirebasePath.indexOf('/') + 1) || image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') + '.png';
+      
+      link.download = filename; 
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
       
-      // Increment download count using image.id
-      const incrementResult = await incrementDownloadCountAction(image.id);
-      if (incrementResult.success) {
-        setImages(prevImages => prevImages.map(img => 
-            img.id === image.id ? { ...img, downloadCount: (img.downloadCount || 0) + 1 } : img
-        ));
-      } else {
-        console.warn("Failed to increment download count on server:", incrementResult.message);
-      }
-
+      toast({ title: "Download Started", description: `Downloading ${image.title}...`});
+      // Download count increment is removed as we are not fetching metadata from Firestore
     } catch (err: any) {
       console.error("Download error:", err);
       toast({ variant: "destructive", title: "Download Error", description: err.message || "Could not download the file."});
@@ -82,9 +95,9 @@ export default function DownloadsPage() {
         <p className="text-lg text-muted-foreground mt-2">Browse and download from our gallery.</p>
       </div>
 
-      {isLoading ? (
+      {isLoading ? ( // This state is less relevant now but kept for consistency
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => (
+          {[...Array(hardcodedImages.length || 4)].map((_, i) => (
             <Card key={i} className="overflow-hidden">
               <Skeleton className="aspect-video w-full" />
               <CardContent className="p-4 space-y-2">
@@ -94,7 +107,7 @@ export default function DownloadsPage() {
             </Card>
           ))}
         </div>
-      ) : error ? (
+      ) : error ? ( // For download errors, not fetching errors
         <Alert variant="destructive" className="max-w-md mx-auto">
           <AlertTriangle className="h-5 w-5" />
           <AlertDescription>{error}</AlertDescription>
@@ -120,6 +133,7 @@ export default function DownloadsPage() {
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                       sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      data-ai-hint={image.dataAiHint || "wallpaper image"}
                     />
                   </div>
                 </DialogTrigger>
@@ -137,6 +151,7 @@ export default function DownloadsPage() {
                                 width={1200}
                                 height={800}
                                 className="max-w-full max-h-[65vh] object-contain rounded"
+                                data-ai-hint={selectedImage.dataAiHint || "wallpaper image"}
                             />
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <span 
@@ -162,11 +177,10 @@ export default function DownloadsPage() {
                 <CardTitle className="text-md font-semibold truncate" title={image.title}>{image.title}</CardTitle>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                 <p className="text-xs text-muted-foreground line-clamp-2" title={image.description || (image.title === image.filePath.substring(image.filePath.lastIndexOf('/') + 1).replace(/^\d{10,15}_/, '').substring(0, image.filePath.substring(image.filePath.lastIndexOf('/') + 1).replace(/^\d{10,15}_/, '').lastIndexOf('.')) ? "No description provided." : image.description || "No description")}>
-                    {image.description || (image.title === image.filePath.substring(image.filePath.lastIndexOf('/') + 1).replace(/^\d{10,15}_/, '').substring(0, image.filePath.substring(image.filePath.lastIndexOf('/') + 1).replace(/^\d{10,15}_/, '').lastIndexOf('.')) ? "No description provided." : "No description")}
+                 <p className="text-xs text-muted-foreground line-clamp-2" title={image.description}>
+                    {image.description || "Official wallpaper."}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">Downloads: {image.downloadCount || 0}</p>
-
+                {/* Download count is removed as it's not tracked for hardcoded list */}
               </CardContent>
               <CardFooter className="p-4 border-t">
                 <Button onClick={() => handleDownload(image)} className="w-full" disabled={isDownloading === image.id}>
@@ -182,4 +196,3 @@ export default function DownloadsPage() {
   );
 }
 
-    
