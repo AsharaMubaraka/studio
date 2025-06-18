@@ -122,16 +122,31 @@ export default function DownloadsPage() {
           const docRef = doc(db, "media_gallery", hardcodedImg.id);
           const docSnap = await getDoc(docRef);
           let count = 0;
-          let firestoreData: any = {};
+          
           if (docSnap.exists()) {
-            firestoreData = docSnap.data();
+            const firestoreData = docSnap.data();
             count = firestoreData?.downloadCount || 0;
+            // If Firestore imageUrl exists and is different from hardcoded, update Firestore
+            if (firestoreData?.imageUrl && firestoreData.imageUrl !== hardcodedImg.imageUrl) {
+              try {
+                await setDoc(docRef, { 
+                  imageUrl: hardcodedImg.imageUrl,
+                  // Also update title and description if they might change in hardcoded list
+                  title: hardcodedImg.title,
+                  description: hardcodedImg.description || null,
+                }, { merge: true });
+                console.log(`Updated imageUrl in Firestore for ${hardcodedImg.id} to ${hardcodedImg.imageUrl}`);
+              } catch (updateError) {
+                console.warn(`Failed to update imageUrl in Firestore for ${hardcodedImg.id}:`, updateError);
+              }
+            }
           } else {
+            // Document doesn't exist, create it with the hardcoded details
             try {
               const newDocData = {
                 title: hardcodedImg.title,
                 description: hardcodedImg.description || null,
-                imageUrl: hardcodedImg.imageUrl,
+                imageUrl: hardcodedImg.imageUrl, // Use hardcoded URL
                 filePath: `hardcoded/${hardcodedImg.id}`, 
                 uploaderId: "system",
                 uploaderName: "System (Hardcoded)",
@@ -139,24 +154,25 @@ export default function DownloadsPage() {
                 downloadCount: 0,
               };
               await setDoc(docRef, newDocData);
-              firestoreData = newDocData;
+              console.log(`Created Firestore doc for ${hardcodedImg.id} with imageUrl ${hardcodedImg.imageUrl}`);
             } catch (setDocError) {
                 console.warn(`Failed to create Firestore doc for ${hardcodedImg.id}:`, setDocError);
             }
           }
+          // Always return with the hardcodedImg details for the client state
+          // This ensures the client uses the i.ibb.co URLs
           return { 
             ...hardcodedImg, 
-            title: firestoreData?.title || hardcodedImg.title,
-            description: firestoreData?.description || hardcodedImg.description,
-            imageUrl: firestoreData?.imageUrl || hardcodedImg.imageUrl,
             downloadCount: count 
           };
         }) : [];
+
         const resolvedImages = await Promise.all(updatedImagesPromises);
         setImages(resolvedImages);
       } catch (fetchError: any) {
         console.error("Error fetching/initializing download counts:", fetchError);
         setError("Failed to load download counts. Displaying images without live counts.");
+        // Fallback to hardcoded images if Firestore operations fail broadly
         setImages(Array.isArray(initialHardcodedImages) ? initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 })) : []);
       } finally {
         setIsLoading(false);
@@ -167,11 +183,11 @@ export default function DownloadsPage() {
   }, []);
 
  const handleDownload = async (imageToDownload: SimpleMediaItem | null) => {
-    if (!imageToDownload) {
+    if (!imageToDownload || !imageToDownload.imageUrl) {
         toast({
             variant: "destructive",
             title: "Download Error",
-            description: "No image selected or image data is missing.",
+            description: "No image selected or image URL is missing.",
         });
         return;
     }
@@ -179,9 +195,9 @@ export default function DownloadsPage() {
     setIsDownloading(imageToDownload.id);
     try {
         const proxyUrl = `/api/download?url=${encodeURIComponent(imageToDownload.imageUrl)}`;
-        
         window.location.href = proxyUrl;
         
+        // Increment download count
         const result = await incrementDownloadCountAction(imageToDownload.id);
         if (result.success) {
             setImages(prevImages =>
@@ -203,6 +219,7 @@ export default function DownloadsPage() {
         console.error("Download error:", err);
         toast({ variant: "destructive", title: "Download Error", description: err.message || "Could not download the file."});
     } finally {
+        // Add a slight delay to allow navigation to proxyUrl to initiate
         setTimeout(() => {
             setIsDownloading(null);
         }, 2000); 
@@ -300,7 +317,7 @@ export default function DownloadsPage() {
       {renderContent()}
 
       <Dialog open={!!selectedImage} onOpenChange={(open) => { if (!open) setSelectedImage(null); }}>
-        {selectedImage && (
+        {selectedImage && selectedImage.imageUrl && ( // Ensure selectedImage and its imageUrl exist
           <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0">
             <DialogHeader className="p-4 border-b">
               <DialogTitle>Image Preview: {selectedImage.title}</DialogTitle>
@@ -309,7 +326,7 @@ export default function DownloadsPage() {
             <div className="p-4 relative max-h-[70vh] overflow-y-auto flex justify-center items-center bg-black/5">
                 <div className="relative inline-block">
                     <Image
-                        src={selectedImage.imageUrl}
+                        src={selectedImage.imageUrl} // Use selectedImage.imageUrl for preview
                         alt={selectedImage.title || "Selected image"}
                         width={1200}
                         height={800}
