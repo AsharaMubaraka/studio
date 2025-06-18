@@ -160,36 +160,38 @@ export default function DownloadsPage() {
   const handleDownload = async (image: SimpleMediaItem) => {
     setIsDownloading(image.id);
     try {
-      // Use fetch to get the image as a blob
-      const response = await fetch(image.imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
-      }
-      const blob = await response.blob();
-      
-      // Create a temporary link element
       const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
+      link.href = image.imageUrl;
       
-      // Extract filename from URL or use title
       const urlParts = image.imageUrl.split('?')[0].split('/');
       const firebasePathWithPotentialEncoding = urlParts[urlParts.length - 1];
-      const decodedFirebasePath = decodeURIComponent(firebasePathWithPotentialEncoding);
-      const filenameOnly = decodedFirebasePath.substring(decodedFirebasePath.lastIndexOf('/') + 1);
+      let decodedFirebasePath = "download";
+      try {
+        decodedFirebasePath = decodeURIComponent(firebasePathWithPotentialEncoding);
+      } catch (e) {
+        // If decoding fails, use the encoded path or a fallback
+        console.warn("Could not decode filename part:", firebasePathWithPotentialEncoding);
+        decodedFirebasePath = firebasePathWithPotentialEncoding;
+      }
       
+      // Attempt to get a more meaningful filename from the decoded path
+      const filenameOnly = decodedFirebasePath.substring(decodedFirebasePath.lastIndexOf('/') + 1) || decodedFirebasePath;
+      
+      // Fallback filename if extraction is not ideal
       const downloadFilename = filenameOnly || 
-                             (image.title && image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') + (blob.type.startsWith('image/') ? '.' + blob.type.split('/')[1] : '')) || 
-                             'download' + (blob.type.startsWith('image/') ? '.' + blob.type.split('/')[1] : '');
+                             (image.title && image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') + '.png') || // Assuming png, could be improved
+                             `download_${image.id}.png`;
       
-      link.download = downloadFilename;
+      link.setAttribute('download', downloadFilename);
       
+      // Append to an invisible part of the body, click, then remove
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(link.href); // Clean up the object URL
+      
+      toast({ title: "Download Initiated", description: `Downloading ${downloadFilename}...`});
 
-      toast({ title: "Download Started", description: `Downloading ${downloadFilename}...`});
-
+      // Increment download count
       const result = await incrementDownloadCountAction(image.id);
       if (result.success) {
         setImages(prevImages =>
@@ -213,7 +215,7 @@ export default function DownloadsPage() {
     if (isLoading && (!images || images.length === 0)) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {[...Array(initialHardcodedImages?.length || 4)].map((_, i) => (
+          {(initialHardcodedImages || []).map((_, i) => (
             <Card key={i} className="overflow-hidden">
               <Skeleton className="aspect-video w-full" />
               <CardContent className="p-4 space-y-2">
@@ -333,9 +335,9 @@ export default function DownloadsPage() {
         <h1 className="text-4xl font-bold tracking-tight text-primary">Media Downloads</h1>
         <p className="text-lg text-muted-foreground mt-2">Browse and download from our gallery.</p>
       </div>
-      {error && !isLoading && !images.length && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
+      {error && !isLoading && (!images || images.length === 0) && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
       {renderContent()}
     </div>
   );
 }
-
+    
