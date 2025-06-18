@@ -148,7 +148,7 @@ export default function DownloadsPage() {
             ...hardcodedImg, 
             title: firestoreData?.title || hardcodedImg.title,
             description: firestoreData?.description || hardcodedImg.description,
-            imageUrl: firestoreData?.imageUrl || hardcodedImg.imageUrl,
+            imageUrl: firestoreData?.imageUrl || hardcodedImg.imageUrl, // Ensure we use Firestore URL if available (though unlikely for this path)
             downloadCount: count 
           };
         }) : [];
@@ -180,7 +180,6 @@ export default function DownloadsPage() {
     try {
         const proxyUrl = `/api/download?url=${encodeURIComponent(imageToDownload.imageUrl)}`;
         
-        // Navigate current window to the proxy URL
         window.location.href = proxyUrl;
         
         const result = await incrementDownloadCountAction(imageToDownload.id);
@@ -204,12 +203,9 @@ export default function DownloadsPage() {
         console.error("Download error:", err);
         toast({ variant: "destructive", title: "Download Error", description: err.message || "Could not download the file."});
     } finally {
-        // Important: Set a timeout before resetting isDownloading to allow navigation to occur.
-        // If reset too quickly, the UI might re-enable button before download fully starts, 
-        // especially if navigation to proxy is slow or there's an issue.
         setTimeout(() => {
             setIsDownloading(null);
-        }, 2000); // 2 seconds delay, adjust if needed
+        }, 2000); 
     }
 };
 
@@ -344,5 +340,7 @@ export default function DownloadsPage() {
     </div>
   );
 }
+
+    
 
     
