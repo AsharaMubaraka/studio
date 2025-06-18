@@ -45,7 +45,55 @@ const hardcodedImages: SimpleMediaItem[] = [
     description: "Ashara Mubaraka Wallpaper & DP Series - Design 3",
     dataAiHint: "calligraphy design"
   },
-  // Add more images here if needed, following the same structure
+  {
+    id: "dp-01",
+    title: "DP 01",
+    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/7_20250618_084246_0006.png?alt=media&token=9a2d3f87-dbd3-471f-aa0e-94f6487ff29c",
+    description: "Ashara Mubaraka Display Picture - Design 1",
+    dataAiHint: "profile picture"
+  },
+  {
+    id: "dp-02",
+    title: "DP 02",
+    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/6_20250618_084246_0005.png?alt=media&token=c764a39c-f815-4bc8-8159-76d9ad6717d7",
+    description: "Ashara Mubaraka Display Picture - Design 2",
+    dataAiHint: "avatar graphic"
+  },
+  {
+    id: "dp-03",
+    title: "DP 03",
+    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/5_20250618_084246_0004.png?alt=media&token=9c2ea1a9-01e2-4423-9018-1bbd7bdabf23",
+    description: "Ashara Mubaraka Display Picture - Design 3",
+    dataAiHint: "icon design"
+  },
+  {
+    id: "dp-04",
+    title: "DP 04",
+    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/4_20250618_084246_0003.png?alt=media&token=f8cc498c-2816-4231-ab74-6e6c0beec70b",
+    description: "Ashara Mubaraka Display Picture - Design 4",
+    dataAiHint: "abstract art"
+  },
+  {
+    id: "dp-05",
+    title: "DP 05",
+    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/3_20250618_084246_0002.png?alt=media&token=dbebb14e-6c2c-486a-a500-708fa76b43b0",
+    description: "Ashara Mubaraka Display Picture - Design 5",
+    dataAiHint: "modern design"
+  },
+  {
+    id: "dp-06",
+    title: "DP 06",
+    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/2_20250618_084246_0001.png?alt=media&token=76709236-c10c-44a9-b36b-a5ddfdbf34ae",
+    description: "Ashara Mubaraka Display Picture - Design 6",
+    dataAiHint: "artistic design"
+  },
+  {
+    id: "dp-07",
+    title: "DP 07",
+    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/1_20250618_084246_0000.png?alt=media&token=a5ab1165-3ba5-4449-959c-011c3f811406",
+    description: "Ashara Mubaraka Display Picture - Design 7",
+    dataAiHint: "creative avatar"
+  },
 ];
 
 export default function DownloadsPage() {
@@ -196,3 +244,4 @@ export default function DownloadsPage() {
   );
 }
 
+    
