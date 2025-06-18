@@ -5,24 +5,23 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, Loader2, ImageOff, AlertTriangle, TrendingUp } from "lucide-react"; // Added TrendingUp for download count
+import { Download, Eye, Loader2, ImageOff, AlertTriangle, TrendingUp } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { siteConfig } from "@/config/site";
 import { useToast } from "@/hooks/use-toast";
-import { db } from "@/lib/firebase"; // Import db for client-side Firestore operations
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"; // Import Firestore functions
-import { incrementDownloadCountAction } from "@/actions/imageActions"; // Import server action
+import { db } from "@/lib/firebase"; 
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { incrementDownloadCountAction } from "@/actions/imageActions";
 
-// Updated interface for images, now including downloadCount
 interface SimpleMediaItem {
   id: string;
   title: string;
   imageUrl: string;
   description?: string;
   dataAiHint?: string;
-  downloadCount: number; // Added download count
+  downloadCount: number;
 }
 
 const initialHardcodedImages: Omit<SimpleMediaItem, 'downloadCount'>[] = [
@@ -99,9 +98,7 @@ const initialHardcodedImages: Omit<SimpleMediaItem, 'downloadCount'>[] = [
 ];
 
 export default function DownloadsPage() {
-  const [images, setImages] = useState<SimpleMediaItem[]>(
-    initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 }))
-  );
+  const [images, setImages] = useState<SimpleMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<SimpleMediaItem | null>(null);
@@ -115,6 +112,7 @@ export default function DownloadsPage() {
       if (!db) {
         setError("Database connection not available. Cannot fetch download counts.");
         setIsLoading(false);
+        setImages(initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 })))
         return;
       }
       setIsLoading(true);
@@ -127,16 +125,20 @@ export default function DownloadsPage() {
             count = docSnap.data()?.downloadCount || 0;
           } else {
             // Document doesn't exist, create it with count 0 and basic info
-            await setDoc(docRef, {
-              title: hardcodedImg.title,
-              description: hardcodedImg.description || null,
-              imageUrl: hardcodedImg.imageUrl,
-              filePath: `hardcoded/${hardcodedImg.id}`, // Placeholder filePath
-              uploaderId: "system",
-              uploaderName: "System (Hardcoded)",
-              createdAt: serverTimestamp(), // Firestore client-side serverTimestamp
-              downloadCount: 0,
-            });
+            try {
+              await setDoc(docRef, {
+                title: hardcodedImg.title,
+                description: hardcodedImg.description || null,
+                imageUrl: hardcodedImg.imageUrl,
+                filePath: `hardcoded/${hardcodedImg.id}`, 
+                uploaderId: "system",
+                uploaderName: "System (Hardcoded)",
+                createdAt: serverTimestamp(), 
+                downloadCount: 0,
+              });
+            } catch (setDocError) {
+                console.warn(`Failed to create Firestore doc for ${hardcodedImg.id}:`, setDocError);
+            }
           }
           return { ...hardcodedImg, downloadCount: count };
         });
@@ -145,7 +147,6 @@ export default function DownloadsPage() {
       } catch (fetchError: any) {
         console.error("Error fetching/initializing download counts:", fetchError);
         setError("Failed to load download counts. Displaying images without live counts.");
-        // Fallback to initial images with 0 counts if Firestore interaction fails
         setImages(initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 })));
       } finally {
         setIsLoading(false);
@@ -153,28 +154,42 @@ export default function DownloadsPage() {
     };
 
     fetchAndInitializeCounts();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount
+  }, []);
 
 
   const handleDownload = async (image: SimpleMediaItem) => {
     setIsDownloading(image.id);
     try {
-      const link = document.createElement("a");
-      link.href = image.imageUrl;
-      const urlParts = image.imageUrl.split('?')[0].split('/');
-      const firebasePath = urlParts[urlParts.length - 1];
-      const decodedFirebasePath = decodeURIComponent(firebasePath);
-      const filename = decodedFirebasePath.substring(decodedFirebasePath.indexOf('/') + 1) || (image.title && image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') + '.png') || 'download.png';
+      // Use fetch to get the image as a blob
+      const response = await fetch(image.imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+      const blob = await response.blob();
       
-      link.download = filename; 
+      // Create a temporary link element
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      
+      // Extract filename from URL or use title
+      const urlParts = image.imageUrl.split('?')[0].split('/');
+      const firebasePathWithPotentialEncoding = urlParts[urlParts.length - 1];
+      const decodedFirebasePath = decodeURIComponent(firebasePathWithPotentialEncoding);
+      const filenameOnly = decodedFirebasePath.substring(decodedFirebasePath.lastIndexOf('/') + 1);
+      
+      const downloadFilename = filenameOnly || 
+                             (image.title && image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') + (blob.type.startsWith('image/') ? '.' + blob.type.split('/')[1] : '')) || 
+                             'download' + (blob.type.startsWith('image/') ? '.' + blob.type.split('/')[1] : '');
+      
+      link.download = downloadFilename;
+      
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      toast({ title: "Download Started", description: `Downloading ${image.title}...`});
+      URL.revokeObjectURL(link.href); // Clean up the object URL
 
-      // Increment download count
+      toast({ title: "Download Started", description: `Downloading ${downloadFilename}...`});
+
       const result = await incrementDownloadCountAction(image.id);
       if (result.success) {
         setImages(prevImages =>
@@ -183,7 +198,6 @@ export default function DownloadsPage() {
           )
         );
       } else {
-        // Log error but don't block user if count update fails
         console.warn(`Failed to update download count for ${image.id}: ${result.message}`);
       }
 
@@ -196,10 +210,10 @@ export default function DownloadsPage() {
   };
 
   const renderContent = () => {
-    if (isLoading && images.every(img => img.downloadCount === 0)) { // Show skeleton only if initial counts are not yet loaded
+    if (isLoading && (!images || images.length === 0)) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {[...Array(initialHardcodedImages.length || 4)].map((_, i) => (
+          {[...Array(initialHardcodedImages?.length || 4)].map((_, i) => (
             <Card key={i} className="overflow-hidden">
               <Skeleton className="aspect-video w-full" />
               <CardContent className="p-4 space-y-2">
@@ -215,7 +229,7 @@ export default function DownloadsPage() {
       );
     }
 
-    if (error && images.every(img => img.downloadCount === 0)) { // Show global error only if counts couldn't be fetched at all
+    if (error && (!images || images.length === 0)) {
       return (
         <Alert variant="destructive" className="max-w-md mx-auto">
           <AlertTriangle className="h-5 w-5" />
@@ -319,10 +333,9 @@ export default function DownloadsPage() {
         <h1 className="text-4xl font-bold tracking-tight text-primary">Media Downloads</h1>
         <p className="text-lg text-muted-foreground mt-2">Browse and download from our gallery.</p>
       </div>
-      {error && !isLoading && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
+      {error && !isLoading && !images.length && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
       {renderContent()}
     </div>
   );
 }
 
-    
