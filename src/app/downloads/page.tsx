@@ -160,38 +160,38 @@ export default function DownloadsPage() {
   const handleDownload = async (image: SimpleMediaItem) => {
     setIsDownloading(image.id);
     try {
-      const link = document.createElement("a");
-      link.href = image.imageUrl;
-      
-      // Extract filename from URL path, before query parameters
-      let filename = "download.png"; // Default filename
-      const urlPath = new URL(image.imageUrl).pathname;
-      const pathParts = urlPath.split('/');
-      const lastPathPart = pathParts[pathParts.length - 1];
-      if (lastPathPart) {
-        // Decode URI component to handle spaces or special characters in filename
-        try {
-          filename = decodeURIComponent(lastPathPart);
-        } catch (e) {
-          // If decoding fails, use the raw part
-          filename = lastPathPart;
-          console.warn("Could not decode filename part:", lastPathPart);
-        }
-      } else if (image.title) {
-        // Fallback to image title if path extraction fails
-        filename = image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') + '.png'; // Assuming png
+      const response = await fetch(image.imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
       }
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
       
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      
+      let filename = image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') || "download";
+      const extensionMatch = image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i);
+      if (extensionMatch && extensionMatch[1]) {
+        filename += `.${extensionMatch[1]}`;
+      } else {
+        // Fallback to blob type if extension is not in URL
+        const typeParts = blob.type.split('/');
+        if (typeParts[0] === 'image' && typeParts[1]) {
+            filename += `.${typeParts[1]}`;
+        } else {
+            filename += '.png'; // Default if type is unknown
+        }
+      }
       link.setAttribute('download', filename);
       
-      // Append to body, click, then remove
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
       
       toast({ title: "Download Initiated", description: `Downloading ${filename}...`});
 
-      // Increment download count
       const result = await incrementDownloadCountAction(image.id);
       if (result.success) {
         setImages(prevImages =>
@@ -340,6 +340,4 @@ export default function DownloadsPage() {
     </div>
   );
 }
-    
-
     
