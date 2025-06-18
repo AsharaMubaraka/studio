@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"; // Added CardFooter
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, UploadCloud, List, Trash2, Image as ImageIconLucide, Eye, Download } from "lucide-react";
@@ -26,7 +26,7 @@ import Image from "next/image";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogDescription, DialogFooter as AdminDialogFooter } from "@/components/ui/dialog"; // Renamed DialogFooter import for clarity if needed, or use directly
 import { format } from "date-fns";
 import { siteConfig } from "@/config/site";
 
@@ -310,9 +310,9 @@ export default function ManageMediaPage() {
                       </div>
                   </div>
               </div>
-              <DialogFooter className="p-4 border-t">
+              <AdminDialogFooter className="p-4 border-t">
                   <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
-              </DialogFooter>
+              </AdminDialogFooter>
           </DialogContent>
         )}
       </Dialog>
