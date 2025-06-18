@@ -148,7 +148,7 @@ export default function DownloadsPage() {
             ...hardcodedImg, 
             title: firestoreData?.title || hardcodedImg.title,
             description: firestoreData?.description || hardcodedImg.description,
-            imageUrl: firestoreData?.imageUrl || hardcodedImg.imageUrl, // Ensure we use Firestore URL if available (though unlikely for this path)
+            imageUrl: firestoreData?.imageUrl || hardcodedImg.imageUrl,
             downloadCount: count 
           };
         }) : [];
@@ -340,7 +340,5 @@ export default function DownloadsPage() {
     </div>
   );
 }
-
     
-
     
