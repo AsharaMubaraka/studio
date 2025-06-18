@@ -1,9 +1,0 @@
-
-name = "ashara-mubaraka"
-compatibility_date = "2024-06-10"
-compatibility_flags = ["nodejs_compat"]
-
-# For Cloudflare Pages to correctly identify the output of `next-on-pages`
-# This directory contains the static assets. Functions are picked from .vercel/output/functions
-pages_build_output_dir = ".vercel/output/static"
-
