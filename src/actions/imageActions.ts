@@ -42,7 +42,23 @@ export interface MediaItem {
 }
 
 export async function uploadImageAction(formData: FormData, author: {id: string; name?: string}) {
-  console.log(`[Cloudinary Upload] Action started. Attempting to read CLOUDINARY_UPLOAD_PRESET. Value: '${process.env.CLOUDINARY_UPLOAD_PRESET}'`);
+  console.log("[uploadImageAction] Action started.");
+  console.log("[uploadImageAction] Received FormData. Keys:", Array.from(formData.keys()));
+
+  const rawTitle = formData.get("title");
+  const rawDescription = formData.get("description");
+  const rawFile = formData.get("file");
+
+  console.log(`[uploadImageAction] Raw title: '${String(rawTitle)}', type: ${typeof rawTitle}`);
+  console.log(`[uploadImageAction] Raw description: '${String(rawDescription)}', type: ${typeof rawDescription}`);
+  console.log(`[uploadImageAction] Raw file: ${String(rawFile)}, type: ${typeof rawFile}, instanceof File: ${rawFile instanceof File}`);
+
+  if (rawFile instanceof File) {
+    console.log(`[uploadImageAction] File details - name: ${rawFile.name}, size: ${rawFile.size}, type: ${rawFile.type}`);
+  }
+
+
+  console.log(`[Cloudinary Upload] Attempting to read CLOUDINARY_UPLOAD_PRESET. Value: '${process.env.CLOUDINARY_UPLOAD_PRESET}'`);
   if (!process.env.CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_UPLOAD_PRESET.trim() === "") {
     console.error("CLOUDINARY_UPLOAD_PRESET is not set or is an empty string.");
     return { success: false, message: "Server configuration error: Upload preset missing." };
@@ -53,15 +69,16 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
     return { success: false, message: "Server configuration error: Cloudinary not configured. Admin should check server logs." };
   }
 
-  const title = formData.get("title") as string;
-  const descriptionValue = formData.get("description"); // Can be string | File | null
+  const title = String(rawTitle); // Ensure title is treated as string for Zod
+  const descriptionValue = rawDescription;
   const descriptionForZod = typeof descriptionValue === 'string' ? descriptionValue : undefined;
 
-  const file = formData.get("file") as File | null;
+  const file = rawFile instanceof File ? rawFile : null;
+
 
   try {
     mediaFormSchema.parse({ title, description: descriptionForZod }); // Validate text fields
-    if (!file || !(file instanceof File)) {
+    if (!file) { // Already checked instanceof File for 'file' variable
       throw new Error("No file or invalid file provided.");
     }
     if (file.size > 25 * 1024 * 1024) { // Updated limit: 25MB
