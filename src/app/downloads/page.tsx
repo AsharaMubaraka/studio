@@ -28,70 +28,70 @@ const initialHardcodedImages: Omit<SimpleMediaItem, 'downloadCount'>[] = [
   {
     id: "wallpaper-01",
     title: "Wallpaper 01",
-    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/4_20250617_221801_0000.png?alt=media&token=0040f824-5016-4f5e-b651-b053ba371ca1",
+    imageUrl: "https://i.ibb.co/Z6y3BsNj/Wallpaper-1.png",
     description: "Ashara Mubaraka Wallpaper & DP Series - Design 1",
     dataAiHint: "abstract spiritual"
   },
   {
     id: "wallpaper-02",
     title: "Wallpaper 02",
-    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/5_20250617_221801_0001.png?alt=media&token=004b31b6-3c45-4031-be3a-009c575e25a1",
+    imageUrl: "https://i.ibb.co/1tCdMhWk/Wallpaper-2.png",
     description: "Ashara Mubaraka Wallpaper & DP Series - Design 2",
     dataAiHint: "geometric patterns"
   },
   {
     id: "wallpaper-03",
     title: "Wallpaper 03",
-    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/6_20250617_221802_0002.png?alt=media&token=50000005-c8ca-4e29-850e-02c213edfa83",
+    imageUrl: "https://i.ibb.co/Tftx8jn/Wallpaper-3.png",
     description: "Ashara Mubaraka Wallpaper & DP Series - Design 3",
     dataAiHint: "calligraphy design"
   },
   {
     id: "dp-01",
     title: "DP 01",
-    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/7_20250618_084246_0006.png?alt=media&token=9a2d3f87-dbd3-471f-aa0e-94f6487ff29c",
+    imageUrl: "https://i.ibb.co/8FWdWST/DP-1.png",
     description: "Ashara Mubaraka Display Picture - Design 1",
     dataAiHint: "profile picture"
   },
   {
     id: "dp-02",
     title: "DP 02",
-    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/6_20250618_084246_0005.png?alt=media&token=c764a39c-f815-4bc8-8159-76d9ad6717d7",
+    imageUrl: "https://i.ibb.co/wrjdhTMZ/DP-2.png",
     description: "Ashara Mubaraka Display Picture - Design 2",
     dataAiHint: "avatar graphic"
   },
   {
     id: "dp-03",
     title: "DP 03",
-    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/5_20250618_084246_0004.png?alt=media&token=9c2ea1a9-01e2-4423-9018-1bbd7bdabf23",
+    imageUrl: "https://i.ibb.co/V0twts6z/DP-3.png",
     description: "Ashara Mubaraka Display Picture - Design 3",
     dataAiHint: "icon design"
   },
   {
     id: "dp-04",
     title: "DP 04",
-    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/4_20250618_084246_0003.png?alt=media&token=f8cc498c-2816-4231-ab74-6e6c0beec70b",
+    imageUrl: "https://i.ibb.co/gZLCrmwL/DP-4.png",
     description: "Ashara Mubaraka Display Picture - Design 4",
     dataAiHint: "abstract art"
   },
   {
     id: "dp-05",
     title: "DP 05",
-    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/3_20250618_084246_0002.png?alt=media&token=dbebb14e-6c2c-486a-a500-708fa76b43b0",
+    imageUrl: "https://i.ibb.co/vCq9fkZj/DP-5.png",
     description: "Ashara Mubaraka Display Picture - Design 5",
     dataAiHint: "modern design"
   },
   {
     id: "dp-06",
     title: "DP 06",
-    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/2_20250618_084246_0001.png?alt=media&token=76709236-c10c-44a9-b36b-a5ddfdbf34ae",
+    imageUrl: "https://i.ibb.co/s9gJ0jhY/DP-6.png",
     description: "Ashara Mubaraka Display Picture - Design 6",
     dataAiHint: "artistic design"
   },
   {
     id: "dp-07",
     title: "DP 07",
-    imageUrl: "https://firebasestorage.googleapis.com/v0/b/lnv-fmb.appspot.com/o/1_20250618_084246_0000.png?alt=media&token=a5ab1165-3ba5-4449-959c-011c3f811406",
+    imageUrl: "https://i.ibb.co/Dg51QVjY/DP-7.png",
     description: "Ashara Mubaraka Display Picture - Design 7",
     dataAiHint: "creative avatar"
   },
@@ -172,13 +172,8 @@ export default function DownloadsPage() {
         // Construct the URL for our API proxy
         const proxyUrl = `/api/download?url=${encodeURIComponent(image.imageUrl)}`;
         
-        // Open the proxy URL, which will trigger the download with correct headers
-        // Using window.open is generally more reliable for initiating downloads this way.
         window.open(proxyUrl, '_blank');
-        // If _blank is problematic (e.g. pop-up blockers), you can try:
-        // window.location.href = proxyUrl; 
-        // But this replaces the current page, which is usually not desired.
-
+        
         // Increment download count
         const result = await incrementDownloadCountAction(image.id);
         if (result.success) {
@@ -261,7 +256,7 @@ export default function DownloadsPage() {
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     data-ai-hint={image.dataAiHint || "wallpaper image"}
-                    unoptimized={!!image.imageUrl?.includes('?') || !!image.imageUrl?.includes('&')}
+                    unoptimized={!!image.imageUrl?.includes('?') || !!image.imageUrl?.includes('&') || image.imageUrl?.includes('i.ibb.co')}
                   />
                 </div>
               </DialogTrigger>
@@ -280,7 +275,7 @@ export default function DownloadsPage() {
                               height={800}
                               className="max-w-full max-h-[65vh] object-contain rounded"
                               data-ai-hint={selectedImage.dataAiHint || "wallpaper image"}
-                              unoptimized={!!selectedImage.imageUrl?.includes('?') || !!selectedImage.imageUrl?.includes('&')}
+                              unoptimized={!!selectedImage.imageUrl?.includes('?') || !!selectedImage.imageUrl?.includes('&') || selectedImage.imageUrl?.includes('i.ibb.co')}
                           />
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                               <span 
@@ -337,3 +332,5 @@ export default function DownloadsPage() {
     </div>
   );
 }
+
+    
