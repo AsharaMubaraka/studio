@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { siteConfig } from "@/config/site";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase"; 
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore"; // Added Timestamp
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { incrementDownloadCountAction } from "@/actions/imageActions";
 
 interface SimpleMediaItem {
@@ -112,7 +112,6 @@ export default function DownloadsPage() {
       if (!db) {
         setError("Database connection not available. Cannot fetch download counts.");
         setIsLoading(false);
-        // Ensure initialHardcodedImages is treated as an array before mapping
         setImages(Array.isArray(initialHardcodedImages) ? initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 })) : []);
         return;
       }
@@ -139,7 +138,7 @@ export default function DownloadsPage() {
                 downloadCount: 0,
               };
               await setDoc(docRef, newDocData);
-              firestoreData = newDocData; // Use this for the item
+              firestoreData = newDocData;
             } catch (setDocError) {
                 console.warn(`Failed to create Firestore doc for ${hardcodedImg.id}:`, setDocError);
             }
@@ -170,58 +169,44 @@ export default function DownloadsPage() {
   const handleDownload = async (image: SimpleMediaItem) => {
     setIsDownloading(image.id);
     try {
-      const link = document.createElement('a');
-      link.href = image.imageUrl;
-  
-      // Extract filename from URL more robustly
-      let filename = "download"; // Default filename
-      try {
-          const url = new URL(image.imageUrl);
-          const pathname = url.pathname; // e.g., /v0/b/bucket/o/filename.png
-          const parts = pathname.split('/');
-          const encodedNameWithQuery = parts.pop() || "download"; // Get last segment: filename.png?alt=media&token=...
-          const nameWithoutQuery = encodedNameWithQuery.split('?')[0]; // Remove query params: filename.png
-          if (nameWithoutQuery) {
-              filename = decodeURIComponent(nameWithoutQuery); // Decode URI components like %2F
-          } else {
-             // Fallback to title if parsing failed badly
-             filename = `${image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') || 'download'}.png`;
-          }
-      } catch (e) {
-          console.warn("Could not parse URL for filename, using title-based fallback.", e);
-          const extensionMatch = image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i);
-          if (extensionMatch && extensionMatch[1]) {
-             filename = `${image.title.replace(/[^a-zA-Z0-9_.-]/g, '_')}.${extensionMatch[1]}`;
-          } else {
-             filename = `${image.title.replace(/[^a-zA-Z0-9_.-]/g, '_')}.png`;
-          }
-      }
-  
-      link.setAttribute('download', filename);
-      document.body.appendChild(link); // Append to body to ensure it's clickable
-      link.click();
-      document.body.removeChild(link); // Clean up
-      
-      toast({ title: "Download Initiated", description: `Downloading ${filename}...`});
+        const link = document.createElement('a');
+        link.href = image.imageUrl;
 
-      const result = await incrementDownloadCountAction(image.id);
-      if (result.success) {
-        setImages(prevImages =>
-          prevImages.map(img =>
-            img.id === image.id ? { ...img, downloadCount: (img.downloadCount || 0) + 1 } : img
-          )
-        );
-      } else {
-        console.warn(`Failed to update download count for ${image.id}: ${result.message}`);
-      }
+        // Simplified filename using the image title and a common extension.
+        // This ensures the filename is simple and less likely to cause issues.
+        const titleSanitized = image.title.replace(/[^a-zA-Z0-9_-\s]/g, '_').replace(/\s+/g, '_') || 'download';
+        const extensionMatch = image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i);
+        const extension = extensionMatch && extensionMatch[1] ? `.${extensionMatch[1]}` : '.png'; // Default to .png
+        const filename = `${titleSanitized}${extension}`;
+        
+        link.setAttribute('download', filename);
+        
+        // Append to body, click, then remove. Standard procedure.
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({ title: "Download Initiated", description: `Downloading ${filename}...`});
+
+        // Increment download count after attempting the download.
+        const result = await incrementDownloadCountAction(image.id);
+        if (result.success) {
+            setImages(prevImages =>
+                prevImages.map(img =>
+                    img.id === image.id ? { ...img, downloadCount: (img.downloadCount || 0) + 1 } : img
+                )
+            );
+        } else {
+            console.warn(`Failed to update download count for ${image.id}: ${result.message}`);
+        }
 
     } catch (err: any) {
-      console.error("Download error:", err);
-      toast({ variant: "destructive", title: "Download Error", description: err.message || "Could not download the file."});
+        console.error("Download error:", err);
+        toast({ variant: "destructive", title: "Download Error", description: err.message || "Could not download the file."});
     } finally {
-      setIsDownloading(null);
+        setIsDownloading(null);
     }
-  };
+};
 
   const renderContent = () => {
     if (isLoading && (!images || images.length === 0)) {
@@ -252,7 +237,7 @@ export default function DownloadsPage() {
       );
     }
 
-    if (!Array.isArray(images) || images.length === 0) { // Added check for images being an array
+    if (!Array.isArray(images) || images.length === 0) {
       return (
          <Alert className="max-w-md mx-auto text-center">
             <ImageOff className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
