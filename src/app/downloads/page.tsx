@@ -169,39 +169,22 @@ export default function DownloadsPage() {
   const handleDownload = async (image: SimpleMediaItem) => {
     setIsDownloading(image.id);
     try {
-        const link = document.createElement('a');
-        link.href = image.imageUrl;
+        // Construct the URL for our API proxy
+        const proxyUrl = `/api/download?url=${encodeURIComponent(image.imageUrl)}`;
+        
+        // Open the proxy URL, which will trigger the download with correct headers
+        window.open(proxyUrl, '_blank');
+        // Or for same tab navigation (might be less ideal for user experience if it replaces content):
+        // window.location.href = proxyUrl;
 
-        // Extract a filename from the URL path, try to remove query params for a cleaner name
+        // Extract filename for toast message (optional, as server now handles actual filename)
         let filename = image.title.replace(/[^a-zA-Z0-9_-\s]/g, '_').replace(/\s+/g, '_') || "download";
-        try {
-            const url = new URL(image.imageUrl);
-            const pathnameParts = url.pathname.split('/');
-            const lastPathSegment = decodeURIComponent(pathnameParts[pathnameParts.length - 1]);
-             // Use the last path segment if it looks like a file, otherwise stick to title-based
-            if (lastPathSegment && lastPathSegment.includes('.')) {
-                filename = lastPathSegment.replace(/[^a-zA-Z0-9_.\-\s]/g, '_').replace(/\s+/g, '_');
-            } else if (!filename.includes('.')) { // Ensure title-based filename has an extension
-                 const extensionMatch = image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i);
-                 const extension = extensionMatch && extensionMatch[1] ? `.${extensionMatch[1]}` : '.png';
-                 filename += extension;
-            }
-
-        } catch (e) {
-            console.warn("Could not parse URL for filename, using title-based or default.", e);
-            // Ensure title-based filename has an extension if URL parsing fails
-            if (!filename.includes('.')) {
-                const extensionMatch = image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i);
-                const extension = extensionMatch && extensionMatch[1] ? `.${extensionMatch[1]}` : '.png';
-                filename += extension;
-            }
+        const extensionMatch = image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i);
+        const extension = extensionMatch && extensionMatch[1] ? `.${extensionMatch[1]}` : '.png';
+        if (!filename.includes('.')) {
+             filename += extension;
         }
-        
-        link.setAttribute('download', filename);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
+
         toast({ title: "Download Initiated", description: `Downloading ${filename}...`});
 
         // Increment download count
@@ -355,6 +338,3 @@ export default function DownloadsPage() {
     </div>
   );
 }
-    
-
-    
