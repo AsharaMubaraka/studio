@@ -3,27 +3,29 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-// MediaItem and actions from imageActions are no longer needed here for fetching
-// import { type MediaItem, incrementDownloadCountAction } from "@/actions/imageActions"; 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, Loader2, ImageOff, AlertTriangle } from "lucide-react";
+import { Download, Eye, Loader2, ImageOff, AlertTriangle, TrendingUp } from "lucide-react"; // Added TrendingUp for download count
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { siteConfig } from "@/config/site";
 import { useToast } from "@/hooks/use-toast";
+import { db } from "@/lib/firebase"; // Import db for client-side Firestore operations
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"; // Import Firestore functions
+import { incrementDownloadCountAction } from "@/actions/imageActions"; // Import server action
 
-// Simplified interface for hardcoded images
+// Updated interface for images, now including downloadCount
 interface SimpleMediaItem {
   id: string;
   title: string;
   imageUrl: string;
   description?: string;
-  dataAiHint?: string; // Optional AI hint for next/image
+  dataAiHint?: string;
+  downloadCount: number; // Added download count
 }
 
-const hardcodedImages: SimpleMediaItem[] = [
+const initialHardcodedImages: Omit<SimpleMediaItem, 'downloadCount'>[] = [
   {
     id: "wallpaper-01",
     title: "Wallpaper 01",
@@ -97,24 +99,69 @@ const hardcodedImages: SimpleMediaItem[] = [
 ];
 
 export default function DownloadsPage() {
-  const [images, setImages] = useState<SimpleMediaItem[]>(hardcodedImages);
-  const [isLoading, setIsLoading] = useState(false); // No initial loading from server
-  const [error, setError] = useState<string | null>(null); // For potential download errors
+  const [images, setImages] = useState<SimpleMediaItem[]>(
+    initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 }))
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<SimpleMediaItem | null>(null);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     document.title = `Media Downloads | ${siteConfig.name}`;
-  }, []);
+
+    const fetchAndInitializeCounts = async () => {
+      if (!db) {
+        setError("Database connection not available. Cannot fetch download counts.");
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const updatedImagesPromises = initialHardcodedImages.map(async (hardcodedImg) => {
+          const docRef = doc(db, "media_gallery", hardcodedImg.id);
+          const docSnap = await getDoc(docRef);
+          let count = 0;
+          if (docSnap.exists()) {
+            count = docSnap.data()?.downloadCount || 0;
+          } else {
+            // Document doesn't exist, create it with count 0 and basic info
+            await setDoc(docRef, {
+              title: hardcodedImg.title,
+              description: hardcodedImg.description || null,
+              imageUrl: hardcodedImg.imageUrl,
+              filePath: `hardcoded/${hardcodedImg.id}`, // Placeholder filePath
+              uploaderId: "system",
+              uploaderName: "System (Hardcoded)",
+              createdAt: serverTimestamp(), // Firestore client-side serverTimestamp
+              downloadCount: 0,
+            });
+          }
+          return { ...hardcodedImg, downloadCount: count };
+        });
+        const resolvedImages = await Promise.all(updatedImagesPromises);
+        setImages(resolvedImages);
+      } catch (fetchError: any) {
+        console.error("Error fetching/initializing download counts:", fetchError);
+        setError("Failed to load download counts. Displaying images without live counts.");
+        // Fallback to initial images with 0 counts if Firestore interaction fails
+        setImages(initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 })));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAndInitializeCounts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
+
 
   const handleDownload = async (image: SimpleMediaItem) => {
     setIsDownloading(image.id);
     try {
-      // For direct Firebase URLs with tokens, fetching via a link is simplest
       const link = document.createElement("a");
       link.href = image.imageUrl;
-      // Extract a filename or use a default one
       const urlParts = image.imageUrl.split('?')[0].split('/');
       const firebasePath = urlParts[urlParts.length - 1];
       const decodedFirebasePath = decodeURIComponent(firebasePath);
@@ -126,7 +173,20 @@ export default function DownloadsPage() {
       document.body.removeChild(link);
       
       toast({ title: "Download Started", description: `Downloading ${image.title}...`});
-      // Download count increment is removed as we are not fetching metadata from Firestore
+
+      // Increment download count
+      const result = await incrementDownloadCountAction(image.id);
+      if (result.success) {
+        setImages(prevImages =>
+          prevImages.map(img =>
+            img.id === image.id ? { ...img, downloadCount: (img.downloadCount || 0) + 1 } : img
+          )
+        );
+      } else {
+        // Log error but don't block user if count update fails
+        console.warn(`Failed to update download count for ${image.id}: ${result.message}`);
+      }
+
     } catch (err: any) {
       console.error("Download error:", err);
       toast({ variant: "destructive", title: "Download Error", description: err.message || "Could not download the file."});
@@ -136,23 +196,26 @@ export default function DownloadsPage() {
   };
 
   const renderContent = () => {
-    if (isLoading) {
+    if (isLoading && images.every(img => img.downloadCount === 0)) { // Show skeleton only if initial counts are not yet loaded
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {[...Array( (Array.isArray(hardcodedImages) ? hardcodedImages.length : 0) || 4)].map((_, i) => (
+          {[...Array(initialHardcodedImages.length || 4)].map((_, i) => (
             <Card key={i} className="overflow-hidden">
               <Skeleton className="aspect-video w-full" />
               <CardContent className="p-4 space-y-2">
                 <Skeleton className="h-5 w-3/4" />
-                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-4 w-1/2" />
               </CardContent>
+              <CardFooter className="p-4">
+                <Skeleton className="h-10 w-full" />
+              </CardFooter>
             </Card>
           ))}
         </div>
       );
     }
 
-    if (error) {
+    if (error && images.every(img => img.downloadCount === 0)) { // Show global error only if counts couldn't be fetched at all
       return (
         <Alert variant="destructive" className="max-w-md mx-auto">
           <AlertTriangle className="h-5 w-5" />
@@ -173,7 +236,7 @@ export default function DownloadsPage() {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {images.map((image) => (
-          <Card key={image.id} className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 group">
+          <Card key={image.id} className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 group flex flex-col">
             <Dialog onOpenChange={(open) => !open && setSelectedImage(null)}>
               <DialogTrigger asChild>
                 <div 
@@ -229,13 +292,16 @@ export default function DownloadsPage() {
             <CardHeader className="p-4 pb-2">
               <CardTitle className="text-md font-semibold truncate" title={image.title}>{image.title}</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent className="p-4 pt-0 flex-grow">
                <p className="text-xs text-muted-foreground line-clamp-2" title={image.description}>
                   {image.description || "Official wallpaper."}
               </p>
-              {/* Download count is removed as it's not tracked for hardcoded list */}
+              <p className="text-xs text-muted-foreground mt-2 flex items-center">
+                <TrendingUp className="mr-1.5 h-4 w-4 text-primary/70" />
+                Downloads: {(image.downloadCount || 0).toLocaleString()}
+              </p>
             </CardContent>
-            <CardFooter className="p-4 border-t">
+            <CardFooter className="p-4 border-t mt-auto">
               <Button onClick={() => handleDownload(image)} className="w-full" disabled={isDownloading === image.id}>
                 {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                 {isDownloading === image.id ? "Downloading..." : "Download"}
@@ -253,7 +319,10 @@ export default function DownloadsPage() {
         <h1 className="text-4xl font-bold tracking-tight text-primary">Media Downloads</h1>
         <p className="text-lg text-muted-foreground mt-2">Browse and download from our gallery.</p>
       </div>
+      {error && !isLoading && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
       {renderContent()}
     </div>
   );
 }
+
+    
