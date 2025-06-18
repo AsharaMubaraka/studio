@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Bell, Globe, Youtube, Users, MessageSquarePlus, Settings } from 'lucide-react'; // Added Settings
+import { LayoutDashboard, Bell, Globe, Youtube, Users, MessageSquarePlus, Settings, Image as ImageIconLucide, DownloadCloud } from 'lucide-react'; // Added ImageIconLucide, DownloadCloud
 
 export type NavItemConfig = {
   title: string;
@@ -30,6 +30,11 @@ export const userNavItems: NavItemConfig[] = [
     href: '/live-relay',
     icon: Youtube,
   },
+  {
+    title: 'Media Downloads', // New Public Page
+    href: '/downloads',
+    icon: DownloadCloud,
+  },
 ];
 
 export const adminNavItems: NavItemConfig[] = [
@@ -49,12 +54,17 @@ export const adminNavItems: NavItemConfig[] = [
     icon: Users,
   },
   {
+    title: 'Manage Media', // New Admin Page
+    href: '/manage-media',
+    icon: ImageIconLucide,
+  },
+  {
     title: 'Live Relay',
     href: '/live-relay',
     icon: Youtube,
   },
   {
-    title: 'App Settings', // New settings page
+    title: 'App Settings',
     href: '/settings',
     icon: Settings,
   },
@@ -66,6 +76,5 @@ export const siteConfig = {
   defaultLogoUrl: "https://ashara1447.udaem.site/transport/logo.png",
 };
 
-// Moved from notificationActions.ts
 export const notificationCategories = ["General", "Important", "Event", "Update"] as const;
 export type NotificationCategory = typeof notificationCategories[number];
