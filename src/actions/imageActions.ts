@@ -5,9 +5,10 @@ import { z } from "zod";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, getDocs, doc, deleteDoc, query, orderBy, Timestamp } from "firebase/firestore";
 import { v2 as cloudinary } from 'cloudinary';
-import { UTApi } from "uploadthing/server"; // Placeholder, not used if direct Cloudinary SDK
 
 // Configure Cloudinary - ensure environment variables are set in your deployment
+console.log("[Cloudinary Config] Attempting to configure Cloudinary SDK. Checking environment variables: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_UPLOAD_PRESET");
+
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
     cloudinary.config({
         cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -15,8 +16,9 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
         api_secret: process.env.CLOUDINARY_API_SECRET,
         secure: true,
     });
+    console.log("[Cloudinary Config] SDK configured with Cloud Name: " + process.env.CLOUDINARY_CLOUD_NAME);
 } else {
-    console.warn("Cloudinary environment variables are not fully set. Image upload/delete might fail.");
+    console.warn("[Cloudinary Config] Cloudinary environment variables (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) are not fully set. Image upload/delete might fail.");
 }
 
 const mediaFormSchema = z.object({
@@ -44,8 +46,9 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
     console.error("CLOUDINARY_UPLOAD_PRESET is not set.");
     return { success: false, message: "Server configuration error: Upload preset missing." };
   }
-  if (!cloudinary.config().cloud_name) {
-    return { success: false, message: "Server configuration error: Cloudinary not configured." };
+  if (!cloudinary.config().cloud_name || !cloudinary.config().api_key || !cloudinary.config().api_secret) { // Added checks for api_key and api_secret
+    console.error("Cloudinary SDK not fully configured. Check CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in environment variables.");
+    return { success: false, message: "Server configuration error: Cloudinary not configured. Admin should check server logs." };
   }
 
   const title = formData.get("title") as string;
@@ -141,9 +144,9 @@ export async function getGalleryImagesAction(adminView: boolean = false): Promis
 }
 
 export async function deleteImageAction(publicId: string, docId: string) {
-  if (!cloudinary.config().api_key || !cloudinary.config().api_secret) {
-     console.error("Cloudinary Admin API not configured for deletion.");
-     return { success: false, message: "Server configuration error: Cannot delete from Cloudinary." };
+  if (!cloudinary.config().api_key || !cloudinary.config().api_secret || !cloudinary.config().cloud_name) { // Added check for cloud_name
+     console.error("Cloudinary Admin API not configured for deletion. Check environment variables.");
+     return { success: false, message: "Server configuration error: Cannot delete from Cloudinary. Admin should check server logs." };
   }
   try {
     // Delete from Cloudinary
