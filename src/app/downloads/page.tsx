@@ -24,7 +24,29 @@ interface SimpleMediaItem {
   downloadCount: number;
 }
 
+// Reordered as requested: Wallpapers first, then DPs
 const initialHardcodedImages: Omit<SimpleMediaItem, 'downloadCount'>[] = [
+  {
+    id: "wallpaper-01",
+    title: "Wallpaper 01",
+    imageUrl: "https://i.ibb.co/Z6y3BsNj/Wallpaper-1.png",
+    description: "Ashara Mubaraka Wallpaper & DP Series - Design 1",
+    dataAiHint: "abstract spiritual"
+  },
+  {
+    id: "wallpaper-02",
+    title: "Wallpaper 02",
+    imageUrl: "https://i.ibb.co/1tCdMhWk/Wallpaper-2.png",
+    description: "Ashara Mubaraka Wallpaper & DP Series - Design 2",
+    dataAiHint: "geometric patterns"
+  },
+  {
+    id: "wallpaper-03",
+    title: "Wallpaper 03",
+    imageUrl: "https://i.ibb.co/Tftx8jn/Wallpaper-3.png",
+    description: "Ashara Mubaraka Wallpaper & DP Series - Design 3",
+    dataAiHint: "calligraphy design"
+  },
   {
     id: "dp-01",
     title: "DP 01",
@@ -74,27 +96,6 @@ const initialHardcodedImages: Omit<SimpleMediaItem, 'downloadCount'>[] = [
     description: "Ashara Mubaraka Display Picture - Design 7",
     dataAiHint: "creative avatar"
   },
-  {
-    id: "wallpaper-01",
-    title: "Wallpaper 01",
-    imageUrl: "https://i.ibb.co/Z6y3BsNj/Wallpaper-1.png",
-    description: "Ashara Mubaraka Wallpaper & DP Series - Design 1",
-    dataAiHint: "abstract spiritual"
-  },
-  {
-    id: "wallpaper-02",
-    title: "Wallpaper 02",
-    imageUrl: "https://i.ibb.co/1tCdMhWk/Wallpaper-2.png",
-    description: "Ashara Mubaraka Wallpaper & DP Series - Design 2",
-    dataAiHint: "geometric patterns"
-  },
-  {
-    id: "wallpaper-03",
-    title: "Wallpaper 03",
-    imageUrl: "https://i.ibb.co/Tftx8jn/Wallpaper-3.png",
-    description: "Ashara Mubaraka Wallpaper & DP Series - Design 3",
-    dataAiHint: "calligraphy design"
-  },
 ];
 
 
@@ -126,18 +127,25 @@ export default function DownloadsPage() {
           if (docSnap.exists()) {
             const firestoreData = docSnap.data();
             count = firestoreData?.downloadCount || 0;
-            // If Firestore imageUrl exists and is different from hardcoded, update Firestore
-            if (firestoreData?.imageUrl && firestoreData.imageUrl !== hardcodedImg.imageUrl) {
+            // Ensure Firestore has the correct (i.ibb.co) URL
+            if (firestoreData?.imageUrl !== hardcodedImg.imageUrl || 
+                firestoreData?.title !== hardcodedImg.title ||
+                firestoreData?.description !== (hardcodedImg.description || null)) {
               try {
                 await setDoc(docRef, { 
                   imageUrl: hardcodedImg.imageUrl,
-                  // Also update title and description if they might change in hardcoded list
                   title: hardcodedImg.title,
                   description: hardcodedImg.description || null,
+                  // Preserve other fields like createdAt, uploaderId if they exist
+                  filePath: firestoreData?.filePath || `hardcoded/${hardcodedImg.id}`, 
+                  uploaderId: firestoreData?.uploaderId || "system",
+                  uploaderName: firestoreData?.uploaderName || "System (Hardcoded)",
+                  createdAt: firestoreData?.createdAt || serverTimestamp(), 
+                  downloadCount: count, // Preserve existing count
                 }, { merge: true });
-                console.log(`Updated imageUrl in Firestore for ${hardcodedImg.id} to ${hardcodedImg.imageUrl}`);
+                console.log(`Updated/Verified Firestore doc for ${hardcodedImg.id} with imageUrl ${hardcodedImg.imageUrl}`);
               } catch (updateError) {
-                console.warn(`Failed to update imageUrl in Firestore for ${hardcodedImg.id}:`, updateError);
+                console.warn(`Failed to update/verify Firestore for ${hardcodedImg.id}:`, updateError);
               }
             }
           } else {
@@ -146,7 +154,7 @@ export default function DownloadsPage() {
               const newDocData = {
                 title: hardcodedImg.title,
                 description: hardcodedImg.description || null,
-                imageUrl: hardcodedImg.imageUrl, // Use hardcoded URL
+                imageUrl: hardcodedImg.imageUrl,
                 filePath: `hardcoded/${hardcodedImg.id}`, 
                 uploaderId: "system",
                 uploaderName: "System (Hardcoded)",
@@ -159,8 +167,6 @@ export default function DownloadsPage() {
                 console.warn(`Failed to create Firestore doc for ${hardcodedImg.id}:`, setDocError);
             }
           }
-          // Always return with the hardcodedImg details for the client state
-          // This ensures the client uses the i.ibb.co URLs
           return { 
             ...hardcodedImg, 
             downloadCount: count 
@@ -172,7 +178,6 @@ export default function DownloadsPage() {
       } catch (fetchError: any) {
         console.error("Error fetching/initializing download counts:", fetchError);
         setError("Failed to load download counts. Displaying images without live counts.");
-        // Fallback to hardcoded images if Firestore operations fail broadly
         setImages(Array.isArray(initialHardcodedImages) ? initialHardcodedImages.map(img => ({ ...img, downloadCount: 0 })) : []);
       } finally {
         setIsLoading(false);
@@ -182,7 +187,7 @@ export default function DownloadsPage() {
     fetchAndInitializeCounts();
   }, []);
 
- const handleDownload = async (imageToDownload: SimpleMediaItem | null) => {
+  const handleDownload = async (imageToDownload: SimpleMediaItem | null) => {
     if (!imageToDownload || !imageToDownload.imageUrl) {
         toast({
             variant: "destructive",
@@ -197,7 +202,6 @@ export default function DownloadsPage() {
         const proxyUrl = `/api/download?url=${encodeURIComponent(imageToDownload.imageUrl)}`;
         window.location.href = proxyUrl;
         
-        // Increment download count
         const result = await incrementDownloadCountAction(imageToDownload.id);
         if (result.success) {
             setImages(prevImages =>
@@ -219,15 +223,16 @@ export default function DownloadsPage() {
         console.error("Download error:", err);
         toast({ variant: "destructive", title: "Download Error", description: err.message || "Could not download the file."});
     } finally {
-        // Add a slight delay to allow navigation to proxyUrl to initiate
         setTimeout(() => {
             setIsDownloading(null);
         }, 2000); 
     }
-};
+  };
+
+  const totalDownloads = images.reduce((acc, img) => acc + (img.downloadCount || 0), 0);
 
   const renderContent = () => {
-    if (isLoading && (!images || images.length === 0)) {
+    if (isLoading && images.length === 0) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {(Array.isArray(initialHardcodedImages) ? initialHardcodedImages : []).map((_, i) => (
@@ -246,7 +251,7 @@ export default function DownloadsPage() {
       );
     }
 
-    if (error && (!images || images.length === 0)) {
+    if (error && images.length === 0) {
       return (
         <Alert variant="destructive" className="max-w-md mx-auto">
           <AlertTriangle className="h-5 w-5" />
@@ -312,12 +317,41 @@ export default function DownloadsPage() {
         <h1 className="text-4xl font-bold tracking-tight text-primary">Media Downloads</h1>
         <p className="text-lg text-muted-foreground mt-2">Browse and download from our gallery.</p>
       </div>
-      {error && !isLoading && (!Array.isArray(images) || images.length === 0) && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
+
+      {isLoading && images.length === 0 ? (
+        <div className="mt-6 mb-8">
+          <Card className="max-w-sm mx-auto shadow-md">
+            <CardContent className="p-4 text-center">
+              <Skeleton className="h-6 w-48 mx-auto" />
+              <Skeleton className="h-10 w-24 mx-auto mt-2" />
+            </CardContent>
+          </Card>
+        </div>
+      ) : images.length > 0 ? (
+        <Card className="mt-6 mb-8 max-w-sm mx-auto shadow-md bg-card">
+          <CardContent className="p-4 text-center">
+            <div className="flex items-center justify-center text-xl font-semibold text-card-foreground">
+              <TrendingUp className="mr-2 h-6 w-6 text-primary" />
+              Total Gallery Downloads
+            </div>
+            <p className="text-3xl font-bold text-primary mt-1">
+              {totalDownloads.toLocaleString()}
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+      
+      {error && images.length === 0 && (
+        <Alert variant="destructive" className="mb-4 max-w-md mx-auto">
+          <AlertTriangle className="h-5 w-5" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       
       {renderContent()}
 
       <Dialog open={!!selectedImage} onOpenChange={(open) => { if (!open) setSelectedImage(null); }}>
-        {selectedImage && selectedImage.imageUrl && ( // Ensure selectedImage and its imageUrl exist
+        {selectedImage && selectedImage.imageUrl && (
           <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0">
             <DialogHeader className="p-4 border-b">
               <DialogTitle>Image Preview: {selectedImage.title}</DialogTitle>
@@ -326,7 +360,7 @@ export default function DownloadsPage() {
             <div className="p-4 relative max-h-[70vh] overflow-y-auto flex justify-center items-center bg-black/5">
                 <div className="relative inline-block">
                     <Image
-                        src={selectedImage.imageUrl} // Use selectedImage.imageUrl for preview
+                        src={selectedImage.imageUrl}
                         alt={selectedImage.title || "Selected image"}
                         width={1200}
                         height={800}
