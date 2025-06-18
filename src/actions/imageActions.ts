@@ -47,6 +47,7 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
     console.error("CLOUDINARY_UPLOAD_PRESET is not set or is an empty string.");
     return { success: false, message: "Server configuration error: Upload preset missing." };
   }
+  // Explicitly check if the core Cloudinary SDK configuration is present
   if (!cloudinary.config().cloud_name || !cloudinary.config().api_key || !cloudinary.config().api_secret) {
     console.error("Cloudinary SDK not fully configured. Check CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in environment variables.");
     return { success: false, message: "Server configuration error: Cloudinary not configured. Admin should check server logs." };
