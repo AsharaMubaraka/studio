@@ -43,7 +43,7 @@ export interface MediaItem {
 
 export async function uploadImageAction(formData: FormData, author: {id: string; name?: string}) {
   console.log(`[Cloudinary Upload] Action started. Attempting to read CLOUDINARY_UPLOAD_PRESET. Value: '${process.env.CLOUDINARY_UPLOAD_PRESET}'`);
-  if (!process.env.CLOUDINARY_UPLOAD_PRESET) {
+  if (!process.env.CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_UPLOAD_PRESET.trim() === "") {
     console.error("CLOUDINARY_UPLOAD_PRESET is not set or is an empty string.");
     return { success: false, message: "Server configuration error: Upload preset missing." };
   }
@@ -83,7 +83,7 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
         },
         (error, result) => {
           if (error) {
-            console.error("Cloudinary upload error:", error);
+            console.error("Cloudinary upload error inside stream callback:", error);
             reject(error);
           } else {
             resolve(result);
@@ -94,6 +94,7 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
     });
 
     if (!uploadResult || !uploadResult.secure_url || !uploadResult.public_id) {
+      console.error("Cloudinary upload failed or returned invalid data. Result:", uploadResult);
       throw new Error("Cloudinary upload failed or returned invalid data.");
     }
 
@@ -111,11 +112,19 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
     return { success: true, message: "Image uploaded and saved successfully!" };
 
   } catch (error: any) {
-    console.error("Error in uploadImageAction:", error);
+    console.error("[uploadImageAction Caught Error] Full error object:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    console.error("[uploadImageAction Caught Error] Error name:", error.name);
+    console.error("[uploadImageAction Caught Error] Error message:", error.message);
+    if (error.stack) {
+        console.error("[uploadImageAction Caught Error] Error stack:", error.stack);
+    }
+    
     if (error instanceof z.ZodError) {
       return { success: false, message: "Validation failed.", errors: error.flatten().fieldErrors };
     }
-    return { success: false, message: error.message || "Failed to upload image. See server logs." };
+    // Ensure a message is always returned
+    const errorMessage = error?.message || "An_unknown_error_occurred_during_image_upload._Check_server_logs.";
+    return { success: false, message: errorMessage };
   }
 }
 
@@ -148,8 +157,9 @@ export async function getGalleryImagesAction(adminView: boolean = false): Promis
 }
 
 export async function deleteImageAction(publicId: string, docId: string) {
+  // Check if Cloudinary Admin API is configured for deletion
   if (!cloudinary.config().api_key || !cloudinary.config().api_secret || !cloudinary.config().cloud_name) { 
-     console.error("Cloudinary Admin API not configured for deletion. Check environment variables.");
+     console.error("Cloudinary Admin API not configured for deletion. Check environment variables: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.");
      return { success: false, message: "Server configuration error: Cannot delete from Cloudinary. Admin should check server logs." };
   }
   try {
@@ -171,3 +181,4 @@ export async function deleteImageAction(publicId: string, docId: string) {
 
 // Placeholder for download count increment, if added later
 // export async function incrementDownloadCountAction(docId: string) { ... }
+    
