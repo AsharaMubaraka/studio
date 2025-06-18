@@ -10,59 +10,65 @@ const primaryFirebaseConfig = {
   apiKey: "AIzaSyA8w8a0ap2sOYroS8-qNSsMNPqmXB-vL8g",
   authDomain: "ashara-mubaraka-app.firebaseapp.com",
   projectId: "ashara-mubaraka-app",
-  storageBucket: "ashara-mubaraka-app.appspot.com",
+  storageBucket: "ashara-mubaraka-app.appspot.com", // Default bucket for primary app
   messagingSenderId: "572648688031",
   appId: "1:572648688031:web:6e1dd3e6903d64f82395aa",
 };
 
 // Secondary Firebase configuration (specifically for Storage)
-const storageFirebaseConfig = {
+const secondaryStorageFirebaseConfig = {
   apiKey: "AIzaSyBXtRwAXnxP2Zhi4a62qamgUSny4x_kNRQ",
   authDomain: "lnv-fmb.firebaseapp.com",
   projectId: "lnv-fmb",
-  storageBucket: "lnv-fmb.appspot.com",
+  storageBucket: "lnv-fmb.appspot.com", // THE BUCKET WE WANT TO USE FOR IMAGES
   messagingSenderId: "819680208785",
   appId: "1:819680208785:web:4e3fbe0d91fb4013fedc30"
 };
 
 let primaryFirebaseApp: FirebaseApp;
-let storageFirebaseApp: FirebaseApp;
+let secondaryStorageFirebaseApp: FirebaseApp;
 
 let db: ReturnType<typeof getFirestore> | null = null;
-let storage: FirebaseStorage | null = null; // This will be from the secondary app
+let imageStorage: FirebaseStorage | null = null; // This will be from the secondary app
 let messaging: ReturnType<typeof getMessaging> | null = null;
 
 try {
-  if (getApps().length === 0) {
-    primaryFirebaseApp = initializeApp(primaryFirebaseConfig);
-    console.log("Primary Firebase app (ashara-mubaraka-app) initialized successfully.");
-    storageFirebaseApp = initializeApp(storageFirebaseConfig, "storageApp");
-    console.log("Secondary Firebase app for Storage (lnv-fmb) initialized successfully.");
-  } else {
-    primaryFirebaseApp = getApp(); // Default app
+  const primaryAppName = "DEFAULT"; // Standard way to refer to the default app
+  const secondaryStorageAppName = "ImageStorageApp"; // Custom name for the secondary app
+
+  // Initialize Primary App (or get it if already initialized)
+  if (getApps().find(app => app.name === primaryAppName || app.name === "[DEFAULT]")) {
+    primaryFirebaseApp = getApp(primaryAppName);
     console.log("Primary Firebase app (ashara-mubaraka-app) already initialized.");
-    try {
-        storageFirebaseApp = getApp("storageApp");
-        console.log("Secondary Firebase app for Storage (lnv-fmb) already initialized.");
-    } catch (e) {
-        storageFirebaseApp = initializeApp(storageFirebaseConfig, "storageApp");
-        console.log("Secondary Firebase app for Storage (lnv-fmb) initialized successfully (on subsequent init).");
-    }
+  } else {
+    primaryFirebaseApp = initializeApp(primaryFirebaseConfig, primaryAppName);
+    console.log("Primary Firebase app (ashara-mubaraka-app) initialized successfully.");
   }
 
-  // Initialize Firestore with persistence if not SSR
+  // Initialize Secondary Storage App (or get it if already initialized)
+  if (getApps().find(app => app.name === secondaryStorageAppName)) {
+    secondaryStorageFirebaseApp = getApp(secondaryStorageAppName);
+    console.log("Secondary Firebase app for Storage (lnv-fmb) already initialized.");
+  } else {
+    secondaryStorageFirebaseApp = initializeApp(secondaryStorageFirebaseConfig, secondaryStorageAppName);
+    console.log("Secondary Firebase app for Storage (lnv-fmb) initialized successfully.");
+  }
+
+  // Initialize Firestore with persistence if not SSR, using the PRIMARY app
   if (typeof window !== 'undefined') {
     db = initializeFirestore(primaryFirebaseApp, {
-      cacheSizeBytes: CACHE_SIZE_UNLIMITED, // Enable offline persistence
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
     });
   } else {
     db = getFirestore(primaryFirebaseApp);
   }
   console.log("Firestore initialized successfully for primary app.");
 
-  storage = getStorage(storageFirebaseApp); // Use the secondary app for storage
+  // Initialize Storage using the SECONDARY app
+  imageStorage = getStorage(secondaryStorageFirebaseApp);
   console.log("Firebase Storage initialized successfully for secondary app (lnv-fmb).");
   
+  // Initialize Messaging using the PRIMARY app
   if (typeof window !== 'undefined') {
     messaging = getMessaging(primaryFirebaseApp);
     console.log("Firebase Messaging initialized successfully for primary app.");
@@ -70,7 +76,7 @@ try {
 
 } catch (error) {
   console.error("CRITICAL: Error initializing Firebase client SDKs:", error);
-  // db, storage, messaging will remain null
+  // db, imageStorage, messaging might remain null
 }
 
 
@@ -81,9 +87,9 @@ const requestNotificationPermission = async (): Promise<string | null> => {
       if (permission === 'granted') {
         console.log('Notification permission granted.');
         // VAPID key from your PRIMARY Firebase project (ashara-mubaraka-app)
-        const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+        const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY; // This should be for ashara-mubaraka-app
         if (!vapidKey) {
-            console.error("VAPID key is not set. Push notifications may not work.");
+            console.error("VAPID key is not set for primary project. Push notifications may not work.");
             toast({ variant: "destructive", title: "Config Error", description: "Push notification key missing."});
             return null;
         }
@@ -115,10 +121,12 @@ if (typeof window !== 'undefined' && messaging) {
       title: payload.notification?.title || "New Notification",
       description: payload.notification?.body,
     });
-    if (navigator.vibrate) {
-      navigator.vibrate([200, 100, 200]);
+    if (navigator.vibrate && navigator.vibrate([200, 100, 200])) {
+      console.log("Device vibrated for notification.");
+    } else {
+      console.log("Vibration not supported or not triggered.");
     }
   });
 }
 
-export { db, storage, primaryFirebaseApp, storageFirebaseApp, requestNotificationPermission, getMessaging as getFcmMessaging };
+export { db, imageStorage, primaryFirebaseApp, secondaryStorageFirebaseApp, requestNotificationPermission, getMessaging as getFcmMessaging };
