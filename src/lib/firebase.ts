@@ -1,59 +1,99 @@
 
-import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, getApps, type FirebaseApp, getApp } from "firebase/app";
+import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { toast } from "@/hooks/use-toast";
 
-const firebaseConfig = {
+// Primary Firebase configuration (for Firestore, Auth, Messaging)
+const primaryFirebaseConfig = {
   apiKey: "AIzaSyA8w8a0ap2sOYroS8-qNSsMNPqmXB-vL8g",
   authDomain: "ashara-mubaraka-app.firebaseapp.com",
   projectId: "ashara-mubaraka-app",
-  storageBucket: "ashara-mubaraka-app.firebasestorage.app", // Updated
+  storageBucket: "ashara-mubaraka-app.appspot.com",
   messagingSenderId: "572648688031",
-  appId: "1:572648688031:web:6e1dd3e6903d64f82395aa", // Updated
-  // measurementId: "YOUR_MEASUREMENT_ID" // Optional: Add if you use Analytics
+  appId: "1:572648688031:web:6e1dd3e6903d64f82395aa",
 };
 
-// Initialize Firebase
-let firebaseApp: FirebaseApp;
-if (getApps().length === 0) {
-  firebaseApp = initializeApp(firebaseConfig);
-} else {
-  firebaseApp = getApps()[0];
-}
+// Secondary Firebase configuration (specifically for Storage)
+const storageFirebaseConfig = {
+  apiKey: "AIzaSyBXtRwAXnxP2Zhi4a62qamgUSny4x_kNRQ",
+  authDomain: "lnv-fmb.firebaseapp.com",
+  projectId: "lnv-fmb",
+  storageBucket: "lnv-fmb.appspot.com",
+  messagingSenderId: "819680208785",
+  appId: "1:819680208785:web:4e3fbe0d91fb4013fedc30"
+};
 
-const db = getFirestore(firebaseApp);
+let primaryFirebaseApp: FirebaseApp;
+let storageFirebaseApp: FirebaseApp;
 
-// Initialize Firebase Cloud Messaging and get a reference to the service
-const getFcmMessaging = () => {
-  if (typeof window !== 'undefined' && firebaseApp) {
+let db: ReturnType<typeof getFirestore> | null = null;
+let storage: FirebaseStorage | null = null; // This will be from the secondary app
+let messaging: ReturnType<typeof getMessaging> | null = null;
+
+try {
+  if (getApps().length === 0) {
+    primaryFirebaseApp = initializeApp(primaryFirebaseConfig);
+    console.log("Primary Firebase app (ashara-mubaraka-app) initialized successfully.");
+    storageFirebaseApp = initializeApp(storageFirebaseConfig, "storageApp");
+    console.log("Secondary Firebase app for Storage (lnv-fmb) initialized successfully.");
+  } else {
+    primaryFirebaseApp = getApp(); // Default app
+    console.log("Primary Firebase app (ashara-mubaraka-app) already initialized.");
     try {
-      return getMessaging(firebaseApp);
-    } catch (error) {
-      console.error("Error initializing Firebase Messaging:", error);
-      return null;
+        storageFirebaseApp = getApp("storageApp");
+        console.log("Secondary Firebase app for Storage (lnv-fmb) already initialized.");
+    } catch (e) {
+        storageFirebaseApp = initializeApp(storageFirebaseConfig, "storageApp");
+        console.log("Secondary Firebase app for Storage (lnv-fmb) initialized successfully (on subsequent init).");
     }
   }
-  return null;
-};
+
+  // Initialize Firestore with persistence if not SSR
+  if (typeof window !== 'undefined') {
+    db = initializeFirestore(primaryFirebaseApp, {
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED, // Enable offline persistence
+    });
+  } else {
+    db = getFirestore(primaryFirebaseApp);
+  }
+  console.log("Firestore initialized successfully for primary app.");
+
+  storage = getStorage(storageFirebaseApp); // Use the secondary app for storage
+  console.log("Firebase Storage initialized successfully for secondary app (lnv-fmb).");
+  
+  if (typeof window !== 'undefined') {
+    messaging = getMessaging(primaryFirebaseApp);
+    console.log("Firebase Messaging initialized successfully for primary app.");
+  }
+
+} catch (error) {
+  console.error("CRITICAL: Error initializing Firebase client SDKs:", error);
+  // db, storage, messaging will remain null
+}
+
 
 const requestNotificationPermission = async (): Promise<string | null> => {
-  if (typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator) {
+  if (typeof window !== 'undefined' && messaging && 'Notification' in window && 'serviceWorker' in navigator) {
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         console.log('Notification permission granted.');
-        const messaging = getFcmMessaging();
-        if (messaging) {
-          // VAPID key from Firebase Console > Project settings > Cloud Messaging > Web configuration > Web Push certificates
-          const currentToken = await getToken(messaging, { vapidKey: 'BOCO7fqrEu4j4Jbvi-EjM5xeO05U3iTudgVyz2CkxlwXgtlmWBQi-KvBaWIfRLNFHISJTKnhetxCn_1-jzj8vdc' });
-          if (currentToken) {
-            console.log('FCM Token:', currentToken);
-            return currentToken;
-          } else {
-            console.log('No registration token available. Request permission to generate one.');
+        // VAPID key from your PRIMARY Firebase project (ashara-mubaraka-app)
+        const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+        if (!vapidKey) {
+            console.error("VAPID key is not set. Push notifications may not work.");
+            toast({ variant: "destructive", title: "Config Error", description: "Push notification key missing."});
             return null;
-          }
+        }
+        const currentToken = await getToken(messaging, { vapidKey });
+        if (currentToken) {
+          console.log('FCM Token:', currentToken);
+          return currentToken;
+        } else {
+          console.log('No registration token available. Request permission to generate one.');
+          return null;
         }
       } else {
         console.log('Unable to get permission to notify.');
@@ -64,26 +104,21 @@ const requestNotificationPermission = async (): Promise<string | null> => {
       return null;
     }
   }
-  console.log('Push Notifications not supported or window is not defined.');
+  console.log('Push Notifications not supported, window is not defined, or messaging not initialized.');
   return null;
 };
 
-// Handle foreground messages
-if (typeof window !== 'undefined') {
-  const messagingInstance = getFcmMessaging();
-  if (messagingInstance) {
-    onMessage(messagingInstance, (payload) => {
-      console.log('Foreground message received:', payload);
-      toast({
-        title: payload.notification?.title || "New Notification",
-        description: payload.notification?.body,
-      });
-      if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]);
-      }
+if (typeof window !== 'undefined' && messaging) {
+  onMessage(messaging, (payload) => {
+    console.log('Foreground message received:', payload);
+    toast({
+      title: payload.notification?.title || "New Notification",
+      description: payload.notification?.body,
     });
-  }
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]);
+    }
+  });
 }
 
-export { db, firebaseApp, requestNotificationPermission, getFcmMessaging };
-
+export { db, storage, primaryFirebaseApp, storageFirebaseApp, requestNotificationPermission, getMessaging as getFcmMessaging };

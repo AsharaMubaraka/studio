@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"; // Added CardFooter
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, UploadCloud, List, Trash2, Image as ImageIconLucide, Eye, Download } from "lucide-react";
@@ -26,7 +26,7 @@ import Image from "next/image";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogDescription, DialogFooter as AdminDialogFooter } from "@/components/ui/dialog"; // Renamed DialogFooter import for clarity if needed, or use directly
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogDescription, DialogFooter as AdminDialogFooter } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { siteConfig } from "@/config/site";
 
@@ -34,7 +34,7 @@ const mediaFormSchemaClient = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100),
   description: z.string().max(500).optional(),
   file: z.instanceof(File, { message: "Image file is required." })
-          .refine(file => file.size <= 25 * 1024 * 1024, "Max file size is 25MB.")
+          .refine(file => file.size <= 25 * 1024 * 1024, "Max file size is 25MB.") // 25MB
           .refine(file => file.type.startsWith("image/"), "Only image files are accepted."),
 });
 
@@ -46,7 +46,7 @@ export default function ManageMediaPage() {
   const [uploadedImages, setUploadedImages] = useState<MediaItem[]>([]);
   const [isLoadingLog, setIsLoadingLog] = useState(true);
   const [logError, setLogError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null); // Stores docId being deleted
+  const [isDeleting, setIsDeleting] = useState<string | null>(null); 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedImageForAdminView, setSelectedImageForAdminView] = useState<MediaItem | null>(null);
@@ -88,7 +88,7 @@ export default function ManageMediaPage() {
       };
       reader.readAsDataURL(file);
     } else {
-      form.setValue("file", undefined);
+      form.setValue("file", undefined, { shouldValidate: true });
       setPreviewUrl(null);
     }
   };
@@ -115,7 +115,7 @@ export default function ManageMediaPage() {
         toast({ title: "Success", description: result.message });
         form.reset();
         setPreviewUrl(null);
-        if (fileInputRef.current) fileInputRef.current.value = ""; // Clear file input
+        if (fileInputRef.current) fileInputRef.current.value = "";
         fetchMediaLog();
       } else {
         toast({ variant: "destructive", title: "Upload Failed", description: result.message || "Could not upload image." });
@@ -135,10 +135,10 @@ export default function ManageMediaPage() {
     }
   }
 
-  async function handleDeleteImage(publicId: string, docId: string) {
+  async function handleDeleteImage(filePath: string, docId: string) {
     setIsDeleting(docId);
     try {
-      const result = await deleteImageAction(publicId, docId);
+      const result = await deleteImageAction(filePath, docId);
       if (result.success) {
         toast({ title: "Success", description: result.message });
         setUploadedImages(prev => prev.filter(img => img.id !== docId));
@@ -251,9 +251,9 @@ export default function ManageMediaPage() {
                     <p className="text-xs text-muted-foreground flex items-center"><Download className="mr-1 h-3 w-3"/>Downloads: {image.downloadCount || 0}</p>
                   </CardContent>
                   <CardFooter className="p-2 border-t flex gap-1">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedImageForAdminView(image)}>
-                      <Eye className="mr-1.5 h-3.5 w-3.5"/>View
-                    </Button>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedImageForAdminView(image)}>
+                          <Eye className="mr-1.5 h-3.5 w-3.5"/>View
+                      </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="destructive" size="sm" className="flex-1" disabled={isDeleting === image.id}>
@@ -265,12 +265,12 @@ export default function ManageMediaPage() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will permanently delete the image "{image.title}" from Cloudinary and the database. This action cannot be undone.
+                            This will permanently delete the image "{image.title}" from Firebase Storage and the database. This action cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteImage(image.publicId, image.id)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                          <AlertDialogAction onClick={() => handleDeleteImage(image.filePath, image.id)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                             Yes, delete image
                           </AlertDialogAction>
                         </AlertDialogFooter>
@@ -288,7 +288,7 @@ export default function ManageMediaPage() {
         {selectedImageForAdminView && (
           <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
               <DialogHeader className="p-4 border-b">
-                  <DialogTitle>Image Preview: {selectedImageForAdminView.title}</DialogTitle>
+                  <DialogTitle>Admin Preview: {selectedImageForAdminView.title}</DialogTitle>
                   {selectedImageForAdminView.description && <DialogDescription>{selectedImageForAdminView.description}</DialogDescription>}
               </DialogHeader>
               <div className="p-4 relative max-h-[70vh] overflow-y-auto flex justify-center items-center bg-black/5">
@@ -316,7 +316,6 @@ export default function ManageMediaPage() {
           </DialogContent>
         )}
       </Dialog>
-
     </div>
   );
 }

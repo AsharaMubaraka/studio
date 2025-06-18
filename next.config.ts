@@ -3,13 +3,11 @@ import type {NextConfig} from 'next';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const withPWA = require('next-pwa')({
   dest: 'public',
-  register: true, // auto registers the service worker
-  skipWaiting: true, // forces prompt to update PWA when new version available
-  // disable: process.env.NODE_ENV === 'development', // Optional: disable PWA in development
+  register: true, 
+  skipWaiting: true, 
 });
 
 const nextConfig: NextConfig = {
-  // output: 'export', // Removed for PWA, standard Next.js build is generally preferred
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -17,7 +15,6 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    // unoptimized: true, // Removed, default Next.js image optimization will apply
     remotePatterns: [
       {
         protocol: 'https',
@@ -39,22 +36,18 @@ const nextConfig: NextConfig = {
       },
       { 
         protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com',
+        hostname: 'firebasestorage.googleapis.com', // Generic for Firebase Storage
         port: '',
-        pathname: '/**',
+        pathname: '/**', // Allows any path, including specific bucket paths
       },
-      {
+      { // Specifically for your primary project's default logo if needed
         protocol: 'https',
         hostname: 'ashara1447.udaem.site',
         port: '',
         pathname: '/**',
       },
-      { // Added for Cloudinary
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
-        port: '',
-        pathname: '/**',
-      }
+      // Note: `firebasestorage.googleapis.com` should cover the new storage bucket `lnv-fmb.appspot.com`
+      // as images are served from this domain with bucket info in the path.
     ],
   },
   allowedDevOrigins: [
