@@ -26,7 +26,7 @@ import Image from "next/image";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent as AdminDialogContent, DialogHeader as AdminDialogHeader, DialogTitle as AdminDialogTitle, DialogTrigger as AdminDialogTrigger, DialogClose as AdminDialogClose, DialogDescription as AdminDialogDescription, DialogFooter as AdminDialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { siteConfig } from "@/config/site";
 
@@ -34,7 +34,7 @@ const mediaFormSchemaClient = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100),
   description: z.string().max(500).optional(),
   file: z.instanceof(File, { message: "Image file is required." })
-          .refine(file => file.size <= 25 * 1024 * 1024, "Max file size is 25MB.") // Updated to 25MB
+          .refine(file => file.size <= 25 * 1024 * 1024, "Max file size is 25MB.")
           .refine(file => file.type.startsWith("image/"), "Only image files are accepted."),
 });
 
@@ -251,13 +251,13 @@ export default function ManageMediaPage() {
                     <p className="text-xs text-muted-foreground flex items-center"><Download className="mr-1 h-3 w-3"/>Downloads: {image.downloadCount || 0}</p>
                   </CardContent>
                   <CardFooter className="p-2 border-t flex gap-1">
-                    <AdminDialog onOpenChange={(open) => !open && setSelectedImageForAdminView(null)}>
-                      <AdminDialogTrigger asChild>
+                    <Dialog onOpenChange={(open) => !open && setSelectedImageForAdminView(null)}>
+                      <DialogTrigger asChild>
                         <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedImageForAdminView(image)}>
                           <Eye className="mr-1.5 h-3.5 w-3.5"/>View
                         </Button>
-                      </AdminDialogTrigger>
-                    </AdminDialog>
+                      </DialogTrigger>
+                    </Dialog>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="destructive" size="sm" className="flex-1" disabled={isDeleting === image.id}>
@@ -289,11 +289,11 @@ export default function ManageMediaPage() {
       </Card>
       
       {selectedImageForAdminView && (
-        <AdminDialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
-            <AdminDialogHeader className="p-4 border-b">
-                <AdminDialogTitle>Image Preview: {selectedImageForAdminView.title}</AdminDialogTitle>
-                {selectedImageForAdminView.description && <AdminDialogDescription>{selectedImageForAdminView.description}</AdminDialogDescription>}
-            </AdminDialogHeader>
+        <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+            <DialogHeader className="p-4 border-b">
+                <DialogTitle>Image Preview: {selectedImageForAdminView.title}</DialogTitle>
+                {selectedImageForAdminView.description && <DialogDescription>{selectedImageForAdminView.description}</DialogDescription>}
+            </DialogHeader>
             <div className="p-4 relative max-h-[70vh] overflow-y-auto flex justify-center items-center bg-black/5">
                 <div className="relative inline-block">
                     <Image
@@ -313,10 +313,10 @@ export default function ManageMediaPage() {
                     </div>
                 </div>
             </div>
-            <AdminDialogFooter className="p-4 border-t">
-                <AdminDialogClose asChild><Button variant="outline">Close</Button></AdminDialogClose>
-            </AdminDialogFooter>
-        </AdminDialogContent>
+            <DialogFooter className="p-4 border-t">
+                <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
+            </DialogFooter>
+        </DialogContent>
       )}
 
     </div>
