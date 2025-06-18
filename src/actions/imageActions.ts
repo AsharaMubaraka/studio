@@ -43,8 +43,7 @@ export interface MediaItem {
 
 export async function uploadImageAction(formData: FormData, author: {id: string; name?: string}) {
   console.log("[uploadImageAction] Action started.");
-  console.log("[uploadImageAction] Received FormData. Keys:", Array.from(formData.keys()));
-
+  
   const rawTitle = formData.get("title");
   const rawDescription = formData.get("description");
   const rawFile = formData.get("file");
@@ -52,7 +51,6 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
   console.log(`[uploadImageAction] Raw title: '${String(rawTitle)}', type: ${typeof rawTitle}`);
   console.log(`[uploadImageAction] Raw description: '${String(rawDescription)}', type: ${typeof rawDescription}`);
   console.log(`[uploadImageAction] Raw file: ${String(rawFile)}, type: ${typeof rawFile}, instanceof File: ${rawFile instanceof File}`);
-
   if (rawFile instanceof File) {
     console.log(`[uploadImageAction] File details - name: ${rawFile.name}, size: ${rawFile.size}, type: ${rawFile.type}`);
   }
@@ -63,46 +61,51 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
     console.error("CLOUDINARY_UPLOAD_PRESET is not set or is an empty string.");
     return { success: false, message: "Server configuration error: Upload preset missing." };
   }
-  // Explicitly check if the core Cloudinary SDK configuration is present
   if (!cloudinary.config().cloud_name || !cloudinary.config().api_key || !cloudinary.config().api_secret) {
     console.error("Cloudinary SDK not fully configured. Check CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in environment variables.");
     return { success: false, message: "Server configuration error: Cloudinary not configured. Admin should check server logs." };
   }
 
-  const title = String(rawTitle); // Ensure title is treated as string for Zod
-  const descriptionValue = rawDescription;
-  const descriptionForZod = typeof descriptionValue === 'string' ? descriptionValue : undefined;
+  // Refined parsing for Zod
+  const title = typeof rawTitle === 'string' ? rawTitle : ""; // Default to empty string; Zod's min(2) will catch it if it's too short.
+  const descriptionForZod = typeof rawDescription === 'string' ? rawDescription : undefined; // undefined if not a string, works with .optional()
 
   const file = rawFile instanceof File ? rawFile : null;
 
-
   try {
-    mediaFormSchema.parse({ title, description: descriptionForZod }); // Validate text fields
-    if (!file) { // Already checked instanceof File for 'file' variable
-      throw new Error("No file or invalid file provided.");
+    console.log(`[uploadImageAction] Validating with Zod: title='${title}', description='${descriptionForZod}'`);
+    mediaFormSchema.parse({ title, description: descriptionForZod });
+    
+    if (!file) {
+      console.error("[uploadImageAction] File validation failed: No file or invalid file object received on server.");
+      throw new Error("No file or invalid file provided. Ensure a file is selected.");
     }
-    if (file.size > 25 * 1024 * 1024) { // Updated limit: 25MB
+    if (file.size > 25 * 1024 * 1024) {
+        console.error(`[uploadImageAction] File validation failed: File too large. Size: ${file.size}`);
         throw new Error("File is too large. Max 25MB allowed.");
     }
     if (!file.type.startsWith("image/")) {
+        console.error(`[uploadImageAction] File validation failed: Invalid file type. Type: ${file.type}`);
         throw new Error("Invalid file type. Only images are allowed.");
     }
 
+    console.log("[uploadImageAction] File validation passed. Converting to buffer.");
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    console.log("[uploadImageAction] Buffer created. Uploading to Cloudinary...");
 
     const uploadResult: any = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         { 
           upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
           resource_type: "image",
-          // folder: "media_gallery", // Optional: organize in Cloudinary
         },
         (error, result) => {
           if (error) {
             console.error("Cloudinary upload error inside stream callback:", error);
             reject(error);
           } else {
+            console.log("[uploadImageAction] Cloudinary upload successful.");
             resolve(result);
           }
         }
@@ -115,9 +118,10 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
       throw new Error("Cloudinary upload failed or returned invalid data.");
     }
 
+    console.log("[uploadImageAction] Saving to Firestore.");
     await addDoc(collection(db, "media_gallery"), {
-      title,
-      description: descriptionForZod || null, // Save undefined as null in Firestore
+      title, // Use the validated title
+      description: descriptionForZod, // Use the validated (and possibly undefined) description
       imageUrl: uploadResult.secure_url,
       publicId: uploadResult.public_id,
       uploaderId: author.id,
@@ -125,7 +129,7 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
       createdAt: serverTimestamp(),
       downloadCount: 0,
     });
-
+    console.log("[uploadImageAction] Successfully saved to Firestore.");
     return { success: true, message: "Image uploaded and saved successfully!" };
 
   } catch (error: any) {
@@ -139,7 +143,6 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
     if (error instanceof z.ZodError) {
       return { success: false, message: "Validation failed.", errors: error.flatten().fieldErrors };
     }
-    // Ensure a message is always returned
     const errorMessage = error?.message || "An_unknown_error_occurred_during_image_upload._Check_server_logs.";
     return { success: false, message: errorMessage };
   }
@@ -149,7 +152,6 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
 export async function getGalleryImagesAction(adminView: boolean = false): Promise<MediaItem[]> {
   try {
     const mediaCollectionRef = collection(db, "media_gallery");
-    // Sort by newest first
     const q = query(mediaCollectionRef, orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
 
@@ -174,24 +176,17 @@ export async function getGalleryImagesAction(adminView: boolean = false): Promis
 }
 
 export async function deleteImageAction(publicId: string, docId: string) {
-  // Check if Cloudinary Admin API is configured for deletion
   if (!cloudinary.config().api_key || !cloudinary.config().api_secret || !cloudinary.config().cloud_name) { 
      console.error("Cloudinary Admin API not configured for deletion. Check environment variables: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.");
      return { success: false, message: "Server configuration error: Cannot delete from Cloudinary. Admin should check server logs." };
   }
   try {
-    // Delete from Cloudinary
     await cloudinary.uploader.destroy(publicId, { resource_type: "image" });
-
-    // Delete from Firestore
     const docRef = doc(db, "media_gallery", docId);
     await deleteDoc(docRef);
-
     return { success: true, message: "Image deleted successfully from Cloudinary and database." };
   } catch (error: any) {
     console.error("Error deleting image:", error);
-    // Attempt to determine if Cloudinary part failed or Firestore part failed for better message
-    // For now, generic message
     return { success: false, message: "Failed to delete image. It might still exist in Cloudinary or the database. Check server logs." };
   }
 }
@@ -211,4 +206,6 @@ export async function incrementDownloadCountAction(docId: string): Promise<{ suc
     return { success: false, message: "Failed to increment download count." };
   }
 }
+    
+
     
