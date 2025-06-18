@@ -163,33 +163,33 @@ export default function DownloadsPage() {
       const link = document.createElement("a");
       link.href = image.imageUrl;
       
-      const urlParts = image.imageUrl.split('?')[0].split('/');
-      const firebasePathWithPotentialEncoding = urlParts[urlParts.length - 1];
-      let decodedFirebasePath = "download";
-      try {
-        decodedFirebasePath = decodeURIComponent(firebasePathWithPotentialEncoding);
-      } catch (e) {
-        // If decoding fails, use the encoded path or a fallback
-        console.warn("Could not decode filename part:", firebasePathWithPotentialEncoding);
-        decodedFirebasePath = firebasePathWithPotentialEncoding;
+      // Extract filename from URL path, before query parameters
+      let filename = "download.png"; // Default filename
+      const urlPath = new URL(image.imageUrl).pathname;
+      const pathParts = urlPath.split('/');
+      const lastPathPart = pathParts[pathParts.length - 1];
+      if (lastPathPart) {
+        // Decode URI component to handle spaces or special characters in filename
+        try {
+          filename = decodeURIComponent(lastPathPart);
+        } catch (e) {
+          // If decoding fails, use the raw part
+          filename = lastPathPart;
+          console.warn("Could not decode filename part:", lastPathPart);
+        }
+      } else if (image.title) {
+        // Fallback to image title if path extraction fails
+        filename = image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') + '.png'; // Assuming png
       }
       
-      // Attempt to get a more meaningful filename from the decoded path
-      const filenameOnly = decodedFirebasePath.substring(decodedFirebasePath.lastIndexOf('/') + 1) || decodedFirebasePath;
+      link.setAttribute('download', filename);
       
-      // Fallback filename if extraction is not ideal
-      const downloadFilename = filenameOnly || 
-                             (image.title && image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') + '.png') || // Assuming png, could be improved
-                             `download_${image.id}.png`;
-      
-      link.setAttribute('download', downloadFilename);
-      
-      // Append to an invisible part of the body, click, then remove
+      // Append to body, click, then remove
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      toast({ title: "Download Initiated", description: `Downloading ${downloadFilename}...`});
+      toast({ title: "Download Initiated", description: `Downloading ${filename}...`});
 
       // Increment download count
       const result = await incrementDownloadCountAction(image.id);
@@ -215,7 +215,7 @@ export default function DownloadsPage() {
     if (isLoading && (!images || images.length === 0)) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {(initialHardcodedImages || []).map((_, i) => (
+          {(initialHardcodedImages && Array.isArray(initialHardcodedImages) ? initialHardcodedImages : []).map((_, i) => (
             <Card key={i} className="overflow-hidden">
               <Skeleton className="aspect-video w-full" />
               <CardContent className="p-4 space-y-2">
@@ -340,4 +340,6 @@ export default function DownloadsPage() {
     </div>
   );
 }
+    
+
     
