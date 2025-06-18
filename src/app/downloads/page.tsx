@@ -172,23 +172,39 @@ export default function DownloadsPage() {
         const link = document.createElement('a');
         link.href = image.imageUrl;
 
-        // Simplified filename using the image title and a common extension.
-        // This ensures the filename is simple and less likely to cause issues.
-        const titleSanitized = image.title.replace(/[^a-zA-Z0-9_-\s]/g, '_').replace(/\s+/g, '_') || 'download';
-        const extensionMatch = image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i);
-        const extension = extensionMatch && extensionMatch[1] ? `.${extensionMatch[1]}` : '.png'; // Default to .png
-        const filename = `${titleSanitized}${extension}`;
+        // Extract a filename from the URL path, try to remove query params for a cleaner name
+        let filename = image.title.replace(/[^a-zA-Z0-9_-\s]/g, '_').replace(/\s+/g, '_') || "download";
+        try {
+            const url = new URL(image.imageUrl);
+            const pathnameParts = url.pathname.split('/');
+            const lastPathSegment = decodeURIComponent(pathnameParts[pathnameParts.length - 1]);
+             // Use the last path segment if it looks like a file, otherwise stick to title-based
+            if (lastPathSegment && lastPathSegment.includes('.')) {
+                filename = lastPathSegment.replace(/[^a-zA-Z0-9_.\-\s]/g, '_').replace(/\s+/g, '_');
+            } else if (!filename.includes('.')) { // Ensure title-based filename has an extension
+                 const extensionMatch = image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i);
+                 const extension = extensionMatch && extensionMatch[1] ? `.${extensionMatch[1]}` : '.png';
+                 filename += extension;
+            }
+
+        } catch (e) {
+            console.warn("Could not parse URL for filename, using title-based or default.", e);
+            // Ensure title-based filename has an extension if URL parsing fails
+            if (!filename.includes('.')) {
+                const extensionMatch = image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i);
+                const extension = extensionMatch && extensionMatch[1] ? `.${extensionMatch[1]}` : '.png';
+                filename += extension;
+            }
+        }
         
         link.setAttribute('download', filename);
-        
-        // Append to body, click, then remove. Standard procedure.
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
         toast({ title: "Download Initiated", description: `Downloading ${filename}...`});
 
-        // Increment download count after attempting the download.
+        // Increment download count
         const result = await incrementDownloadCountAction(image.id);
         if (result.success) {
             setImages(prevImages =>
@@ -339,4 +355,6 @@ export default function DownloadsPage() {
     </div>
   );
 }
+    
+
     
