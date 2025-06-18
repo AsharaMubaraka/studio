@@ -15,10 +15,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"; // Added CardFooter
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, UploadCloud, List, Trash2, Image as ImageIconLucide, Eye } from "lucide-react";
+import { Loader2, UploadCloud, List, Trash2, Image as ImageIconLucide, Eye, Download } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { uploadImageAction, getGalleryImagesAction, deleteImageAction, type MediaItem, type MediaFormValues } from "@/actions/imageActions";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +26,7 @@ import Image from "next/image";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent as AdminDialogContent, DialogHeader as AdminDialogHeader, DialogTitle as AdminDialogTitle, DialogTrigger as AdminDialogTrigger, DialogClose as AdminDialogClose, DialogDescription as AdminDialogDescription, DialogFooter as AdminDialogFooter } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { siteConfig } from "@/config/site";
 
@@ -33,7 +34,7 @@ const mediaFormSchemaClient = z.object({
   title: z.string().min(2, "Title must be at least 2 characters.").max(100),
   description: z.string().max(500).optional(),
   file: z.instanceof(File, { message: "Image file is required." })
-          .refine(file => file.size <= 10 * 1024 * 1024, "Max file size is 10MB.") // 10MB
+          .refine(file => file.size <= 25 * 1024 * 1024, "Max file size is 25MB.") // Updated to 25MB
           .refine(file => file.type.startsWith("image/"), "Only image files are accepted."),
 });
 
@@ -48,6 +49,7 @@ export default function ManageMediaPage() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null); // Stores docId being deleted
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedImageForAdminView, setSelectedImageForAdminView] = useState<MediaItem | null>(null);
 
   const form = useForm<z.infer<typeof mediaFormSchemaClient>>({
     resolver: zodResolver(mediaFormSchemaClient),
@@ -61,7 +63,7 @@ export default function ManageMediaPage() {
   const fetchMediaLog = useCallback(async () => {
     setIsLoadingLog(true); setLogError(null);
     try {
-      const images = await getGalleryImagesAction(true); // true for admin view if different later
+      const images = await getGalleryImagesAction(true); 
       setUploadedImages(images);
     } catch (error) {
       console.error("Error fetching media log:", error);
@@ -118,7 +120,6 @@ export default function ManageMediaPage() {
       } else {
         toast({ variant: "destructive", title: "Upload Failed", description: result.message || "Could not upload image." });
         if (result.errors) {
-            // Handle potential field errors from server-side Zod validation
             (Object.keys(result.errors) as Array<keyof MediaFormValues>).forEach((key) => {
                  const fieldErrors = result.errors![key];
                  if (fieldErrors && fieldErrors.length > 0) {
@@ -165,7 +166,7 @@ export default function ManageMediaPage() {
             Upload New Image
           </CardTitle>
           <CardDescription>
-            Add new images to the public gallery. Max file size: 10MB.
+            Add new images to the public gallery. Max file size: 25MB.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -176,7 +177,7 @@ export default function ManageMediaPage() {
               <FormField
                 control={form.control}
                 name="file"
-                render={({ field }) => ( // field only used for error reporting
+                render={({ field }) => ( 
                   <FormItem>
                     <FormLabel>Image File</FormLabel>
                     <FormControl>
@@ -225,6 +226,7 @@ export default function ManageMediaPage() {
                   <Skeleton className="aspect-square w-full rounded-md" />
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-3 w-1/2" />
+                  <Skeleton className="h-3 w-1/4" />
                 </div>
               ))}
             </div>
@@ -238,21 +240,28 @@ export default function ManageMediaPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {uploadedImages.map((image) => (
-                <Card key={image.id} className="overflow-hidden shadow-md">
+                <Card key={image.id} className="overflow-hidden shadow-md flex flex-col">
                   <div className="aspect-square w-full relative bg-muted">
                     <Image src={image.imageUrl} alt={image.title} fill className="object-cover" sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"/>
                   </div>
-                  <CardContent className="p-3 space-y-1">
+                  <CardContent className="p-3 space-y-1 flex-grow">
                     <h3 className="font-semibold text-sm truncate" title={image.title}>{image.title}</h3>
                     <p className="text-xs text-muted-foreground truncate" title={image.description || ""}>{image.description || "No description"}</p>
                     <p className="text-xs text-muted-foreground">Uploaded: {format(image.createdAt, "dd MMM yyyy")}</p>
-                     {/* <p className="text-xs text-muted-foreground">Downloads: {image.downloadCount || 0}</p> Deferred */}
+                    <p className="text-xs text-muted-foreground flex items-center"><Download className="mr-1 h-3 w-3"/>Downloads: {image.downloadCount || 0}</p>
                   </CardContent>
-                  <CardFooter className="p-3 border-t">
+                  <CardFooter className="p-2 border-t flex gap-1">
+                    <AdminDialog onOpenChange={(open) => !open && setSelectedImageForAdminView(null)}>
+                      <AdminDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedImageForAdminView(image)}>
+                          <Eye className="mr-1.5 h-3.5 w-3.5"/>View
+                        </Button>
+                      </AdminDialogTrigger>
+                    </AdminDialog>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm" className="w-full" disabled={isDeleting === image.id}>
-                          {isDeleting === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-3 w-3" />}
+                        <Button variant="destructive" size="sm" className="flex-1" disabled={isDeleting === image.id}>
+                          {isDeleting === image.id ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-1.5 h-3.5 w-3.5" />}
                           Delete
                         </Button>
                       </AlertDialogTrigger>
@@ -278,6 +287,38 @@ export default function ManageMediaPage() {
           )}
         </CardContent>
       </Card>
+      
+      {selectedImageForAdminView && (
+        <AdminDialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+            <AdminDialogHeader className="p-4 border-b">
+                <AdminDialogTitle>Image Preview: {selectedImageForAdminView.title}</AdminDialogTitle>
+                {selectedImageForAdminView.description && <AdminDialogDescription>{selectedImageForAdminView.description}</AdminDialogDescription>}
+            </AdminDialogHeader>
+            <div className="p-4 relative max-h-[70vh] overflow-y-auto flex justify-center items-center bg-black/5">
+                <div className="relative inline-block">
+                    <Image
+                        src={selectedImageForAdminView.imageUrl}
+                        alt={selectedImageForAdminView.title}
+                        width={1200}
+                        height={800}
+                        className="max-w-full max-h-[65vh] object-contain rounded"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span 
+                            className="text-6xl md:text-8xl font-bold text-white/20 transform -rotate-12 select-none"
+                            style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)'}}
+                        >
+                            deeniakhbar
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <AdminDialogFooter className="p-4 border-t">
+                <AdminDialogClose asChild><Button variant="outline">Close</Button></AdminDialogClose>
+            </AdminDialogFooter>
+        </AdminDialogContent>
+      )}
+
     </div>
   );
 }

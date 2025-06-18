@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, getDocs, doc, deleteDoc, query, orderBy, Timestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, getDocs, doc, deleteDoc, query, orderBy, Timestamp, updateDoc, increment } from "firebase/firestore";
 import { v2 as cloudinary } from 'cloudinary';
 
 // Configure Cloudinary - ensure environment variables are set in your deployment
@@ -38,7 +38,7 @@ export interface MediaItem {
   uploaderId: string;
   uploaderName?: string;
   createdAt: Date;
-  // downloadCount: number; // Deferred for now
+  downloadCount: number;
 }
 
 export async function uploadImageAction(formData: FormData, author: {id: string; name?: string}) {
@@ -64,8 +64,8 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
     if (!file || !(file instanceof File)) {
       throw new Error("No file or invalid file provided.");
     }
-    if (file.size > 10 * 1024 * 1024) { // Example: 10MB limit
-        throw new Error("File is too large. Max 10MB allowed.");
+    if (file.size > 25 * 1024 * 1024) { // Updated limit: 25MB
+        throw new Error("File is too large. Max 25MB allowed.");
     }
     if (!file.type.startsWith("image/")) {
         throw new Error("Invalid file type. Only images are allowed.");
@@ -106,7 +106,7 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
       uploaderId: author.id,
       uploaderName: author.name || "Admin",
       createdAt: serverTimestamp(),
-      // downloadCount: 0, // Deferred
+      downloadCount: 0,
     });
 
     return { success: true, message: "Image uploaded and saved successfully!" };
@@ -147,7 +147,7 @@ export async function getGalleryImagesAction(adminView: boolean = false): Promis
         uploaderId: data.uploaderId,
         uploaderName: data.uploaderName,
         createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
-        // downloadCount: data.downloadCount || 0, // Deferred
+        downloadCount: data.downloadCount || 0,
       };
     });
   } catch (error) {
@@ -179,6 +179,19 @@ export async function deleteImageAction(publicId: string, docId: string) {
   }
 }
 
-// Placeholder for download count increment, if added later
-// export async function incrementDownloadCountAction(docId: string) { ... }
+export async function incrementDownloadCountAction(docId: string): Promise<{ success: boolean; message?: string }> {
+  if (!docId) {
+    return { success: false, message: "Document ID is required to increment download count." };
+  }
+  try {
+    const docRef = doc(db, "media_gallery", docId);
+    await updateDoc(docRef, {
+      downloadCount: increment(1)
+    });
+    return { success: true, message: "Download count incremented." };
+  } catch (error) {
+    console.error("Error incrementing download count:", error);
+    return { success: false, message: "Failed to increment download count." };
+  }
+}
     

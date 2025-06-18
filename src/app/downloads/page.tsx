@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { getGalleryImagesAction, type MediaItem } from "@/actions/imageActions";
+import { getGalleryImagesAction, type MediaItem, incrementDownloadCountAction } from "@/actions/imageActions";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Eye, Loader2, ImageOff, AlertTriangle } from "lucide-react";
@@ -11,13 +11,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { siteConfig } from "@/config/site";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DownloadsPage() {
   const [images, setImages] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<MediaItem | null>(null);
-  const [isDownloading, setIsDownloading] = useState<string | null>(null); // Store ID of image being downloaded
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchImages = useCallback(async () => {
     setIsLoading(true);
@@ -41,7 +43,6 @@ export default function DownloadsPage() {
   const handleDownload = async (image: MediaItem) => {
     setIsDownloading(image.id);
     try {
-      // Direct download from Cloudinary URL
       const response = await fetch(image.imageUrl);
       if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
       const blob = await response.blob();
@@ -54,11 +55,20 @@ export default function DownloadsPage() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
-      // await incrementDownloadCountAction(image.id); // Placeholder if we add this back
-      // fetchImages(); // Re-fetch to update counts if implemented
+      
+      const incrementResult = await incrementDownloadCountAction(image.id);
+      if (incrementResult.success) {
+        // Optimistically update the local state or re-fetch for immediate UI update if desired
+        setImages(prevImages => prevImages.map(img => 
+            img.id === image.id ? { ...img, downloadCount: (img.downloadCount || 0) + 1 } : img
+        ));
+      } else {
+        console.warn("Failed to increment download count on server:", incrementResult.message);
+      }
+
     } catch (err: any) {
       console.error("Download error:", err);
-      alert(`Error downloading file: ${err.message}`);
+      toast({ variant: "destructive", title: "Download Error", description: err.message || "Could not download the file."});
     } finally {
       setIsDownloading(null);
     }
@@ -116,7 +126,7 @@ export default function DownloadsPage() {
                 {selectedImage && selectedImage.id === image.id && (
                   <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0">
                     <DialogHeader className="p-4 border-b">
-                      <DialogTitle>{selectedImage.title}</DialogTitle>
+                      <DialogTitle>Image Preview: {selectedImage.title}</DialogTitle>
                       {selectedImage.description && <DialogDescription>{selectedImage.description}</DialogDescription>}
                     </DialogHeader>
                     <div className="p-4 relative max-h-[70vh] overflow-y-auto flex justify-center items-center bg-black/5">
