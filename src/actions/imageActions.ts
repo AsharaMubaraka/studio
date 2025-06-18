@@ -53,11 +53,13 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
   }
 
   const title = formData.get("title") as string;
-  const description = formData.get("description") as string | undefined;
+  const descriptionValue = formData.get("description"); // Can be string | File | null
+  const descriptionForZod = typeof descriptionValue === 'string' ? descriptionValue : undefined;
+
   const file = formData.get("file") as File | null;
 
   try {
-    mediaFormSchema.parse({ title, description }); // Validate text fields
+    mediaFormSchema.parse({ title, description: descriptionForZod }); // Validate text fields
     if (!file || !(file instanceof File)) {
       throw new Error("No file or invalid file provided.");
     }
@@ -96,7 +98,7 @@ export async function uploadImageAction(formData: FormData, author: {id: string;
 
     await addDoc(collection(db, "media_gallery"), {
       title,
-      description: description || null,
+      description: descriptionForZod || null, // Save undefined as null in Firestore
       imageUrl: uploadResult.secure_url,
       publicId: uploadResult.public_id,
       uploaderId: author.id,
