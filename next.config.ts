@@ -45,10 +45,16 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'ashara1447.udaem.site', // Added this new hostname
+        hostname: 'ashara1447.udaem.site',
         port: '',
         pathname: '/**',
       },
+      { // Added for Cloudinary
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        port: '',
+        pathname: '/**',
+      }
     ],
   },
   allowedDevOrigins: [

@@ -30,11 +30,11 @@ export const userNavItems: NavItemConfig[] = [
     href: '/live-relay',
     icon: Youtube,
   },
-  // { // Removed Media Downloads from user navigation
-  //   title: 'Media Downloads',
-  //   href: '/downloads',
-  //   icon: DownloadCloud,
-  // },
+  { 
+    title: 'Media Downloads',
+    href: '/downloads', // Publicly accessible
+    icon: DownloadCloud,
+  },
 ];
 
 export const adminNavItems: NavItemConfig[] = [
@@ -53,11 +53,11 @@ export const adminNavItems: NavItemConfig[] = [
     href: '/users',
     icon: Users,
   },
-  // { // Removed Manage Media from admin navigation
-  //   title: 'Manage Media',
-  //   href: '/manage-media',
-  //   icon: ImageIconLucide,
-  // },
+  { 
+    title: 'Manage Media',
+    href: '/manage-media',
+    icon: ImageIconLucide,
+  },
   {
     title: 'Live Relay',
     href: '/live-relay',
