@@ -166,26 +166,18 @@ export default function DownloadsPage() {
   }, []);
 
 
-  const handleDownload = async (image: SimpleMediaItem) => {
+ const handleDownload = async (image: SimpleMediaItem) => {
     setIsDownloading(image.id);
     try {
         // Construct the URL for our API proxy
         const proxyUrl = `/api/download?url=${encodeURIComponent(image.imageUrl)}`;
         
         // Open the proxy URL, which will trigger the download with correct headers
+        // Using window.open is generally more reliable for initiating downloads this way.
         window.open(proxyUrl, '_blank');
-        // Or for same tab navigation (might be less ideal for user experience if it replaces content):
-        // window.location.href = proxyUrl;
-
-        // Extract filename for toast message (optional, as server now handles actual filename)
-        let filename = image.title.replace(/[^a-zA-Z0-9_-\s]/g, '_').replace(/\s+/g, '_') || "download";
-        const extensionMatch = image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i);
-        const extension = extensionMatch && extensionMatch[1] ? `.${extensionMatch[1]}` : '.png';
-        if (!filename.includes('.')) {
-             filename += extension;
-        }
-
-        toast({ title: "Download Initiated", description: `Downloading ${filename}...`});
+        // If _blank is problematic (e.g. pop-up blockers), you can try:
+        // window.location.href = proxyUrl; 
+        // But this replaces the current page, which is usually not desired.
 
         // Increment download count
         const result = await incrementDownloadCountAction(image.id);
@@ -198,6 +190,13 @@ export default function DownloadsPage() {
         } else {
             console.warn(`Failed to update download count for ${image.id}: ${result.message}`);
         }
+
+        // Show the Shukran toast message
+        toast({
+            title: "Shukran!",
+            description: "Thank you for downloading the wallpaper! Do share your screen using #deeniakhbar53 and on Insta @deeni.akhbar53",
+            duration: 10000, // 10 seconds
+        });
 
     } catch (err: any) {
         console.error("Download error:", err);
