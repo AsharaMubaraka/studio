@@ -25,7 +25,7 @@ export default function DownloadsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const fetchedImages = await getGalleryImagesAction();
+      const fetchedImages = await getGalleryImagesAction(); // Not admin view
       setImages(fetchedImages);
     } catch (err) {
       console.error("Error fetching images for gallery:", err);
@@ -41,14 +41,14 @@ export default function DownloadsPage() {
   }, [fetchImages]);
 
   const handleDownload = async (image: MediaItem) => {
-    setIsDownloading(image.id);
+    setIsDownloading(image.id); // Use image.id which is now consistently docId or sanitized filePath
     try {
       const response = await fetch(image.imageUrl);
       if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
       const blob = await response.blob();
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      const nameParts = image.imageUrl.split('/');
+      const nameParts = image.filePath.split('/'); // Use filePath for a more reliable original name basis
       const defaultName = nameParts[nameParts.length -1];
       link.download = image.title.replace(/[^a-zA-Z0-9_.-]/g, '_') + `.${defaultName.split('.').pop() || 'jpg'}`;
       document.body.appendChild(link);
@@ -56,9 +56,9 @@ export default function DownloadsPage() {
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
       
+      // Increment download count using image.id
       const incrementResult = await incrementDownloadCountAction(image.id);
       if (incrementResult.success) {
-        // Optimistically update the local state or re-fetch for immediate UI update if desired
         setImages(prevImages => prevImages.map(img => 
             img.id === image.id ? { ...img, downloadCount: (img.downloadCount || 0) + 1 } : img
         ));
@@ -102,7 +102,7 @@ export default function DownloadsPage() {
       ) : images.length === 0 ? (
          <Alert className="max-w-md mx-auto text-center">
             <ImageOff className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
-            <AlertDescription className="text-lg">No images available in the gallery at this time. Please check back later.</AlertDescription>
+            <AlertDescription className="text-lg">No images available in the gallery. Please check back later.</AlertDescription>
         </Alert>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -162,9 +162,11 @@ export default function DownloadsPage() {
                 <CardTitle className="text-md font-semibold truncate" title={image.title}>{image.title}</CardTitle>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <p className="text-xs text-muted-foreground line-clamp-2" title={image.description || "No description"}>
-                  {image.description || "No description"}
+                 <p className="text-xs text-muted-foreground line-clamp-2" title={image.description || (image.title === image.filePath.substring(image.filePath.lastIndexOf('/') + 1).replace(/^\d{10,15}_/, '').substring(0, image.filePath.substring(image.filePath.lastIndexOf('/') + 1).replace(/^\d{10,15}_/, '').lastIndexOf('.')) ? "No description provided." : image.description || "No description")}>
+                    {image.description || (image.title === image.filePath.substring(image.filePath.lastIndexOf('/') + 1).replace(/^\d{10,15}_/, '').substring(0, image.filePath.substring(image.filePath.lastIndexOf('/') + 1).replace(/^\d{10,15}_/, '').lastIndexOf('.')) ? "No description provided." : "No description")}
                 </p>
+                <p className="text-xs text-muted-foreground mt-1">Downloads: {image.downloadCount || 0}</p>
+
               </CardContent>
               <CardFooter className="p-4 border-t">
                 <Button onClick={() => handleDownload(image)} className="w-full" disabled={isDownloading === image.id}>
@@ -180,3 +182,4 @@ export default function DownloadsPage() {
   );
 }
 
+    
